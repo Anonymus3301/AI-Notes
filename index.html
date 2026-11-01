@@ -1,0 +1,1970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Engineering — FDE curriculum tutorials</title>
+  <style>
+    :root {
+      --ink: #1a1814;
+      --muted: #5c564c;
+      --line: #e4dccf;
+      --paper: #f3efe6;
+      --card: #fffdf8;
+      --forest: #1d5c45;
+      --forest-deep: #143d2e;
+      --copper: #9a4e2c;
+      --gold: #c4a15a;
+      --shadow: 0 10px 30px rgba(40, 28, 12, 0.06);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 500px at 100% -10%, rgba(196, 161, 90, 0.18), transparent 50%),
+        var(--paper);
+      font: 16px/1.5 "Avenir Next", "Segoe UI", sans-serif;
+    }
+    a { color: var(--forest); }
+    header.hero {
+      padding: 36px 28px 28px;
+      background: var(--forest-deep);
+      color: #f6f1e7;
+    }
+    header.hero h1 {
+      margin: 0 0 8px;
+      font-family: Palatino, "Iowan Old Style", Georgia, serif;
+      font-weight: 600;
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      letter-spacing: -0.03em;
+    }
+    header.hero p { max-width: 68ch; margin: 0; color: #d9d0c2; }
+    .meta {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px;
+    }
+    .pill {
+      border: 1px solid rgba(246, 241, 231, 0.25);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 0.82rem;
+      color: #f6f1e7;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 250px 1fr;
+      gap: 28px;
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 24px 20px 80px;
+    }
+    nav.toc {
+      position: sticky;
+      top: 16px;
+      align-self: start;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: var(--shadow);
+      max-height: calc(100vh - 32px);
+      overflow: auto;
+    }
+    nav.toc strong { display: block; font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+    nav.toc a {
+      display: block;
+      text-decoration: none;
+      color: var(--ink);
+      padding: 7px 8px;
+      border-radius: 8px;
+      font-size: 0.92rem;
+    }
+    nav.toc a:hover, nav.toc a.active { background: #efe7d8; }
+    .toolbar {
+      display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+      margin-bottom: 18px;
+    }
+    input[type="search"] {
+      flex: 1;
+      min-width: 220px;
+      border: 1px solid var(--line);
+      background: var(--card);
+      border-radius: 12px;
+      padding: 12px 14px;
+      font: inherit;
+    }
+    button.reset {
+      border: 1px solid var(--line);
+      background: var(--card);
+      border-radius: 12px;
+      padding: 12px 14px;
+      font: inherit;
+      cursor: pointer;
+    }
+    .progress-wrap { margin-bottom: 18px; }
+    .bar { height: 8px; background: #e7dfd2; border-radius: 99px; overflow: hidden; }
+    .bar > span { display: block; height: 100%; width: 0; background: var(--forest); }
+    .progress-wrap small { color: var(--muted); }
+    section.module { margin-bottom: 34px; }
+    section.module h2 {
+      font-family: Palatino, Georgia, serif;
+      font-size: 1.8rem;
+      margin: 0 0 4px;
+    }
+    .weeks { color: var(--copper); font-weight: 600; font-size: 0.9rem; }
+    .blurb { color: var(--muted); margin: 6px 0 14px; max-width: 75ch; }
+    .group-label {
+      margin: 16px 0 8px;
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    article.topic {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px 14px 12px;
+      margin-bottom: 10px;
+      box-shadow: var(--shadow);
+    }
+    article.topic.done { border-color: #b7d7c8; background: #f7fbf8; }
+    .topic-head { display: flex; gap: 10px; align-items: flex-start; }
+    .topic-head h3 { margin: 0; font-size: 1.02rem; font-weight: 650; }
+    .topic p { margin: 8px 0 10px; color: var(--muted); font-size: 0.94rem; }
+    .links { display: flex; flex-wrap: wrap; gap: 8px; }
+    .links a {
+      text-decoration: none;
+      background: var(--forest);
+      color: #f6f1e7;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 0.86rem;
+    }
+    .links a.alt { background: transparent; color: var(--forest-deep); border: 1px solid #b7cfc4; }
+    .links a.notes { background: #f3e6d2; color: #7a3d22; border: 1px solid #e0c7a6; }
+    .meta a.pill { color: inherit; text-decoration: none; background: #c4a15a; color: #1a1814; font-weight: 600; }
+    input[type="checkbox"] { margin-top: 4px; width: 16px; height: 16px; accent-color: var(--forest); }
+    .hidden { display: none; }
+    footer { color: var(--muted); font-size: 0.85rem; margin-top: 20px; }
+    @media (max-width: 860px) {
+      .layout { grid-template-columns: 1fr; }
+      nav.toc { position: static; max-height: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <h1>AI Engineering</h1>
+    <p>
+      A self-study map of the BossCoder Academy Forward Deployed Engineering brochure:
+      seven modules, two electives, and the projects. Every syllabus topic links to a public YouTube tutorial.
+    </p>
+    <div class="meta">
+      <span class="pill">7 phases</span>
+      <span class="pill">About 6 months</span>
+      <span class="pill">LLM to client deployment</span>
+      <span class="pill">Checkboxes save in this browser</span>
+      <a class="pill" href="notes/index.html">Open the detailed notes</a>
+    </div>
+  </header>
+  <div class="layout">
+    <nav class="toc" id="toc"></nav>
+    <main>
+      <div class="toolbar">
+        <input id="q" type="search" placeholder="Filter topics, for example RAG, LangGraph, Docker" />
+        <button class="reset" id="reset" type="button">Reset progress</button>
+      </div>
+      <div class="progress-wrap">
+        <div class="bar"><span id="bar"></span></div>
+        <small id="count"></small>
+      </div>
+      <div id="root"></div>
+      <footer>
+        Source syllabus: BossCoder Academy FDE curriculum brochure (Modules 1–7, electives, projects, and tools).
+        These are independent public tutorials, not the academy’s live classes.
+      </footer>
+    </main>
+  </div>
+  <script id="data" type="application/json">
+{
+  "modules": [
+    {
+      "id": "m1",
+      "nav": "1 · Prompting & LLMs",
+      "title": "Module 1 — Prompt Engineering & LLM Mastery",
+      "weeks": "3 weeks",
+      "blurb": "How transformers work, how to design prompts, and how to call OpenAI, Anthropic, and Gemini without the model ignoring your instructions.",
+      "groups": [
+        {
+          "name": "LLM fundamentals",
+          "topics": [
+            {
+              "id": "m1-transformer",
+              "title": "Transformer architecture, attention, KV cache, mixture of experts",
+              "note": "Build attention from scratch, then see KV cache and mixture-of-experts in a from-scratch LLM course.",
+              "links": [
+                {"label": "Karpathy — Let’s build GPT", "href": "https://www.youtube.com/watch?v=kCc8FmEb1nY"},
+                {"label": "3Blue1Brown — Attention", "href": "https://www.youtube.com/watch?v=eMlx5fFNoYc", "alt": true},
+                {"label": "LLMs from scratch (KV cache, MoE, BPE, RLHF)", "href": "https://www.youtube.com/watch?v=p3sij8QzONQ", "alt": true}
+              ]
+            },
+            {
+              "id": "m1-reasoning",
+              "title": "Reasoning models — o1 and Claude extended thinking",
+              "note": "Why reasoning models spend extra compute at inference time, and how that differs from a normal chat completion.",
+              "links": [
+                {"label": "Explaining OpenAI o1", "href": "https://www.youtube.com/watch?v=jrA47yocyV0"},
+                {"label": "More: Claude extended thinking", "href": "https://www.youtube.com/results?search_query=Claude+extended+thinking+explained", "alt": true}
+              ]
+            },
+            {
+              "id": "m1-tools",
+              "title": "ChatGPT, Claude, Copilot, and Cursor — when to use each",
+              "note": "Chat and code assistants, plus how Cursor can point at a local model.",
+              "links": [
+                {"label": "Prompt engineering course (ChatGPT)", "href": "https://www.youtube.com/watch?v=ScKCy2udln8"},
+                {"label": "Claude API deep dive", "href": "https://www.youtube.com/watch?v=9NzzqgthSKI", "alt": true},
+                {"label": "Cursor with a local model", "href": "https://www.youtube.com/watch?v=Ssh3m_8RPlA", "alt": true},
+                {"label": "More: Copilot vs Cursor", "href": "https://www.youtube.com/results?search_query=GitHub+Copilot+vs+Cursor+vs+Claude", "alt": true}
+              ]
+            },
+            {
+              "id": "m1-nocode",
+              "title": "No-code AI tools — Bolt, Lovable, v0, and n8n",
+              "note": "n8n is the hands-on path. Use the search for the app builders Bolt, Lovable, and v0.",
+              "links": [
+                {"label": "n8n masterclass — AI agents", "href": "https://www.youtube.com/watch?v=ZHH3sr234zY"},
+                {"label": "n8n crash course", "href": "https://www.youtube.com/watch?v=BLG9kpUCnww", "alt": true},
+                {"label": "More: Bolt, Lovable, v0", "href": "https://www.youtube.com/results?search_query=bolt.new+lovable+v0+vercel+tutorial", "alt": true}
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Prompt design",
+          "topics": [
+            {
+              "id": "m1-basics",
+              "title": "Zero-shot, few-shot, role, task, context, format, persona, and tone",
+              "note": "The core prompt shapes used in every later project.",
+              "links": [
+                {"label": "freeCodeCamp prompt engineering", "href": "https://www.youtube.com/watch?v=ScKCy2udln8"},
+                {"label": "Andrew Ng & OpenAI — course intro", "href": "https://www.youtube.com/watch?v=H4YK_7MAckk", "alt": true}
+              ]
+            },
+            {
+              "id": "m1-cot",
+              "title": "Chain-of-thought, tree-of-thought, and self-consistency",
+              "note": "Step-by-step reasoning, branching plans, and majority vote across samples.",
+              "links": [
+                {"label": "Prompting lecture — CoT, ToT, self-consistency", "href": "https://www.youtube.com/watch?v=EcmnYeWjYQI"}
+              ]
+            },
+            {
+              "id": "m1-reflect",
+              "title": "Reflection, self-critique, and plan-and-execute",
+              "note": "Have the model review its own draft, then split planning from execution the way agents do.",
+              "links": [
+                {"label": "Prompt patterns lecture", "href": "https://www.youtube.com/watch?v=EcmnYeWjYQI"},
+                {"label": "Agentic workshop — planners and crews", "href": "https://www.youtube.com/watch?v=LSk5KaEGVk4", "alt": true}
+              ]
+            },
+            {
+              "id": "m1-chain",
+              "title": "Prompt chaining",
+              "note": "Break one large ask into smaller prompts whose outputs feed the next step.",
+              "links": [
+                {"label": "Break tasks into smaller steps", "href": "https://www.youtube.com/watch?v=ScKCy2udln8"}
+              ]
+            },
+            {
+              "id": "m1-system",
+              "title": "System prompt architecture and multi-turn design",
+              "note": "Role contracts, delimiters, and a chatbot that keeps state across turns.",
+              "links": [
+                {"label": "System prompts, roles, lost-in-the-middle", "href": "https://www.youtube.com/watch?v=EcmnYeWjYQI"},
+                {"label": "Build a custom chatbot", "href": "https://www.youtube.com/watch?v=H4YK_7MAckk", "alt": true}
+              ]
+            },
+            {
+              "id": "m1-injection",
+              "title": "Prompt injection defence",
+              "note": "Direct injection, why model output is untrusted, and how to limit what the model is allowed to decide.",
+              "links": [
+                {"label": "Direct prompt injection — red teaming", "href": "https://www.youtube.com/watch?v=8i95orzUrY0"},
+                {"label": "Defending against prompt injection", "href": "https://www.youtube.com/watch?v=VbNPZ1n6_vY", "alt": true}
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Advanced techniques",
+          "topics": [
+            {
+              "id": "m1-tools-calling",
+              "title": "Function calling, tool use, and structured outputs",
+              "note": "JSON mode versus a real schema, and when the model should call a tool instead of writing prose.",
+              "links": [
+                {"label": "Structured outputs, JSON mode, tool calling", "href": "https://www.youtube.com/watch?v=gsJxuvdSa68"},
+                {"label": "OpenAI structured output", "href": "https://www.youtube.com/watch?v=eJvYafgLh40", "alt": true}
+              ]
+            },
+            {
+              "id": "m1-pydantic",
+              "title": "Pydantic, Instructor, and JSON schema",
+              "note": "Define the response as a Pydantic model and force the API to match it. Instructor is the same idea as a helper around that schema.",
+              "links": [
+                {"label": "Pydantic + OpenAI function calling", "href": "https://www.youtube.com/watch?v=NGEZsqEUpC0"},
+                {"label": "Hands-on structured outputs", "href": "https://www.youtube.com/watch?v=gsJxuvdSa68", "alt": true}
+              ]
+            },
+            {
+              "id": "m1-tokens",
+              "title": "Tokenization and cost — tiktoken, BPE, prompt compression",
+              "note": "Karpathy’s lecture starts with tokenization. The production RAG course covers token budgets.",
+              "links": [
+                {"label": "Build GPT — tokenization section", "href": "https://www.youtube.com/watch?v=kCc8FmEb1nY&t=568s"},
+                {"label": "BPE, KV cache, and scaling", "href": "https://www.youtube.com/watch?v=p3sij8QzONQ", "alt": true},
+                {"label": "Production RAG — token budgeting", "href": "https://www.youtube.com/watch?v=mHxLXzYjQRE&t=4429s", "alt": true}
+              ]
+            },
+            {
+              "id": "m1-dspy",
+              "title": "Few-shot optimisation and DSPy",
+              "note": "Program the model with signatures and let DSPy compile the prompt instead of hand-tuning every example.",
+              "links": [
+                {"label": "Structured outputs with DSPy", "href": "https://www.youtube.com/watch?v=tVw3CwrN5-8"},
+                {"label": "More DSPy tutorials", "href": "https://www.youtube.com/results?search_query=DSPy+tutorial+prompt+optimization", "alt": true}
+              ]
+            },
+            {
+              "id": "m1-react-safety",
+              "title": "ReAct, safety prompting, and responsible AI",
+              "note": "Thought, action, observation — then the guardrails that keep that loop from acting on a bad instruction.",
+              "links": [
+                {"label": "ReAct in the prompting lecture", "href": "https://www.youtube.com/watch?v=EcmnYeWjYQI"},
+                {"label": "Guardrails AI", "href": "https://www.youtube.com/watch?v=_Gwv3BG1jIo", "alt": true}
+              ]
+            },
+            {
+              "id": "m1-multi",
+              "title": "Multimodal inputs, document understanding, and code-review prompting",
+              "note": "Vision retrieval, document RAG, and using prompts to review code.",
+              "links": [
+                {"label": "Production RAG — multimodal section", "href": "https://www.youtube.com/watch?v=mHxLXzYjQRE&t=26668s"},
+                {"label": "Prompting for code review", "href": "https://www.youtube.com/watch?v=ScKCy2udln8&t=9998s", "alt": true}
+              ]
+            },
+            {
+              "id": "m1-apis",
+              "title": "LLM APIs — OpenAI, Anthropic, Gemini — and prompt versioning",
+              "note": "Official-style SDK walkthroughs for OpenAI and Claude. Version prompts in LangSmith so a model swap does not silently drift.",
+              "links": [
+                {"label": "Anthropic API — tools, streaming, retries", "href": "https://www.youtube.com/watch?v=9NzzqgthSKI"},
+                {"label": "OpenAI structured calls", "href": "https://www.youtube.com/watch?v=eJvYafgLh40", "alt": true},
+                {"label": "LangSmith — trace and evaluate", "href": "https://www.youtube.com/watch?v=tFXm5ijih98", "alt": true},
+                {"label": "More: Gemini API", "href": "https://www.youtube.com/results?search_query=Google+Gemini+API+Python+tutorial", "alt": true}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m2",
+      "nav": "2 · Python & APIs",
+      "title": "Module 2 — Python & API Foundations for AI",
+      "weeks": "2 weeks",
+      "blurb": "The Python you need to ship an AI service: typing, tests, async HTTP, retries, and the OpenAI and Anthropic SDKs.",
+      "groups": [
+        {
+          "name": "Python foundations",
+          "topics": [
+            {
+              "id": "m2-py",
+              "title": "Python programming language — full foundations",
+              "note": "Start here if the rest of the course should feel like coding, not magic.",
+              "links": [
+                {"label": "Python for beginners — full course", "href": "https://www.youtube.com/watch?v=eWRfhZUzrAc"},
+                {"label": "Python tutorial with projects", "href": "https://www.youtube.com/watch?v=qwAFL1597eM", "alt": true}
+              ]
+            },
+            {
+              "id": "m2-files",
+              "title": "File handling and JSON (json.load, json.dumps)",
+              "note": "Reading files and parsing JSON shows up in every ingestion pipeline later.",
+              "links": [
+                {"label": "Python course — core language", "href": "https://www.youtube.com/watch?v=eWRfhZUzrAc"},
+                {"label": "Python working with APIs and JSON", "href": "https://www.youtube.com/watch?v=8124kv-632k", "alt": true}
+              ]
+            },
+            {
+              "id": "m2-oop",
+              "title": "OOP and error handling",
+              "note": "Classes for clients and configs, try/except around every external call.",
+              "links": [
+                {"label": "Python OOP for beginners", "href": "https://www.youtube.com/watch?v=JeznW_7DlB0"},
+                {"label": "OOP crash course", "href": "https://www.youtube.com/watch?v=-pEs-Bss8Wc", "alt": true}
+              ]
+            },
+            {
+              "id": "m2-dec",
+              "title": "Decorators, context managers, and dataclasses",
+              "note": "Decorators wrap behavior. Dataclasses cut boilerplate on config and schema objects.",
+              "links": [
+                {"label": "Decorators tutorial", "href": "https://www.youtube.com/watch?v=T8CQwGIsrx4"},
+                {"label": "dataclass decorator", "href": "https://www.youtube.com/watch?v=trj0ycqXGmY", "alt": true},
+                {"label": "More: context managers", "href": "https://www.youtube.com/results?search_query=python+context+managers+tutorial", "alt": true}
+              ]
+            },
+            {
+              "id": "m2-types",
+              "title": "Type hints and static checking with mypy",
+              "note": "Annotate functions first. mypy then checks them before runtime.",
+              "links": [
+                {"label": "mypy and type hints", "href": "https://www.youtube.com/results?search_query=python+mypy+type+hints+tutorial"},
+                {"label": "Dataclasses use those annotations", "href": "https://www.youtube.com/watch?v=trj0ycqXGmY", "alt": true}
+              ]
+            },
+            {
+              "id": "m2-pytest",
+              "title": "Unit testing with pytest, and mocking external API calls",
+              "note": "Tests for your own code, mocks so you do not pay an LLM on every run.",
+              "links": [
+                {"label": "pytest — full tutorial", "href": "https://www.youtube.com/watch?v=cHYq1MRoyI0"},
+                {"label": "More: mocking requests", "href": "https://www.youtube.com/results?search_query=pytest+mock+requests+API+tutorial", "alt": true}
+              ]
+            },
+            {
+              "id": "m2-log",
+              "title": "Structured logging",
+              "note": "Log events as fields, not sentences, so you can trace a request later.",
+              "links": [
+                {"label": "Python logging module", "href": "https://www.youtube.com/results?search_query=python+logging+module+structured+logging+tutorial"}
+              ]
+            },
+            {
+              "id": "m2-async",
+              "title": "Async Python — async def, await, asyncio",
+              "note": "Non-blocking calls for streaming tokens and fetching many pages at once.",
+              "links": [
+                {"label": "asyncio complete guide", "href": "https://www.youtube.com/watch?v=oAkLSJNr5zY"}
+              ]
+            },
+            {
+              "id": "m2-env",
+              "title": "venv, python-dotenv, secrets hygiene, and Git",
+              "note": "Isolate the environment, keep keys out of source, and commit the project.",
+              "links": [
+                {"label": "Git and GitHub for beginners", "href": "https://www.youtube.com/results?search_query=freeCodeCamp+git+and+github+full+course"},
+                {"label": "More: venv and dotenv", "href": "https://www.youtube.com/results?search_query=python+venv+python-dotenv+tutorial", "alt": true}
+              ]
+            },
+            {
+              "id": "m2-layout",
+              "title": "Project structure — src/, prompts/, tests/, notebooks/",
+              "note": "Watch how the LangGraph and production RAG courses split code, prompts, and tests.",
+              "links": [
+                {"label": "LangGraph project structure", "href": "https://www.youtube.com/watch?v=dIb-DujRNEo"},
+                {"label": "Production RAG course setup", "href": "https://www.youtube.com/watch?v=mHxLXzYjQRE&t=507s", "alt": true}
+              ]
+            }
+          ]
+        },
+        {
+          "name": "APIs and SDKs",
+          "topics": [
+            {
+              "id": "m2-http",
+              "title": "HTTP calls — requests, status codes, pagination, JSON parsing",
+              "note": "The ingestion project later pulls 50,000 paginated records. Learn the plain HTTP version first.",
+              "links": [
+                {"label": "Python tutorial — working with APIs", "href": "https://www.youtube.com/watch?v=8124kv-632k"},
+                {"label": "More: pagination and httpx", "href": "https://www.youtube.com/results?search_query=python+httpx+pagination+retry+tutorial", "alt": true}
+              ]
+            },
+            {
+              "id": "m2-auth",
+              "title": "Authentication — API keys, headers, and key rotation",
+              "note": "Keys live in headers and environment variables, never in the repo.",
+              "links": [
+                {"label": "Anthropic API authentication", "href": "https://www.youtube.com/watch?v=9NzzqgthSKI"},
+                {"label": "Structured outputs — env vars for keys", "href": "https://www.youtube.com/watch?v=gsJxuvdSa68", "alt": true}
+              ]
+            },
+            {
+              "id": "m2-retry",
+              "title": "Retry logic with exponential backoff and jitter",
+              "note": "SDKs already retry some errors. You still need the pattern for flaky third-party APIs.",
+              "links": [
+                {"label": "Claude SDK rate limits and retries", "href": "https://www.youtube.com/watch?v=9NzzqgthSKI"},
+                {"label": "More: tenacity backoff", "href": "https://www.youtube.com/results?search_query=python+tenacity+exponential+backoff+jitter", "alt": true}
+              ]
+            },
+            {
+              "id": "m2-webhook",
+              "title": "Webhooks — signature verification and idempotent handling",
+              "note": "Verify the signature, then make the handler safe to run twice.",
+              "links": [
+                {"label": "Webhook signature verification", "href": "https://www.youtube.com/results?search_query=webhook+signature+verification+idempotency+tutorial"}
+              ]
+            },
+            {
+              "id": "m2-oai",
+              "title": "OpenAI SDK — chat completions and streaming",
+              "note": "A streaming completion is the shape of every chat UI in this course.",
+              "links": [
+                {"label": "OpenAI structured and streaming patterns", "href": "https://www.youtube.com/watch?v=eJvYafgLh40"},
+                {"label": "Function calling walkthrough", "href": "https://www.youtube.com/watch?v=NGEZsqEUpC0", "alt": true}
+              ]
+            },
+            {
+              "id": "m2-anthropic",
+              "title": "Anthropic SDK — prompt caching (cache_control)",
+              "note": "The messages API, streaming, and tools. Caching is the cost lever on repeated system prompts.",
+              "links": [
+                {"label": "Anthropic API tutorial", "href": "https://www.youtube.com/watch?v=9NzzqgthSKI"},
+                {"label": "More: prompt caching", "href": "https://www.youtube.com/results?search_query=Anthropic+prompt+caching+cache_control+tutorial", "alt": true}
+              ]
+            },
+            {
+              "id": "m2-client",
+              "title": "Client configuration — timeouts, base_url overrides, connection pooling",
+              "note": "Point the OpenAI-compatible client at Ollama or another gateway by changing base URL and timeouts.",
+              "links": [
+                {"label": "Ollama behind FastAPI", "href": "https://www.youtube.com/watch?v=0c96PQd3nA8"},
+                {"label": "CrewAI pointed at a local model", "href": "https://www.youtube.com/watch?v=_5_QHE3p8EA", "alt": true}
+              ]
+            },
+            {
+              "id": "m2-dspy",
+              "title": "DSPy hands-on — compile and optimise prompts",
+              "note": "Same library as Module 1, now as a programming exercise rather than a concept.",
+              "links": [
+                {"label": "DSPy structured outputs", "href": "https://www.youtube.com/watch?v=tVw3CwrN5-8"}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m3",
+      "nav": "3 · RAG & vectors",
+      "title": "Module 3 — RAG Systems & Vector Intelligence",
+      "weeks": "3 weeks",
+      "blurb": "Make a document corpus searchable: embeddings, a vector store, a retriever, and a number that says whether the answer is grounded.",
+      "groups": [
+        {
+          "name": "Embeddings and retrieval",
+          "topics": [
+            {
+              "id": "m3-emb",
+              "title": "Embeddings — text-embedding-3, sentence-transformers, BGE",
+              "note": "BGE and MiniLM are sentence-transformer models. text-embedding-3 is the OpenAI API equivalent.",
+              "links": [
+                {"label": "Text embeddings and semantic search", "href": "https://www.youtube.com/watch?v=OATCgQtNX2o"},
+                {"label": "Sentence-transformers similarity", "href": "https://www.youtube.com/watch?v=Ey81KfQ3PQU", "alt": true}
+              ]
+            },
+            {
+              "id": "m3-cosine",
+              "title": "Cosine similarity",
+              "note": "The score that ranks chunks. Inner product after normalization is the same idea.",
+              "links": [
+                {"label": "Cosine similarity explained with embeddings", "href": "https://www.youtube.com/watch?v=OATCgQtNX2o"}
+              ]
+            },
+            {
+              "id": "m3-vdb",
+              "title": "Vector databases — Pinecone, ChromaDB, FAISS",
+              "note": "FAISS locally, Chroma in the production course, Pinecone in the short chatbot walkthrough.",
+              "links": [
+                {"label": "FAISS and vector indexes", "href": "https://www.youtube.com/watch?v=tQkQCYG8dyE"},
+                {"label": "Production RAG with Chroma", "href": "https://www.youtube.com/watch?v=mHxLXzYjQRE", "alt": true},
+                {"label": "LangChain + Pinecone chatbot", "href": "https://www.youtube.com/watch?v=LhnCsygAvzY", "alt": true}
+              ]
+            },
+            {
+              "id": "m3-chunk",
+              "title": "Document chunking and how it changes quality",
+              "note": "Chunk size, overlap, and late versus early chunking.",
+              "links": [
+                {"label": "Production RAG — indexing and chunking", "href": "https://www.youtube.com/watch?v=mHxLXzYjQRE&t=1707s"},
+                {"label": "Late vs early chunking", "href": "https://www.youtube.com/watch?v=mHxLXzYjQRE&t=23066s", "alt": true}
+              ]
+            }
+          ]
+        },
+        {
+          "name": "RAG pipeline",
+          "topics": [
+            {
+              "id": "m3-lcel",
+              "title": "LangChain — LCEL, chains, retrievers, prompt templates",
+              "note": "Runnable pipelines: retriever, prompt, model, parser.",
+              "links": [
+                {"label": "RAG from scratch — LangChain engineer", "href": "https://www.youtube.com/watch?v=sVcwVQRHIc8"},
+                {"label": "RAG coding crash course", "href": "https://www.youtube.com/watch?v=oZYlrooPgvs", "alt": true}
+              ]
+            },
+            {
+              "id": "m3-e2e",
+              "title": "End-to-end retrieval pipeline",
+              "note": "Load, split, embed, store, retrieve, generate.",
+              "links": [
+                {"label": "Production RAG full course", "href": "https://www.youtube.com/watch?v=mHxLXzYjQRE"},
+                {"label": "Pinecone walkthrough", "href": "https://www.youtube.com/watch?v=LhnCsygAvzY", "alt": true}
+              ]
+            },
+            {
+              "id": "m3-parent",
+              "title": "Parent-document retriever and contextual compression",
+              "note": "Retrieve a small chunk, then expand to the parent. Compress context before it hits the model.",
+              "links": [
+                {"label": "Advanced RAG patterns in the production course", "href": "https://www.youtube.com/watch?v=mHxLXzYjQRE&t=22000s"},
+                {"label": "More: parent document retriever", "href": "https://www.youtube.com/results?search_query=LangChain+parent+document+retriever+contextual+compression", "alt": true}
+              ]
+            },
+            {
+              "id": "m3-ragas",
+              "title": "Production RAG evaluation with RAGAS",
+              "note": "Faithfulness, answer relevancy, and context recall — the numbers you show a client.",
+              "links": [
+                {"label": "More: RAGAS tutorial", "href": "https://www.youtube.com/results?search_query=RAGAS+faithfulness+answer+relevancy+tutorial"},
+                {"label": "LangSmith evaluation", "href": "https://www.youtube.com/watch?v=tFXm5ijih98", "alt": true},
+                {"label": "DeepEval unit tests", "href": "https://www.youtube.com/watch?v=ZHiJ12MhfQ8", "alt": true}
+              ]
+            },
+            {
+              "id": "m3-window",
+              "title": "Context window — stuffing, map-reduce, refine, lost in the middle",
+              "note": "Stuffing one prompt fails as documents grow. Instructions in the middle of a long context get ignored.",
+              "links": [
+                {"label": "Lost in the middle", "href": "https://www.youtube.com/watch?v=EcmnYeWjYQI"},
+                {"label": "Long context vs RAG", "href": "https://www.youtube.com/watch?v=mHxLXzYjQRE&t=21969s", "alt": true}
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Hybrid search",
+          "topics": [
+            {
+              "id": "m3-bm25",
+              "title": "BM25 keyword search",
+              "note": "Exact IDs and product codes that embeddings miss.",
+              "links": [
+                {"label": "Hybrid search inside production RAG", "href": "https://www.youtube.com/watch?v=mHxLXzYjQRE&t=6826s"},
+                {"label": "Hybrid RAG — BM25 + vectors + RRF", "href": "https://www.youtube.com/watch?v=FgUJ2kzhmKQ", "alt": true}
+              ]
+            },
+            {
+              "id": "m3-hyde",
+              "title": "HyDE — hypothetical document embeddings",
+              "note": "Embed a made-up answer, then search with that vector instead of the raw question.",
+              "links": [
+                {"label": "HyDE tutorials", "href": "https://www.youtube.com/results?search_query=HyDE+hypothetical+document+embeddings+RAG"},
+                {"label": "Advanced retrieval course section", "href": "https://www.youtube.com/watch?v=mHxLXzYjQRE&t=22000s", "alt": true}
+              ]
+            },
+            {
+              "id": "m3-rrf",
+              "title": "Reciprocal rank fusion",
+              "note": "Merge two ranked lists without comparing their raw scores.",
+              "links": [
+                {"label": "Hybrid engine with RRF", "href": "https://www.youtube.com/watch?v=FgUJ2kzhmKQ"}
+              ]
+            },
+            {
+              "id": "m3-alpha",
+              "title": "Alpha-weighting between BM25 and dense retrieval",
+              "note": "Turn the blend toward keywords for codes, and toward vectors for concepts.",
+              "links": [
+                {"label": "Dynamic hybrid weights", "href": "https://www.youtube.com/watch?v=FgUJ2kzhmKQ"},
+                {"label": "Production RAG hybrid search", "href": "https://www.youtube.com/watch?v=mHxLXzYjQRE&t=6826s", "alt": true}
+              ]
+            },
+            {
+              "id": "m3-rerank",
+              "title": "Cross-encoder reranking with sentence-transformers",
+              "note": "A bi-encoder retrieves candidates. A cross-encoder rescores the short list.",
+              "links": [
+                {"label": "Cross-encoder reranking", "href": "https://www.youtube.com/results?search_query=sentence-transformers+CrossEncoder+reranking+tutorial"},
+                {"label": "Embeddings foundation", "href": "https://www.youtube.com/watch?v=Ey81KfQ3PQU", "alt": true}
+              ]
+            },
+            {
+              "id": "m3-eval-hybrid",
+              "title": "Evaluate hybrid search against a pure-vector baseline",
+              "note": "Same questions, two retrievers, RAGAS or a labeled set in the middle.",
+              "links": [
+                {"label": "Debugging and optimising RAG", "href": "https://www.youtube.com/watch?v=mHxLXzYjQRE&t=5596s"},
+                {"label": "LangSmith evals", "href": "https://www.youtube.com/watch?v=tFXm5ijih98", "alt": true}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m4",
+      "nav": "4 · Advanced RAG & tuning",
+      "title": "Module 4 — Advanced RAG & LLM Fine-Tuning",
+      "weeks": "3 weeks",
+      "blurb": "When plain RAG is not enough: rewrite the query, correct the retrieval, or fine-tune a small model and run it locally.",
+      "groups": [
+        {
+          "name": "Advanced RAG",
+          "topics": [
+            {
+              "id": "m4-multihop",
+              "title": "Query rewriting and multi-hop retrieval",
+              "note": "Decompose a question, retrieve once per hop, and keep citations.",
+              "links": [
+                {"label": "GraphRAG and multi-hop section", "href": "https://www.youtube.com/watch?v=mHxLXzYjQRE&t=25485s"},
+                {"label": "More: multi-hop RAG agent", "href": "https://www.youtube.com/results?search_query=multi-hop+RAG+query+rewriting+LangGraph", "alt": true}
+              ]
+            },
+            {
+              "id": "m4-rerank",
+              "title": "Cross-encoder reranking",
+              "note": "Same skill as Module 3, now as a required stage before generation.",
+              "links": [
+                {"label": "Cross-encoder rerank tutorials", "href": "https://www.youtube.com/results?search_query=cross+encoder+reranking+RAG+cohere"},
+                {"label": "Hybrid retrieval video", "href": "https://www.youtube.com/watch?v=FgUJ2kzhmKQ", "alt": true}
+              ]
+            },
+            {
+              "id": "m4-crag",
+              "title": "Self-correcting RAG — CRAG, Self-RAG, agentic RAG",
+              "note": "The retriever grades its own context and searches again when the evidence is weak.",
+              "links": [
+                {"label": "Agentic and self-correcting RAG", "href": "https://www.youtube.com/watch?v=mHxLXzYjQRE&t=24124s"},
+                {"label": "More: Self-RAG and CRAG", "href": "https://www.youtube.com/results?search_query=Self-RAG+CRAG+corrective+RAG+explained", "alt": true}
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Fine-tuning",
+          "topics": [
+            {
+              "id": "m4-qlora",
+              "title": "LoRA and QLoRA with bitsandbytes 4-bit",
+              "note": "Train a small adapter on a quantized base model that fits on one GPU.",
+              "links": [
+                {"label": "QLoRA on a single GPU", "href": "https://www.youtube.com/watch?v=XpoKB3usmKc"},
+                {"label": "LoRA vs QLoRA explained", "href": "https://www.youtube.com/watch?v=cO6Ly7mIziQ", "alt": true},
+                {"label": "Fine-tune Llama 3.1 with PEFT and QLoRA", "href": "https://www.youtube.com/watch?v=08hDBgBVGvg", "alt": true}
+              ]
+            },
+            {
+              "id": "m4-peft",
+              "title": "Adapters, prefix tuning — Hugging Face transformers, PEFT, datasets",
+              "note": "LoRA is the adapter you will actually train. Prefix tuning is the same PEFT family.",
+              "links": [
+                {"label": "PEFT and QLoRA walkthrough", "href": "https://www.youtube.com/watch?v=08hDBgBVGvg"},
+                {"label": "LoRA intuition", "href": "https://www.youtube.com/watch?v=cO6Ly7mIziQ", "alt": true}
+              ]
+            },
+            {
+              "id": "m4-axolotl",
+              "title": "Fine-tuning with Axolotl (YAML-driven)",
+              "note": "A config file instead of a long training script: base model, dataset, LoRA, then train.",
+              "links": [
+                {"label": "Axolotl fine-tuning course", "href": "https://www.youtube.com/playlist?list=PLgIaq8VgndJuTUJgr-8khBZYigonBshUx"},
+                {"label": "Axolotl office hours — DPO, checkpoints, W&B", "href": "https://www.youtube.com/watch?v=6Pg6SVEooys", "alt": true}
+              ]
+            },
+            {
+              "id": "m4-gpu",
+              "title": "GPU rental on RunPod and vast.ai",
+              "note": "The QLoRA lesson uses a rented GPU. The Axolotl course uses a cloud GPU box the same way RunPod and vast.ai work.",
+              "links": [
+                {"label": "QLoRA on rented GPU / Colab", "href": "https://www.youtube.com/watch?v=XpoKB3usmKc"},
+                {"label": "Axolotl on a cloud GPU", "href": "https://www.youtube.com/playlist?list=PLgIaq8VgndJuTUJgr-8khBZYigonBshUx", "alt": true},
+                {"label": "More: RunPod and vast.ai", "href": "https://www.youtube.com/results?search_query=RunPod+vast.ai+QLoRA+fine+tune", "alt": true}
+              ]
+            },
+            {
+              "id": "m4-align",
+              "title": "Knowledge distillation, RLHF, and DPO with TRL",
+              "note": "Preference pairs, a reward model, PPO, and the simpler DPO path in Hugging Face TRL.",
+              "links": [
+                {"label": "RLHF and DPO", "href": "https://www.youtube.com/watch?v=bbVoDXoPrPM"},
+                {"label": "From-scratch LLM through PPO RLHF", "href": "https://www.youtube.com/watch?v=p3sij8QzONQ", "alt": true},
+                {"label": "More: knowledge distillation", "href": "https://www.youtube.com/results?search_query=knowledge+distillation+LLM+tutorial", "alt": true}
+              ]
+            },
+            {
+              "id": "m4-wandb",
+              "title": "Training monitoring with Weights & Biases",
+              "note": "Loss curves and eval tables while a run is in progress. The Axolotl session logs predictions to W&B.",
+              "links": [
+                {"label": "Axolotl — checkpoints and W&B", "href": "https://www.youtube.com/watch?v=6Pg6SVEooys"},
+                {"label": "More: Weights & Biases", "href": "https://www.youtube.com/results?search_query=weights+and+biases+wandb+LLM+fine+tuning", "alt": true}
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Local deployment",
+          "topics": [
+            {
+              "id": "m4-ollama",
+              "title": "Ollama for local inference",
+              "note": "Pull a model, run it, and call it from Python.",
+              "links": [
+                {"label": "Ollama tutorial and WebUI", "href": "https://www.youtube.com/watch?v=Lb5D892-2HY"},
+                {"label": "Ollama + FastAPI + Docker", "href": "https://www.youtube.com/watch?v=0c96PQd3nA8", "alt": true}
+              ]
+            },
+            {
+              "id": "m4-gguf",
+              "title": "GGUF quantisation — Q4_K_M and Q8_0",
+              "note": "The file format Ollama runs. Q4 is smaller, Q8 is closer to the original weights.",
+              "links": [
+                {"label": "Run quantized local models", "href": "https://www.youtube.com/watch?v=Lb5D892-2HY"},
+                {"label": "QLoRA — what 4-bit does", "href": "https://www.youtube.com/watch?v=XpoKB3usmKc", "alt": true},
+                {"label": "More: GGUF Q4_K_M vs Q8", "href": "https://www.youtube.com/results?search_query=GGUF+Q4_K_M+Q8_0+explained", "alt": true}
+              ]
+            },
+            {
+              "id": "m4-models",
+              "title": "Llama 3, Phi-3, and Mistral",
+              "note": "Which open model to pull, and how a 7B–8B model compares with a tiny one.",
+              "links": [
+                {"label": "Fine-tune Llama 3.1", "href": "https://www.youtube.com/watch?v=08hDBgBVGvg"},
+                {"label": "Pull and run local models in Ollama", "href": "https://www.youtube.com/watch?v=Lb5D892-2HY", "alt": true}
+              ]
+            },
+            {
+              "id": "m4-tradeoff",
+              "title": "Model selection and cost–performance trade-offs",
+              "note": "API model versus a local quantized model: quality, latency, and the bill.",
+              "links": [
+                {"label": "Real cost of vector search and hosting", "href": "https://www.youtube.com/watch?v=mHxLXzYjQRE&t=12215s"},
+                {"label": "QLoRA memory math", "href": "https://www.youtube.com/watch?v=XpoKB3usmKc", "alt": true}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m5",
+      "nav": "5 · Agentic systems",
+      "title": "Module 5 — Agentic AI Systems",
+      "weeks": "4 weeks",
+      "blurb": "Agents that call tools, remember, hand work to other agents, and stop for a human when the action matters.",
+      "groups": [
+        {
+          "name": "Agent architecture",
+          "topics": [
+            {
+              "id": "m5-react",
+              "title": "ReAct loop and planner–executor",
+              "note": "One agent reasons and acts. A planner writes the steps and an executor carries them out.",
+              "links": [
+                {"label": "LangGraph — ReAct agent", "href": "https://www.youtube.com/watch?v=dIb-DujRNEo&t=4717s"},
+                {"label": "4-hour agentic workshop", "href": "https://www.youtube.com/watch?v=LSk5KaEGVk4", "alt": true}
+              ]
+            },
+            {
+              "id": "m5-arbiter",
+              "title": "Tool arbiter",
+              "note": "A gate in front of tools that decides whether the proposed action is allowed.",
+              "links": [
+                {"label": "Supervisor, guardrails, and human approval", "href": "https://www.youtube.com/watch?v=BM39OouLNsM"},
+                {"label": "More: tool arbiter pattern", "href": "https://www.youtube.com/results?search_query=AI+agent+tool+arbiter+pattern", "alt": true}
+              ]
+            },
+            {
+              "id": "m5-mcp",
+              "title": "Function calling and MCP (Model Context Protocol)",
+              "note": "MCP is the shared plug for tools. Build a server, then let the agent discover it.",
+              "links": [
+                {"label": "MCP for beginners — full course", "href": "https://www.youtube.com/watch?v=VfZlglOWWZw"},
+                {"label": "Build a custom MCP agent", "href": "https://www.youtube.com/watch?v=w-Ml3NivoFo", "alt": true},
+                {"label": "LangGraph MCP from scratch", "href": "https://www.youtube.com/watch?v=dIb-DujRNEo&t=6762s", "alt": true}
+              ]
+            },
+            {
+              "id": "m5-tavily",
+              "title": "Agent tool use — web search with Tavily, parallel tool calls",
+              "note": "A search tool is the usual first tool. Parallel calls fire several tools in one step.",
+              "links": [
+                {"label": "LangGraph chatbot with tools", "href": "https://www.youtube.com/watch?v=dIb-DujRNEo&t=2945s"},
+                {"label": "More: Tavily search tool", "href": "https://www.youtube.com/results?search_query=Tavily+search+tool+LangGraph+tutorial", "alt": true}
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Frameworks",
+          "topics": [
+            {
+              "id": "m5-langgraph",
+              "title": "LangGraph — state, nodes, edges, checkpointing, human-in-the-loop",
+              "note": "The graph is the workflow. Checkpoints let a person approve before the next node.",
+              "links": [
+                {"label": "LangGraph and MCP crash course", "href": "https://www.youtube.com/watch?v=dIb-DujRNEo"},
+                {"label": "Human feedback in the loop", "href": "https://www.youtube.com/watch?v=dIb-DujRNEo&t=6298s", "alt": true}
+              ]
+            },
+            {
+              "id": "m5-crew",
+              "title": "CrewAI — role-based multi-agent teams",
+              "note": "Roles, goals, and a crew that passes work between agents.",
+              "links": [
+                {"label": "Agentic workshop — CrewAI and MCP", "href": "https://www.youtube.com/watch?v=LSk5KaEGVk4"},
+                {"label": "CrewAI with a local model", "href": "https://www.youtube.com/watch?v=_5_QHE3p8EA", "alt": true}
+              ]
+            },
+            {
+              "id": "m5-process",
+              "title": "Sequential versus hierarchical process",
+              "note": "A line of agents versus a manager that delegates.",
+              "links": [
+                {"label": "CrewAI workshop", "href": "https://www.youtube.com/watch?v=LSk5KaEGVk4"},
+                {"label": "Supervisor multi-agent system", "href": "https://www.youtube.com/watch?v=BM39OouLNsM", "alt": true}
+              ]
+            },
+            {
+              "id": "m5-agentic-rag",
+              "title": "Agentic RAG and n8n workflow automation",
+              "note": "The agent decides when to retrieve. n8n is the no-code version of that workflow.",
+              "links": [
+                {"label": "Agentic RAG section", "href": "https://www.youtube.com/watch?v=mHxLXzYjQRE&t=24124s"},
+                {"label": "n8n AI agents masterclass", "href": "https://www.youtube.com/watch?v=ZHH3sr234zY", "alt": true}
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Memory and safety",
+          "topics": [
+            {
+              "id": "m5-memory",
+              "title": "Memory — conversation buffer, vector store, episodic",
+              "note": "Short-term is the chat buffer. Long-term is a vector store. Episodic is what happened in past runs.",
+              "links": [
+                {"label": "Adding memory in LangGraph", "href": "https://www.youtube.com/watch?v=dIb-DujRNEo&t=5182s"},
+                {"label": "More: agent memory types", "href": "https://www.youtube.com/results?search_query=AI+agent+short+term+long+term+episodic+memory", "alt": true}
+              ]
+            },
+            {
+              "id": "m5-orch",
+              "title": "Multi-agent orchestration — supervisor, peer-to-peer, fault isolation",
+              "note": "One supervisor routes work. A failed specialist should not take down the others.",
+              "links": [
+                {"label": "Supervisor agents, guardrails, HITL", "href": "https://www.youtube.com/watch?v=BM39OouLNsM"}
+              ]
+            },
+            {
+              "id": "m5-eval",
+              "title": "LLM evaluation — RAGAS, DeepEval, Promptfoo, trajectory eval",
+              "note": "Score answers, and also score the path the agent took.",
+              "links": [
+                {"label": "DeepEval", "href": "https://www.youtube.com/watch?v=ZHiJ12MhfQ8"},
+                {"label": "Promptfoo on CrewAI + MCP", "href": "https://www.youtube.com/watch?v=o7CKEeyth1Q", "alt": true},
+                {"label": "LangSmith", "href": "https://www.youtube.com/watch?v=tFXm5ijih98", "alt": true}
+              ]
+            },
+            {
+              "id": "m5-guard",
+              "title": "Guardrails AI, prompt injection defence, PII scrubbing, output filtering",
+              "note": "Validators on the way in and the way out, plus the injection lessons from Module 1.",
+              "links": [
+                {"label": "Guardrails AI", "href": "https://www.youtube.com/watch?v=_Gwv3BG1jIo"},
+                {"label": "Prompt injection defence", "href": "https://www.youtube.com/watch?v=VbNPZ1n6_vY", "alt": true},
+                {"label": "More: PII scrubbing Presidio", "href": "https://www.youtube.com/results?search_query=Microsoft+Presidio+PII+redaction+tutorial", "alt": true}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m6",
+      "nav": "6 · Cloud & DevOps",
+      "title": "Module 6 — Cloud & DevOps",
+      "weeks": "4 weeks",
+      "blurb": "Turn the notebook into a service: FastAPI, containers, CI, Kubernetes, Terraform, AWS, and the traces that explain a bad answer.",
+      "groups": [
+        {
+          "name": "Serving and delivery",
+          "topics": [
+            {
+              "id": "m6-fastapi",
+              "title": "FastAPI — async endpoints, SSE streaming, auth middleware, rate limiting",
+              "note": "Async JSON APIs first. Streaming tokens is server-sent events on top of that.",
+              "links": [
+                {"label": "FastAPI microservices course", "href": "https://www.youtube.com/watch?v=Cy9fAvsXGZA"},
+                {"label": "FastAPI in front of Ollama", "href": "https://www.youtube.com/watch?v=0c96PQd3nA8", "alt": true},
+                {"label": "More: slowapi rate limits and SSE", "href": "https://www.youtube.com/results?search_query=FastAPI+streaming+SSE+slowapi+rate+limit", "alt": true}
+              ]
+            },
+            {
+              "id": "m6-docker",
+              "title": "Docker — Dockerfile, Compose (API + Chroma + Redis), slim images",
+              "note": "Package the API, then compose it with a database and a cache.",
+              "links": [
+                {"label": "Docker and Kubernetes full course", "href": "https://www.youtube.com/watch?v=bhBSlnQcq2k"},
+                {"label": "Ollama, Docker, and FastAPI together", "href": "https://www.youtube.com/watch?v=0c96PQd3nA8", "alt": true}
+              ]
+            },
+            {
+              "id": "m6-gha",
+              "title": "GitHub Actions — test, build, push, deploy, prompt regression in CI",
+              "note": "The pipeline that runs pytest and, later, DeepEval or Promptfoo before deploy.",
+              "links": [
+                {"label": "GitHub Actions in 90 minutes", "href": "https://www.youtube.com/watch?v=TLB5MY9BBa4"},
+                {"label": "Promptfoo evals you can run in CI", "href": "https://www.youtube.com/watch?v=o7CKEeyth1Q", "alt": true}
+              ]
+            },
+            {
+              "id": "m6-secrets",
+              "title": "Environment and secret management across staging and production",
+              "note": "GitHub environments and secrets, separate from the values baked into an image.",
+              "links": [
+                {"label": "Actions environments and secrets", "href": "https://www.youtube.com/watch?v=TLB5MY9BBa4"},
+                {"label": "More: AWS Secrets Manager and Vault", "href": "https://www.youtube.com/results?search_query=AWS+Secrets+Manager+HashiCorp+Vault+tutorial", "alt": true}
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Orchestration and cloud",
+          "topics": [
+            {
+              "id": "m6-k8s",
+              "title": "Kubernetes — deployments, services, resource limits, horizontal pod autoscaling",
+              "note": "The unit you deploy, the stable address in front of it, and the replica count that follows load.",
+              "links": [
+                {"label": "Kubernetes crash course", "href": "https://www.youtube.com/watch?v=s_o8dwzRlu4"},
+                {"label": "Docker and Kubernetes course", "href": "https://www.youtube.com/watch?v=bhBSlnQcq2k", "alt": true}
+              ]
+            },
+            {
+              "id": "m6-helm",
+              "title": "Helm charts and ingress controllers",
+              "note": "Package the YAML. Ingress is the HTTP front door.",
+              "links": [
+                {"label": "Helm and ingress", "href": "https://www.youtube.com/results?search_query=Helm+charts+ingress+controller+tutorial"},
+                {"label": "Kubernetes fundamentals", "href": "https://www.youtube.com/watch?v=kTp5xUtcalw", "alt": true}
+              ]
+            },
+            {
+              "id": "m6-tf",
+              "title": "Terraform — infrastructure as code, reproducible environments, state",
+              "note": "Describe AWS in code, keep state, and rebuild staging from the same modules.",
+              "links": [
+                {"label": "Terraform beginner to pro", "href": "https://www.youtube.com/watch?v=7xngnjfIlK4"},
+                {"label": "Terraform and AWS dev environment", "href": "https://www.youtube.com/watch?v=iRaai1IBlB0", "alt": true}
+              ]
+            },
+            {
+              "id": "m6-aws",
+              "title": "AWS — EC2, ECS Fargate, ECR, S3, RDS PostgreSQL",
+              "note": "Image in ECR, service on Fargate, objects in S3, Postgres in RDS. EC2 is the VM you still meet in client accounts.",
+              "links": [
+                {"label": "Terraform on AWS", "href": "https://www.youtube.com/watch?v=SLB_c_ayRMo"},
+                {"label": "End-to-end AWS, Terraform, and CI", "href": "https://www.youtube.com/watch?v=abkv1MSk1lU", "alt": true},
+                {"label": "More: ECS Fargate", "href": "https://www.youtube.com/results?search_query=AWS+ECS+Fargate+ECR+tutorial", "alt": true}
+              ]
+            },
+            {
+              "id": "m6-vault",
+              "title": "Secrets — AWS Secrets Manager and Vault",
+              "note": "Runtime secrets, distinct from the CI secrets in GitHub.",
+              "links": [
+                {"label": "Secrets Manager and Vault", "href": "https://www.youtube.com/results?search_query=AWS+Secrets+Manager+vs+Vault+tutorial"},
+                {"label": "GitHub Actions secrets", "href": "https://www.youtube.com/watch?v=TLB5MY9BBa4", "alt": true}
+              ]
+            },
+            {
+              "id": "m6-spot",
+              "title": "Spot instances, autoscaling, and the cost of always-on inference",
+              "note": "Training can use spot. A live model usually cannot, and that changes the bill.",
+              "links": [
+                {"label": "Spot GPUs and preemption", "href": "https://www.youtube.com/watch?v=6Pg6SVEooys"},
+                {"label": "Hosting cost in the RAG course", "href": "https://www.youtube.com/watch?v=mHxLXzYjQRE&t=12215s", "alt": true}
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Observability and safety",
+          "topics": [
+            {
+              "id": "m6-smith",
+              "title": "LangSmith — traces, cost, latency, debugging",
+              "note": "Every LLM call, the tokens, and the branch the chain took.",
+              "links": [
+                {"label": "LangSmith for beginners", "href": "https://www.youtube.com/watch?v=tFXm5ijih98"},
+                {"label": "LangSmith inside production RAG", "href": "https://www.youtube.com/watch?v=mHxLXzYjQRE&t=8996s", "alt": true}
+              ]
+            },
+            {
+              "id": "m6-corr",
+              "title": "Structured logging with correlation IDs",
+              "note": "One ID follows a request across the API, the retriever, and the model call.",
+              "links": [
+                {"label": "Observability in a full DevOps project", "href": "https://www.youtube.com/watch?v=abkv1MSk1lU"},
+                {"label": "More: correlation IDs", "href": "https://www.youtube.com/results?search_query=structured+logging+correlation+id+tutorial", "alt": true}
+              ]
+            },
+            {
+              "id": "m6-locust",
+              "title": "Load testing with Locust, SLOs, and alert thresholds",
+              "note": "How many requests the service holds, and which latency you page on.",
+              "links": [
+                {"label": "Locust load testing", "href": "https://www.youtube.com/results?search_query=Locust+load+testing+Python+tutorial"},
+                {"label": "SLOs in the system design primer", "href": "https://www.youtube.com/watch?v=i53Gi_K3o7I", "alt": true}
+              ]
+            },
+            {
+              "id": "m6-moderation",
+              "title": "Guardrails AI and the OpenAI moderation API",
+              "note": "Filter inputs and outputs before they reach a user or a tool.",
+              "links": [
+                {"label": "Guardrails AI", "href": "https://www.youtube.com/watch?v=_Gwv3BG1jIo"},
+                {"label": "More: OpenAI moderation API", "href": "https://www.youtube.com/results?search_query=OpenAI+moderation+API+tutorial", "alt": true}
+              ]
+            },
+            {
+              "id": "m6-ci-eval",
+              "title": "DeepEval in CI and Promptfoo prompt regression",
+              "note": "A prompt change that gets worse should fail the pipeline.",
+              "links": [
+                {"label": "DeepEval", "href": "https://www.youtube.com/watch?v=ZHiJ12MhfQ8"},
+                {"label": "Promptfoo", "href": "https://www.youtube.com/watch?v=o7CKEeyth1Q", "alt": true}
+              ]
+            },
+            {
+              "id": "m6-llmops",
+              "title": "LLMOps — why non-deterministic AI needs different operations",
+              "note": "Traces, eval sets, and cost dashboards on top of ordinary uptime.",
+              "links": [
+                {"label": "Production RAG — observability and cost", "href": "https://www.youtube.com/watch?v=mHxLXzYjQRE"},
+                {"label": "LangSmith", "href": "https://www.youtube.com/watch?v=tFXm5ijih98", "alt": true}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m7",
+      "nav": "7 · Client engineering",
+      "title": "Module 7 — Forward Deployed AI Engineering",
+      "weeks": "6 weeks",
+      "blurb": "The work after the demo: discovery, messy client data, private networks, compliance, and a design you can defend.",
+      "groups": [
+        {
+          "name": "Discovery and data access",
+          "topics": [
+            {
+              "id": "m7-problem",
+              "title": "Separate the stated problem from the actual problem",
+              "note": "The same skill as the first five minutes of a system design interview: questions before a diagram.",
+              "links": [
+                {"label": "System design interview framework", "href": "https://www.youtube.com/watch?v=i7twT3x5yv8"}
+              ]
+            },
+            {
+              "id": "m7-scope",
+              "title": "Scoping under political and budget constraints",
+              "note": "Cut the design to what the budget and the stakeholders will actually allow.",
+              "links": [
+                {"label": "Scope, then design", "href": "https://www.youtube.com/watch?v=i7twT3x5yv8"},
+                {"label": "Token and hosting cost", "href": "https://www.youtube.com/watch?v=mHxLXzYjQRE&t=12215s", "alt": true}
+              ]
+            },
+            {
+              "id": "m7-docs",
+              "title": "Engagement artefacts — PRD-lite, statement of work, architecture decision records",
+              "note": "Write the decision down: options, the one you picked, and why.",
+              "links": [
+                {"label": "Architecture decision records", "href": "https://www.youtube.com/results?search_query=architecture+decision+records+ADR+tutorial"},
+                {"label": "How to frame a design", "href": "https://www.youtube.com/watch?v=i7twT3x5yv8", "alt": true}
+              ]
+            },
+            {
+              "id": "m7-cdc",
+              "title": "Legacy access — firewalls, read replicas, change data capture",
+              "note": "Read from a replica. Stream changes with Debezium instead of polling a production table.",
+              "links": [
+                {"label": "Debezium CDC with Kafka and Postgres", "href": "https://www.youtube.com/watch?v=2Ip8ok0F2uI"}
+              ]
+            },
+            {
+              "id": "m7-schema",
+              "title": "Schema archaeology on undocumented systems",
+              "note": "Profile tables you did not design, then map entities before you sync them.",
+              "links": [
+                {"label": "SQLAlchemy and legacy schemas", "href": "https://www.youtube.com/results?search_query=SQLAlchemy+tutorial+database+profiling"},
+                {"label": "CDC pipeline", "href": "https://www.youtube.com/watch?v=2Ip8ok0F2uI", "alt": true}
+              ]
+            },
+            {
+              "id": "m7-pii-extract",
+              "title": "PII identification and masking at extraction",
+              "note": "Mask before the row ever lands in your vector store.",
+              "links": [
+                {"label": "Presidio and PII redaction", "href": "https://www.youtube.com/results?search_query=Microsoft+Presidio+PII+masking+python"},
+                {"label": "Guardrails on inputs", "href": "https://www.youtube.com/watch?v=_Gwv3BG1jIo", "alt": true}
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Deployment and enterprise architecture",
+          "topics": [
+            {
+              "id": "m7-vpc",
+              "title": "VPC-only, private endpoints, and air-gapped inference",
+              "note": "The practical form of air-gapped inference is a local model. Private cloud is VPC plus no public model API.",
+              "links": [
+                {"label": "Local Ollama server", "href": "https://www.youtube.com/watch?v=Lb5D892-2HY"},
+                {"label": "Terraform VPC on AWS", "href": "https://www.youtube.com/watch?v=iRaai1IBlB0", "alt": true},
+                {"label": "More: private endpoints", "href": "https://www.youtube.com/results?search_query=AWS+VPC+private+endpoint+interface+tutorial", "alt": true}
+              ]
+            },
+            {
+              "id": "m7-sso",
+              "title": "Enterprise auth — SSO, SAML, OIDC, service principals, RBAC",
+              "note": "One login for people. A service principal and a role for the workload.",
+              "links": [
+                {"label": "SSO, SAML, and OIDC in 10 minutes", "href": "https://www.youtube.com/watch?v=5KChrGWFcpk"},
+                {"label": "More: RBAC and service principals", "href": "https://www.youtube.com/results?search_query=OIDC+service+principal+RBAC+explained", "alt": true}
+              ]
+            },
+            {
+              "id": "m7-security-review",
+              "title": "Why a client security team rejects the first architecture",
+              "note": "Public model APIs, missing audit logs, and data leaving the VPC are the usual rejection reasons. Design for those constraints up front.",
+              "links": [
+                {"label": "SSO and identity trade-offs", "href": "https://www.youtube.com/watch?v=5KChrGWFcpk"},
+                {"label": "GDPR — what you are allowed to process", "href": "https://www.youtube.com/watch?v=R5zmDnsAFgs", "alt": true}
+              ]
+            },
+            {
+              "id": "m7-sla",
+              "title": "Inference serving and throughput under a real SLA",
+              "note": "Replicas, autoscaling, and a latency number you can defend.",
+              "links": [
+                {"label": "Kubernetes autoscaling", "href": "https://www.youtube.com/watch?v=s_o8dwzRlu4"},
+                {"label": "System design — scale and latency", "href": "https://www.youtube.com/watch?v=i53Gi_K3o7I", "alt": true}
+              ]
+            },
+            {
+              "id": "m7-scale-vec",
+              "title": "Vector search at 10 million documents and beyond",
+              "note": "Flat search dies at this size. Learn approximate indexes.",
+              "links": [
+                {"label": "FAISS indexes beyond the toy set", "href": "https://www.youtube.com/watch?v=tQkQCYG8dyE"},
+                {"label": "Cost of vector search", "href": "https://www.youtube.com/watch?v=mHxLXzYjQRE&t=12215s", "alt": true}
+              ]
+            },
+            {
+              "id": "m7-rollout",
+              "title": "Model versioning, staged rollout, and fleet-wide observability",
+              "note": "Ship a new prompt or adapter to a slice of traffic, and watch traces before you go wide.",
+              "links": [
+                {"label": "LangSmith traces", "href": "https://www.youtube.com/watch?v=tFXm5ijih98"},
+                {"label": "CI/CD and observability project", "href": "https://www.youtube.com/watch?v=abkv1MSk1lU", "alt": true}
+              ]
+            },
+            {
+              "id": "m7-cost",
+              "title": "Cost modelling and the token-economics conversation",
+              "note": "Price per call, cache hits, and when a local model beats the API.",
+              "links": [
+                {"label": "RAG hosting and token cost", "href": "https://www.youtube.com/watch?v=mHxLXzYjQRE&t=12215s"},
+                {"label": "Quantization memory math", "href": "https://www.youtube.com/watch?v=XpoKB3usmKc", "alt": true}
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Compliance, security, and stakeholders",
+          "topics": [
+            {
+              "id": "m7-privacy",
+              "title": "India’s DPDP Act, GDPR, and data residency",
+              "note": "Lawful basis, minimization, and keeping data in the region the contract names.",
+              "links": [
+                {"label": "What GDPR is", "href": "https://www.youtube.com/watch?v=R5zmDnsAFgs"},
+                {"label": "More: DPDP Act India", "href": "https://www.youtube.com/results?search_query=India+DPDP+Act+explained", "alt": true}
+              ]
+            },
+            {
+              "id": "m7-audit",
+              "title": "Audit logging, model cards, and retention",
+              "note": "Who called the model, which version, and how long you keep the prompt.",
+              "links": [
+                {"label": "LangSmith as the audit trail of calls", "href": "https://www.youtube.com/watch?v=tFXm5ijih98"},
+                {"label": "More: model cards", "href": "https://www.youtube.com/results?search_query=model+cards+machine+learning+explained", "alt": true}
+              ]
+            },
+            {
+              "id": "m7-hitl",
+              "title": "Human-in-the-loop gates for consequential actions",
+              "note": "The agent proposes. A person approves a payment, a denial, or an email to a customer.",
+              "links": [
+                {"label": "LangGraph human feedback", "href": "https://www.youtube.com/watch?v=dIb-DujRNEo&t=6298s"},
+                {"label": "HITL in a multi-agent system", "href": "https://www.youtube.com/watch?v=BM39OouLNsM", "alt": true}
+              ]
+            },
+            {
+              "id": "m7-incident",
+              "title": "Incident response when a live AI system fails",
+              "note": "Traces first, then rollback of the prompt or model, then the customer note.",
+              "links": [
+                {"label": "Observability project", "href": "https://www.youtube.com/watch?v=abkv1MSk1lU"},
+                {"label": "Debug a chain in LangSmith", "href": "https://www.youtube.com/watch?v=tFXm5ijih98", "alt": true}
+              ]
+            },
+            {
+              "id": "m7-panel",
+              "title": "Present trade-offs to a hostile stakeholder panel",
+              "note": "State the requirement, the option you rejected, and the number that justifies the one you kept.",
+              "links": [
+                {"label": "Defend a design in 45 minutes", "href": "https://www.youtube.com/watch?v=i7twT3x5yv8"}
+              ]
+            },
+            {
+              "id": "m7-architects",
+              "title": "Defend the design to the client’s own architects",
+              "note": "Same conversation, more depth: data flow, identity, failure, and cost.",
+              "links": [
+                {"label": "20 system design concepts", "href": "https://www.youtube.com/watch?v=i53Gi_K3o7I"},
+                {"label": "Gaurav Sen system design playlist", "href": "https://www.youtube.com/playlist?list=PLLcTitwD4tE3RiFws0bYAj9LFbATrSYMS", "alt": true}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sd",
+      "nav": "Elective · System design",
+      "title": "Elective — System Design for Tech Interviews",
+      "weeks": "Self-paced",
+      "blurb": "The distributed-systems vocabulary the client architecture work assumes.",
+      "groups": [
+        {
+          "name": "Concepts",
+          "topics": [
+            {
+              "id": "sd-lb",
+              "title": "Load balancing, caching, and CDN strategy",
+              "links": [
+                {"label": "20 system design concepts in 10 minutes", "href": "https://www.youtube.com/watch?v=i53Gi_K3o7I"},
+                {"label": "ByteByteGo distributed patterns", "href": "https://www.youtube.com/playlist?list=PLED7_O6XRpjX9OpiKMWJBOPUFwjABl1XE", "alt": true}
+              ]
+            },
+            {
+              "id": "sd-db",
+              "title": "SQL vs NoSQL, sharding, and replication",
+              "links": [
+                {"label": "Databases inside the concepts primer", "href": "https://www.youtube.com/watch?v=i53Gi_K3o7I"},
+                {"label": "More: sharding and replication", "href": "https://www.youtube.com/results?search_query=database+sharding+replication+system+design", "alt": true}
+              ]
+            },
+            {
+              "id": "sd-cap",
+              "title": "Consistency models and CAP in practice",
+              "links": [
+                {"label": "CAP and consistency", "href": "https://www.youtube.com/results?search_query=CAP+theorem+consistency+models+explained"},
+                {"label": "Design framework", "href": "https://www.youtube.com/watch?v=i7twT3x5yv8", "alt": true}
+              ]
+            },
+            {
+              "id": "sd-mq",
+              "title": "Message queues and event-driven architecture",
+              "links": [
+                {"label": "Debezium, Kafka, Postgres", "href": "https://www.youtube.com/watch?v=2Ip8ok0F2uI"},
+                {"label": "Concepts primer — queues", "href": "https://www.youtube.com/watch?v=i53Gi_K3o7I", "alt": true}
+              ]
+            },
+            {
+              "id": "sd-resilience",
+              "title": "Rate limiting, retries, and circuit breakers",
+              "links": [
+                {"label": "Retries, limits, and failure patterns", "href": "https://www.youtube.com/results?search_query=rate+limiting+circuit+breaker+retry+system+design"},
+                {"label": "API retries in the Claude SDK", "href": "https://www.youtube.com/watch?v=9NzzqgthSKI", "alt": true}
+              ]
+            },
+            {
+              "id": "sd-capacity",
+              "title": "Capacity estimation — QPS, storage, bandwidth",
+              "links": [
+                {"label": "Back-of-the-envelope in the interview framework", "href": "https://www.youtube.com/watch?v=i7twT3x5yv8"}
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Classic designs",
+          "topics": [
+            {
+              "id": "sd-url",
+              "title": "URL shortener and key-value store",
+              "links": [
+                {"label": "Gaurav Sen system design playlist", "href": "https://www.youtube.com/playlist?list=PLLcTitwD4tE3RiFws0bYAj9LFbATrSYMS"},
+                {"label": "More: design a URL shortener", "href": "https://www.youtube.com/results?search_query=design+URL+shortener+system+design+interview", "alt": true}
+              ]
+            },
+            {
+              "id": "sd-feed",
+              "title": "News feed and timeline fan-out",
+              "links": [
+                {"label": "News feed system design", "href": "https://www.youtube.com/results?search_query=design+news+feed+fanout+system+design"},
+                {"label": "System design playlist", "href": "https://www.youtube.com/playlist?list=PLLcTitwD4tE3RiFws0bYAj9LFbATrSYMS", "alt": true}
+              ]
+            },
+            {
+              "id": "sd-chat",
+              "title": "Chat and notification systems",
+              "links": [
+                {"label": "Design a chat system", "href": "https://www.youtube.com/results?search_query=design+chat+system+whatsapp+notification+system+design"},
+                {"label": "Interview framework — chat example", "href": "https://www.youtube.com/watch?v=i7twT3x5yv8", "alt": true}
+              ]
+            },
+            {
+              "id": "sd-search",
+              "title": "Search and autocomplete at scale",
+              "links": [
+                {"label": "Autocomplete system design", "href": "https://www.youtube.com/results?search_query=design+search+autocomplete+system+design+interview"},
+                {"label": "Semantic search with embeddings", "href": "https://www.youtube.com/watch?v=OATCgQtNX2o", "alt": true}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dsa",
+      "nav": "Elective · DSA",
+      "title": "Elective — DSA for Tech Interviews",
+      "weeks": "Self-paced",
+      "blurb": "NeetCode’s pattern playlists cover the interview list in the brochure. Do them in the order in the first video.",
+      "groups": [
+        {
+          "name": "Patterns",
+          "topics": [
+            {
+              "id": "dsa-order",
+              "title": "What to study first, and complexity under questioning",
+              "links": [
+                {"label": "Best order to learn DSA", "href": "https://www.youtube.com/watch?v=tohk1ETx3ZM"},
+                {"label": "Blind 75 playlist", "href": "https://www.youtube.com/playlist?list=PLot-Xpze53ldVwtstag2TL4HQhAnC8ATf", "alt": true}
+              ]
+            },
+            {
+              "id": "dsa-arrays",
+              "title": "Arrays, strings, two pointers, sliding window",
+              "links": [
+                {"label": "Blind 75 — arrays and strings are the opening problems", "href": "https://www.youtube.com/playlist?list=PLot-Xpze53ldVwtstag2TL4HQhAnC8ATf"},
+                {"label": "More: sliding window", "href": "https://www.youtube.com/results?search_query=NeetCode+sliding+window+two+pointers", "alt": true}
+              ]
+            },
+            {
+              "id": "dsa-hash",
+              "title": "Hashing, prefix sums, frequency maps",
+              "links": [
+                {"label": "Blind 75 playlist", "href": "https://www.youtube.com/playlist?list=PLot-Xpze53ldVwtstag2TL4HQhAnC8ATf"},
+                {"label": "More: prefix sums", "href": "https://www.youtube.com/results?search_query=prefix+sum+frequency+map+leetcode", "alt": true}
+              ]
+            },
+            {
+              "id": "dsa-stack",
+              "title": "Stacks, queues, and monotonic structures",
+              "links": [
+                {"label": "Monotonic stack tutorials", "href": "https://www.youtube.com/results?search_query=NeetCode+monotonic+stack+queue"},
+                {"label": "Blind 75", "href": "https://www.youtube.com/playlist?list=PLot-Xpze53ldVwtstag2TL4HQhAnC8ATf", "alt": true}
+              ]
+            },
+            {
+              "id": "dsa-lists",
+              "title": "Linked lists",
+              "links": [
+                {"label": "NeetCode linked list playlist", "href": "https://www.youtube.com/playlist?list=PLot-Xpze53leU0Ec0VkBhnf4npMRFiNcB"}
+              ]
+            },
+            {
+              "id": "dsa-trees",
+              "title": "Trees, BSTs, and traversals",
+              "links": [
+                {"label": "NeetCode tree playlist", "href": "https://www.youtube.com/playlist?list=PLot-Xpze53ldg4pN6PfzoJY7KsKcxF1jg"}
+              ]
+            },
+            {
+              "id": "dsa-heap",
+              "title": "Heaps, tries, and union-find",
+              "links": [
+                {"label": "Heaps, tries, union-find", "href": "https://www.youtube.com/results?search_query=NeetCode+heap+trie+union+find"},
+                {"label": "Graph playlist includes union-find problems", "href": "https://www.youtube.com/playlist?list=PLot-Xpze53ldBT_7QA8NVot219jFNr_GI", "alt": true}
+              ]
+            },
+            {
+              "id": "dsa-bt",
+              "title": "Recursion, backtracking, and pruning",
+              "links": [
+                {"label": "NeetCode backtracking playlist", "href": "https://www.youtube.com/playlist?list=PLot-Xpze53lf5C3HSjCnyFghlW0G1HHXo"}
+              ]
+            },
+            {
+              "id": "dsa-bs",
+              "title": "Binary search on the answer, and sorting patterns",
+              "links": [
+                {"label": "NeetCode binary search playlist", "href": "https://www.youtube.com/playlist?list=PLot-Xpze53leNZQd0iINpD-MAhMOMzWvO"}
+              ]
+            },
+            {
+              "id": "dsa-graph",
+              "title": "Graphs — BFS, DFS, shortest paths",
+              "links": [
+                {"label": "NeetCode graph playlist", "href": "https://www.youtube.com/playlist?list=PLot-Xpze53ldBT_7QA8NVot219jFNr_GI"}
+              ]
+            },
+            {
+              "id": "dsa-dp",
+              "title": "Dynamic programming — 1D, 2D, and state design",
+              "links": [
+                {"label": "NeetCode dynamic programming playlist", "href": "https://www.youtube.com/playlist?list=PLot-Xpze53lcvx_tjrr_m2lgD2NsRHlNO"}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "projects",
+      "nav": "Projects",
+      "title": "Projects from the brochure",
+      "weeks": "Build after the matching module",
+      "blurb": "Each card is a brochure project and the tutorials that teach its stack.",
+      "groups": [
+        {
+          "name": "Build list",
+          "topics": [
+            {
+              "id": "p-eval",
+              "title": "Prompt evaluation lab — CoT, self-consistency, tree-of-thought vs zero-shot",
+              "note": "OpenAI or Anthropic, tiktoken, Pydantic. About 6 hours.",
+              "links": [
+                {"label": "Prompt patterns", "href": "https://www.youtube.com/watch?v=EcmnYeWjYQI"},
+                {"label": "Tokenization", "href": "https://www.youtube.com/watch?v=kCc8FmEb1nY&t=568s", "alt": true},
+                {"label": "Pydantic outputs", "href": "https://www.youtube.com/watch?v=NGEZsqEUpC0", "alt": true}
+              ]
+            },
+            {
+              "id": "p-support",
+              "title": "Enterprise support assistant — system prompt, then red-team 8 injection classes",
+              "note": "Prompt caching and Presidio. About 6 hours.",
+              "links": [
+                {"label": "Prompt injection red team", "href": "https://www.youtube.com/watch?v=8i95orzUrY0"},
+                {"label": "Defence", "href": "https://www.youtube.com/watch?v=VbNPZ1n6_vY", "alt": true},
+                {"label": "Claude API and caching search", "href": "https://www.youtube.com/results?search_query=Anthropic+prompt+caching+tutorial", "alt": true}
+              ]
+            },
+            {
+              "id": "p-bakeoff",
+              "title": "Model bake-off — async streaming client, OpenAI vs Anthropic cost and latency",
+              "note": "About 8 hours.",
+              "links": [
+                {"label": "asyncio", "href": "https://www.youtube.com/watch?v=oAkLSJNr5zY"},
+                {"label": "Anthropic streaming SDK", "href": "https://www.youtube.com/watch?v=9NzzqgthSKI", "alt": true}
+              ]
+            },
+            {
+              "id": "p-ingest",
+              "title": "Resilient ingestor — 50,000 paginated records, retries, checkpoints",
+              "note": "httpx, asyncio, tenacity, Pydantic. About 6 hours.",
+              "links": [
+                {"label": "asyncio", "href": "https://www.youtube.com/watch?v=oAkLSJNr5zY"},
+                {"label": "Backoff and retries", "href": "https://www.youtube.com/results?search_query=python+tenacity+httpx+pagination+checkpoint", "alt": true}
+              ]
+            },
+            {
+              "id": "p-policy",
+              "title": "Policy assistant — production RAG over company documents",
+              "note": "LangChain LCEL, Chroma or Qdrant or Pinecone. About 6 hours.",
+              "links": [
+                {"label": "RAG from scratch", "href": "https://www.youtube.com/watch?v=sVcwVQRHIc8"},
+                {"label": "Chroma production course", "href": "https://www.youtube.com/watch?v=mHxLXzYjQRE", "alt": true},
+                {"label": "LlamaIndex + Streamlit chat", "href": "https://www.youtube.com/watch?v=93uru3QmgAo", "alt": true}
+              ]
+            },
+            {
+              "id": "p-retrieval",
+              "title": "Retrieval bake-off — BM25 + vectors, cross-encoder, RAGAS",
+              "note": "About 6 hours.",
+              "links": [
+                {"label": "Hybrid search and RRF", "href": "https://www.youtube.com/watch?v=FgUJ2kzhmKQ"},
+                {"label": "RAGAS search", "href": "https://www.youtube.com/results?search_query=RAGAS+tutorial+python", "alt": true}
+              ]
+            },
+            {
+              "id": "p-hop",
+              "title": "Multi-hop investigator — decompose, retrieve, cite",
+              "note": "LangGraph, Cohere rerank, RAGAS. About 6 hours.",
+              "links": [
+                {"label": "Multi-hop section", "href": "https://www.youtube.com/watch?v=mHxLXzYjQRE&t=25485s"},
+                {"label": "LangGraph course", "href": "https://www.youtube.com/watch?v=dIb-DujRNEo", "alt": true}
+              ]
+            },
+            {
+              "id": "p-specialist",
+              "title": "Specialist — LoRA/QLoRA so a small model beats a general one on one task",
+              "note": "Hugging Face, Axolotl, PEFT. About 6 hours.",
+              "links": [
+                {"label": "QLoRA", "href": "https://www.youtube.com/watch?v=XpoKB3usmKc"},
+                {"label": "Axolotl course", "href": "https://www.youtube.com/playlist?list=PLgIaq8VgndJuTUJgr-8khBZYigonBshUx", "alt": true}
+              ]
+            },
+            {
+              "id": "p-ops",
+              "title": "Operations agent — MCP tool servers and an arbiter",
+              "note": "About 6 hours.",
+              "links": [
+                {"label": "MCP course", "href": "https://www.youtube.com/watch?v=VfZlglOWWZw"},
+                {"label": "Build the server", "href": "https://www.youtube.com/watch?v=w-Ml3NivoFo", "alt": true}
+              ]
+            },
+            {
+              "id": "p-claims",
+              "title": "Claims desk — LangGraph, Postgres checkpointer, human approval",
+              "note": "About 6 hours.",
+              "links": [
+                {"label": "LangGraph memory and HITL", "href": "https://www.youtube.com/watch?v=dIb-DujRNEo"},
+                {"label": "More: Postgres checkpointer", "href": "https://www.youtube.com/results?search_query=LangGraph+Postgres+checkpointer+human+in+the+loop", "alt": true}
+              ]
+            },
+            {
+              "id": "p-service",
+              "title": "Service — notebook to async API, Docker, CI/CD, ECS Fargate",
+              "note": "FastAPI, Uvicorn, Compose. About 6 hours.",
+              "links": [
+                {"label": "FastAPI", "href": "https://www.youtube.com/watch?v=Cy9fAvsXGZA"},
+                {"label": "Docker", "href": "https://www.youtube.com/watch?v=bhBSlnQcq2k", "alt": true},
+                {"label": "GitHub Actions", "href": "https://www.youtube.com/watch?v=TLB5MY9BBa4", "alt": true}
+              ]
+            },
+            {
+              "id": "p-control",
+              "title": "Control room — tracing, metrics, CI evals",
+              "note": "LangSmith, plus Prometheus, Grafana, and OpenTelemetry for the service around the model.",
+              "links": [
+                {"label": "LangSmith", "href": "https://www.youtube.com/watch?v=tFXm5ijih98"},
+                {"label": "Prometheus and Grafana", "href": "https://www.youtube.com/results?search_query=Prometheus+Grafana+OpenTelemetry+Python+tutorial", "alt": true}
+              ]
+            },
+            {
+              "id": "p-discovery",
+              "title": "Discovery engagement — vague ask to a signed, estimated scope",
+              "note": "Interview technique, ADR, estimation. About 6 hours.",
+              "links": [
+                {"label": "Interview framework and estimation", "href": "https://www.youtube.com/watch?v=i7twT3x5yv8"},
+                {"label": "ADR tutorials", "href": "https://www.youtube.com/results?search_query=architecture+decision+record+how+to+write", "alt": true}
+              ]
+            },
+            {
+              "id": "p-data",
+              "title": "Data excavation — CDC, entity resolution, a clean sync",
+              "note": "Debezium, SQLAlchemy, RapidFuzz. About 6 hours.",
+              "links": [
+                {"label": "Debezium CDC", "href": "https://www.youtube.com/watch?v=2Ip8ok0F2uI"},
+                {"label": "More: RapidFuzz entity resolution", "href": "https://www.youtube.com/results?search_query=RapidFuzz+entity+resolution+python", "alt": true}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stack",
+      "nav": "Tools in the brochure",
+      "title": "Tools and tech stack",
+      "weeks": "Cross-reference",
+      "blurb": "The brochure’s tool list, each pointed at a tutorial already used above or a direct follow-up.",
+      "groups": [
+        {
+          "name": "GenAI, agents, tuning, eval, ops, cloud",
+          "topics": [
+            {
+              "id": "t-openai",
+              "title": "OpenAI API",
+              "links": [{"label": "Watch", "href": "https://www.youtube.com/watch?v=eJvYafgLh40"}]
+            },
+            {
+              "id": "t-anthropic",
+              "title": "Anthropic API",
+              "links": [{"label": "Watch", "href": "https://www.youtube.com/watch?v=9NzzqgthSKI"}]
+            },
+            {
+              "id": "t-lc",
+              "title": "LangChain",
+              "links": [{"label": "Watch", "href": "https://www.youtube.com/watch?v=sVcwVQRHIc8"}]
+            },
+            {
+              "id": "t-llama",
+              "title": "LlamaIndex",
+              "links": [
+                {"label": "LlamaIndex + Streamlit", "href": "https://www.youtube.com/watch?v=93uru3QmgAo"},
+                {"label": "Fine-tuning + RAG webinar", "href": "https://www.youtube.com/watch?v=mndiDJ5k26A", "alt": true}
+              ]
+            },
+            {
+              "id": "t-pine",
+              "title": "Pinecone",
+              "links": [{"label": "Watch", "href": "https://www.youtube.com/watch?v=LhnCsygAvzY"}]
+            },
+            {
+              "id": "t-chroma",
+              "title": "ChromaDB",
+              "links": [{"label": "Watch", "href": "https://www.youtube.com/watch?v=mHxLXzYjQRE"}]
+            },
+            {
+              "id": "t-lg",
+              "title": "LangGraph",
+              "links": [{"label": "Watch", "href": "https://www.youtube.com/watch?v=dIb-DujRNEo"}]
+            },
+            {
+              "id": "t-crew",
+              "title": "CrewAI",
+              "links": [{"label": "Watch", "href": "https://www.youtube.com/watch?v=LSk5KaEGVk4"}]
+            },
+            {
+              "id": "t-ollama",
+              "title": "Ollama",
+              "links": [{"label": "Watch", "href": "https://www.youtube.com/watch?v=Lb5D892-2HY"}]
+            },
+            {
+              "id": "t-pyd",
+              "title": "Pydantic",
+              "links": [{"label": "Watch", "href": "https://www.youtube.com/watch?v=NGEZsqEUpC0"}]
+            },
+            {
+              "id": "t-mcp",
+              "title": "MCP",
+              "links": [{"label": "Watch", "href": "https://www.youtube.com/watch?v=VfZlglOWWZw"}]
+            },
+            {
+              "id": "t-dspy",
+              "title": "DSPy",
+              "links": [{"label": "Watch", "href": "https://www.youtube.com/watch?v=tVw3CwrN5-8"}]
+            },
+            {
+              "id": "t-qlora",
+              "title": "QLoRA, PEFT, bitsandbytes, Hugging Face",
+              "links": [{"label": "Watch", "href": "https://www.youtube.com/watch?v=XpoKB3usmKc"}]
+            },
+            {
+              "id": "t-ax",
+              "title": "Axolotl",
+              "links": [{"label": "Watch", "href": "https://www.youtube.com/playlist?list=PLgIaq8VgndJuTUJgr-8khBZYigonBshUx"}]
+            },
+            {
+              "id": "t-de",
+              "title": "DeepEval",
+              "links": [{"label": "Watch", "href": "https://www.youtube.com/watch?v=ZHiJ12MhfQ8"}]
+            },
+            {
+              "id": "t-ls",
+              "title": "LangSmith",
+              "links": [{"label": "Watch", "href": "https://www.youtube.com/watch?v=tFXm5ijih98"}]
+            },
+            {
+              "id": "t-pf",
+              "title": "Promptfoo",
+              "links": [{"label": "Watch", "href": "https://www.youtube.com/watch?v=o7CKEeyth1Q"}]
+            },
+            {
+              "id": "t-ragas",
+              "title": "RAGAS",
+              "links": [{"label": "Watch", "href": "https://www.youtube.com/results?search_query=RAGAS+python+tutorial"}]
+            },
+            {
+              "id": "t-arize",
+              "title": "Arize",
+              "links": [{"label": "Watch", "href": "https://www.youtube.com/results?search_query=Arize+Phoenix+LLM+tracing+tutorial"}]
+            },
+            {
+              "id": "t-fastapi",
+              "title": "FastAPI",
+              "links": [{"label": "Watch", "href": "https://www.youtube.com/watch?v=Cy9fAvsXGZA"}]
+            },
+            {
+              "id": "t-docker",
+              "title": "Docker",
+              "links": [{"label": "Watch", "href": "https://www.youtube.com/watch?v=bhBSlnQcq2k"}]
+            },
+            {
+              "id": "t-lite",
+              "title": "LiteLLM",
+              "links": [{"label": "Watch", "href": "https://www.youtube.com/results?search_query=LiteLLM+proxy+tutorial"}]
+            },
+            {
+              "id": "t-gha",
+              "title": "GitHub Actions",
+              "links": [{"label": "Watch", "href": "https://www.youtube.com/watch?v=TLB5MY9BBa4"}]
+            },
+            {
+              "id": "t-cohere",
+              "title": "Cohere",
+              "links": [{"label": "Watch", "href": "https://www.youtube.com/results?search_query=Cohere+rerank+API+tutorial"}]
+            },
+            {
+              "id": "t-aws",
+              "title": "AWS",
+              "links": [{"label": "Watch", "href": "https://www.youtube.com/watch?v=SLB_c_ayRMo"}]
+            },
+            {
+              "id": "t-vercel",
+              "title": "Vercel and v0",
+              "links": [{"label": "Watch", "href": "https://www.youtube.com/results?search_query=v0+vercel+tutorial"}]
+            },
+            {
+              "id": "t-st",
+              "title": "Streamlit",
+              "links": [{"label": "Watch", "href": "https://www.youtube.com/watch?v=93uru3QmgAo"}]
+            },
+            {
+              "id": "t-tf",
+              "title": "Terraform",
+              "links": [{"label": "Watch", "href": "https://www.youtube.com/watch?v=7xngnjfIlK4"}]
+            },
+            {
+              "id": "t-k8s",
+              "title": "Kubernetes",
+              "links": [{"label": "Watch", "href": "https://www.youtube.com/watch?v=s_o8dwzRlu4"}]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+  </script>
+  <script>
+    const data = JSON.parse(document.getElementById("data").textContent);
+    const root = document.getElementById("root");
+    const toc = document.getElementById("toc");
+    const q = document.getElementById("q");
+    const KEY = "ai-engineering-progress";
+    const done = new Set(JSON.parse(localStorage.getItem(KEY) || "[]"));
+
+    function save() {
+      localStorage.setItem(KEY, JSON.stringify([...done]));
+      paintProgress();
+    }
+
+    function allTopics() {
+      return data.modules.flatMap(m => m.groups.flatMap(g => g.topics));
+    }
+
+    function paintProgress() {
+      const topics = allTopics();
+      const n = topics.filter(t => done.has(t.id)).length;
+      document.getElementById("bar").style.width = (topics.length ? (100 * n / topics.length) : 0) + "%";
+      document.getElementById("count").textContent = n + " of " + topics.length + " topics marked done";
+    }
+
+    function render() {
+      const query = q.value.trim().toLowerCase();
+      toc.innerHTML = "<strong>Contents</strong>";
+      root.innerHTML = "";
+      data.modules.forEach(mod => {
+        const sec = document.createElement("section");
+        sec.className = "module";
+        sec.id = mod.id;
+        const visibleGroups = mod.groups.map(g => ({
+          ...g,
+          topics: g.topics.filter(t => {
+            if (!query) return true;
+            const blob = (t.title + " " + (t.note || "") + " " + mod.title + " " + g.name).toLowerCase();
+            return blob.includes(query);
+          })
+        })).filter(g => g.topics.length);
+        if (!visibleGroups.length) return;
+        const a = document.createElement("a");
+        a.href = "#" + mod.id;
+        a.textContent = mod.nav;
+        toc.appendChild(a);
+        sec.innerHTML = "<p class='weeks'>" + mod.weeks + "</p><h2>" + mod.title + "</h2><p class='blurb'>" + mod.blurb + "</p>";
+        visibleGroups.forEach(g => {
+          const label = document.createElement("div");
+          label.className = "group-label";
+          label.textContent = g.name;
+          sec.appendChild(label);
+          g.topics.forEach(t => {
+            const art = document.createElement("article");
+            art.className = "topic" + (done.has(t.id) ? " done" : "");
+            const head = document.createElement("div");
+            head.className = "topic-head";
+            const box = document.createElement("input");
+            box.type = "checkbox";
+            box.checked = done.has(t.id);
+            box.setAttribute("aria-label", "Mark done: " + t.title);
+            box.addEventListener("change", () => {
+              if (box.checked) done.add(t.id); else done.delete(t.id);
+              art.classList.toggle("done", box.checked);
+              save();
+            });
+            const h = document.createElement("h3");
+            h.textContent = t.title;
+            head.append(box, h);
+            art.appendChild(head);
+            if (t.note) {
+              const p = document.createElement("p");
+              p.textContent = t.note;
+              art.appendChild(p);
+            }
+            const links = document.createElement("div");
+            links.className = "links";
+            t.links.forEach(link => {
+              const el = document.createElement("a");
+              el.href = link.href;
+              el.target = "_blank";
+              el.rel = "noopener noreferrer";
+              el.textContent = link.label;
+              if (link.alt) el.className = "alt";
+              links.appendChild(el);
+            });
+            const notes = document.createElement("a");
+            notes.href = `notes/${mod.id}.html#${t.id}`;
+            notes.className = "notes";
+            notes.textContent = "Read notes";
+            links.appendChild(notes);
+            art.appendChild(links);
+            sec.appendChild(art);
+          });
+        });
+        root.appendChild(sec);
+      });
+      if (!root.children.length) {
+        root.innerHTML = "<p>No topics match that filter.</p>";
+      }
+      paintProgress();
+    }
+
+    q.addEventListener("input", render);
+    document.getElementById("reset").addEventListener("click", () => {
+      if (confirm("Clear every checkbox on this page?")) {
+        done.clear();
+        save();
+        render();
+      }
+    });
+    render();
+  </script>
+</body>
+</html>
