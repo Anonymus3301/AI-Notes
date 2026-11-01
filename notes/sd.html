@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Elective notes — System Design for Tech Interviews</title>
+  <link rel="stylesheet" href="notes.css" />
+</head>
+<body>
+  <header class="bar">
+    <a href="../index.html">← Tutorials</a>
+    <a href="index.html">All notes</a>
+    <a href="m7.html">← Module 7</a>
+    <a href="dsa.html">DSA →</a>
+    <span>Elective · System design</span>
+  </header>
+  <div class="wrap">
+    <nav id="toc"></nav>
+    <main id="content"><p>Loading notes…</p></main>
+  </div>
+<script type="text/markdown" id="md">
+# Elective — System Design for Tech Interviews
+
+<p class="hero-note">Quest: draw a system that survives a million users and an interviewer asking “what if this box dies?”. Use the four-step framework on every problem: clarify requirements → estimate → high-level design → deep dive and trade-offs.</p>
+
+```mermaid
+flowchart LR
+  R["1. Requirements: functional + non-functional"] --> E["2. Estimates: QPS, storage, bandwidth"]
+  E --> H["3. High-level design: APIs, data model, boxes"]
+  H --> D["4. Deep dive: bottlenecks, failures, trade-offs"]
+```
+
+## Load balancing, caching, CDN {#sd-lb}
+
+**In one line:** load balancers spread traffic over many servers, caches keep hot data in memory, and CDNs serve static content from servers near the user.
+
+> **Analogy.** A supermarket: many checkout counters (servers), a manager directing the queue (load balancer), popular items stacked by the entrance (cache), and branch stores in every neighbourhood (CDN).
+
+```mermaid
+flowchart LR
+  U["Users"] --> CDN["CDN edge: images, JS"]
+  U --> LB["Load balancer"]
+  LB --> A1["App 1"]
+  LB --> A2["App 2"]
+  A1 --> C[("Redis cache")]
+  A2 --> C
+  C -->|miss| DB[("Database")]
+```
+
+| Concept | Options |
+|---|---|
+| LB algorithms | Round robin, least connections, consistent hashing |
+| L4 vs L7 | L4 routes by IP/port; L7 routes by URL, headers, cookies |
+| Cache strategies | Cache-aside, write-through, write-back |
+| Eviction | LRU, LFU, TTL |
+
+```python
+import json, redis
+r = redis.Redis()
+
+def get_user(user_id: int, db) -> dict:
+    key = f"user:{user_id}"
+    if (hit := r.get(key)) is not None:
+        return json.loads(hit)                         # cache hit
+    user = db.fetch_user(user_id)                     # cache miss
+    r.setex(key, 300, json.dumps(user))               # TTL 5 minutes
+    return user
+```
+
+> **Trap.** Cache stampede: a hot key expires and 10,000 requests hit the DB at once. Use request coalescing, jittered TTLs, or early refresh.
+
+**Read:** [System Design Primer](https://github.com/donnemartin/system-design-primer) · [AWS: caching best practices](https://aws.amazon.com/caching/best-practices/) · [Cloudflare: what is a CDN](https://www.cloudflare.com/learning/cdn/what-is-a-cdn/)
+
+## SQL vs NoSQL, sharding, replication {#sd-db}
+
+**In one line:** SQL gives schemas, joins, and transactions; NoSQL trades some of that for flexible schemas and easy horizontal scale; replication copies data for reads and failover; sharding splits data across machines.
+
+> **Analogy.** Replication is photocopying the phone book for every office. Sharding is splitting it into A–M and N–Z books kept in different offices.
+
+```mermaid
+flowchart TB
+  APP["App"] --> RT["Shard router: hash user_id"]
+  RT --> S1[("Shard 1 primary")]
+  RT --> S2[("Shard 2 primary")]
+  S1 --> R1[("Replica")]
+  S2 --> R2[("Replica")]
+```
+
+| Pick | When |
+|---|---|
+| Relational (Postgres, MySQL) | Transactions, relations, ad-hoc queries |
+| Key-value (Redis, DynamoDB) | Simple lookups at huge scale |
+| Document (MongoDB) | Nested, evolving records |
+| Wide-column (Cassandra) | Massive write throughput, time series |
+
+```python
+import hashlib
+SHARDS = ["db-0", "db-1", "db-2", "db-3"]
+def shard_for(user_id: str) -> str:
+    return SHARDS[int(hashlib.md5(user_id.encode()).hexdigest(), 16) % len(SHARDS)]
+```
+
+> **Trap.** Modulo sharding reshuffles almost every key when you add a shard. Use consistent hashing or a lookup directory.
+
+**Read:** [Designing Data-Intensive Applications (book site)](https://dataintensive.net/) · [ByteByteGo: database sharding](https://blog.bytebytego.com/p/a-guide-to-database-sharding-key) · [Consistent hashing (Wikipedia)](https://en.wikipedia.org/wiki/Consistent_hashing)
+
+## Consistency models and CAP {#sd-cap}
+
+**In one line:** during a network partition you must choose between consistency (everyone sees the latest write) and availability (everyone gets an answer); outside partitions, the real trade-off is latency vs consistency (PACELC).
+
+> **Analogy.** Two bank branches lose their phone line. Either they stop serving withdrawals (consistent) or keep serving and reconcile later (available, risk of overdraft).
+
+| Model | Guarantee | Example |
+|---|---|---|
+| Strong / linearizable | Reads see the latest write | Bank balances, leader election |
+| Read-your-writes | You see your own updates | Profile edits |
+| Eventual | Replicas converge eventually | Like counts, feeds |
+
+```mermaid
+flowchart LR
+  P{"Network partition?"} -->|yes| CA{"Choose"}
+  CA --> C["Consistency: reject some requests"]
+  CA --> A["Availability: serve possibly stale data"]
+  P -->|no| L["Trade latency vs consistency"]
+```
+
+> **Trap.** Saying “we picked AP” for the whole system. Different features need different guarantees: payments strong, feed eventual.
+
+**Read:** [Jepsen: consistency models](https://jepsen.io/consistency) · [Martin Kleppmann: please stop calling databases CP or AP](https://martin.kleppmann.com/2015/05/11/please-stop-calling-databases-cp-or-ap.html) · [PACELC theorem (Wikipedia)](https://en.wikipedia.org/wiki/PACELC_theorem)
+
+## Message queues and event-driven architecture {#sd-mq}
+
+**In one line:** producers drop messages on a queue or log; consumers process them at their own pace — decoupling services, absorbing spikes, and enabling retries.
+
+> **Analogy.** A restaurant ticket rail. Waiters clip orders on; cooks take them when ready. A rush does not crash the kitchen; the rail just gets longer.
+
+```mermaid
+flowchart LR
+  P["Order service"] -->|OrderPlaced| K[("Kafka topic or SQS queue")]
+  K --> E["Email service"]
+  K --> I["Inventory service"]
+  K --> A["Analytics"]
+  E -->|fails 3 times| DLQ[("Dead-letter queue")]
+```
+
+| | Queue (SQS, RabbitMQ) | Log (Kafka) |
+|---|---|---|
+| Message after read | Deleted | Retained, replayable |
+| Consumers | Compete for messages | Each group reads all |
+| Use | Task distribution | Event streaming, CDC |
+
+```python
+import json, boto3
+sqs = boto3.client("sqs")
+URL = "https://sqs.ap-south-1.amazonaws.com/123/embed-jobs"
+
+sqs.send_message(QueueUrl=URL, MessageBody=json.dumps({"doc_id": "RF-12"}))
+
+while True:
+    resp = sqs.receive_message(QueueUrl=URL, MaxNumberOfMessages=10, WaitTimeSeconds=20)
+    for m in resp.get("Messages", []):
+        process(json.loads(m["Body"]))                       # must be idempotent
+        sqs.delete_message(QueueUrl=URL, ReceiptHandle=m["ReceiptHandle"])
+```
+
+> **Trap.** Most queues deliver *at least once*. Consumers must be idempotent, or duplicates will double-charge or double-email.
+
+**Read:** [Martin Fowler: what do you mean by event-driven?](https://martinfowler.com/articles/201701-event-driven.html) · [Kafka introduction](https://kafka.apache.org/intro) · [Amazon SQS developer guide](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/welcome.html)
+
+## Rate limiting, retries, circuit breakers {#sd-resilience}
+
+**In one line:** rate limits protect a service from too much traffic; retries with backoff handle transient failures; circuit breakers stop calling a dependency that is clearly down.
+
+> **Analogy.** A circuit breaker in your house: when the toaster shorts, it trips so the whole house does not burn — and you reset it after a while.
+
+```mermaid
+stateDiagram-v2
+  [*] --> Closed
+  Closed --> Open: failures exceed threshold
+  Open --> HalfOpen: cooldown elapsed
+  HalfOpen --> Closed: trial call succeeds
+  HalfOpen --> Open: trial call fails
+```
+
+```python
+import time
+
+class TokenBucket:
+    def __init__(self, rate: float, capacity: int):
+        self.rate, self.capacity = rate, capacity
+        self.tokens, self.last = capacity, time.monotonic()
+    def allow(self) -> bool:
+        now = time.monotonic()
+        self.tokens = min(self.capacity, self.tokens + (now - self.last) * self.rate)
+        self.last = now
+        if self.tokens >= 1:
+            self.tokens -= 1
+            return True
+        return False
+
+class CircuitBreaker:
+    def __init__(self, threshold=5, cooldown=30):
+        self.threshold, self.cooldown, self.failures, self.opened_at = threshold, cooldown, 0, None
+    def call(self, fn, *a, **kw):
+        if self.opened_at and time.monotonic() - self.opened_at < self.cooldown:
+            raise RuntimeError("circuit open")
+        try:
+            result = fn(*a, **kw)
+        except Exception:
+            self.failures += 1
+            if self.failures >= self.threshold:
+                self.opened_at = time.monotonic()
+            raise
+        self.failures, self.opened_at = 0, None
+        return result
+```
+
+**Read:** [Martin Fowler: circuit breaker](https://martinfowler.com/bliki/CircuitBreaker.html) · [Stripe: scaling your API with rate limiters](https://stripe.com/blog/rate-limiters) · [AWS: timeouts, retries, and backoff with jitter](https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/)
+
+## Capacity estimation — QPS, storage, bandwidth {#sd-capacity}
+
+**In one line:** back-of-the-envelope maths gets the order of magnitude right so you know whether you need one server or a thousand.
+
+> **Analogy.** Estimating how many buses a city needs from population and commute habits — no need for exact numbers, just the right ballpark.
+
+```python
+DAU = 50_000_000
+writes_per_user, reads_per_user = 2, 100
+SECONDS_PER_DAY = 86_400
+
+write_qps = DAU * writes_per_user / SECONDS_PER_DAY
+read_qps = DAU * reads_per_user / SECONDS_PER_DAY
+peak = 3                                           # peak-to-average factor
+record_bytes = 500
+storage_5y_tb = DAU * writes_per_user * record_bytes * 365 * 5 / 1e12
+
+print(f"writes ~{write_qps:,.0f}/s (peak {write_qps * peak:,.0f}), reads ~{read_qps:,.0f}/s")
+print(f"storage over 5 years ~{storage_5y_tb:,.0f} TB before replication")
+```
+
+| Handy number | Value |
+|---|---|
+| Seconds per day | ~86,400 (≈ 10⁵) |
+| Memory read | ~100 ns |
+| SSD random read | ~100 µs |
+| Same-region round trip | ~0.5 ms |
+| Cross-continent round trip | ~150 ms |
+
+**Read:** [Latency numbers every programmer should know](https://gist.github.com/jboner/2841832) · [System Design Primer: back-of-the-envelope](https://github.com/donnemartin/system-design-primer#appendix)
+
+## URL shortener and key-value store {#sd-url}
+
+**In one line:** a URL shortener maps a short code to a long URL — read-heavy, so cache aggressively; the code comes from a counter encoded in base62 or a hash with collision checks.
+
+> **Analogy.** A cloakroom: you hand over a big coat (long URL), get a tiny ticket (short code), and anyone with the ticket gets the coat back instantly.
+
+```mermaid
+flowchart LR
+  C["Client"] -->|POST long URL| API["API"]
+  API --> ID["ID generator: counter ranges per server"]
+  ID --> B62["base62 encode"]
+  B62 --> KV[("Key-value store: code to URL")]
+  C2["Visitor"] -->|GET /aZ3k9| API2["API"]
+  API2 --> CACHE[("Cache")]
+  CACHE -->|miss| KV
+  API2 -->|301 or 302 redirect| C2
+```
+
+```python
+ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+def base62(n: int) -> str:
+    s = ""
+    while True:
+        n, r = divmod(n, 62)
+        s = ALPHABET[r] + s
+        if n == 0:
+            return s
+print(base62(125_000_000_000))   # 7 characters cover trillions of URLs
+```
+
+Key-value store deep dive: consistent hashing to partition, replication factor 3, quorum reads/writes (R + W > N), and an LSM-tree storage engine for write-heavy loads.
+
+**Read:** [ByteByteGo: design a URL shortener](https://bytebytego.com/courses/system-design-interview/design-a-url-shortener) · [Amazon Dynamo paper](https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf)
+
+## News feed and timeline fan-out {#sd-feed}
+
+**In one line:** fan-out on write pushes each new post into followers’ precomputed feeds (fast reads); fan-out on read builds the feed at request time (cheap writes); real systems mix both for celebrities.
+
+> **Analogy.** Fan-out on write: the newspaper is delivered to every subscriber’s door. Fan-out on read: everyone walks to the newsstand. Celebrities are the newsstand; normal users get door delivery.
+
+```mermaid
+flowchart LR
+  P["New post"] --> F{"Author has more than 1M followers?"}
+  F -->|no| W["Fan-out on write: push to follower feed caches"]
+  F -->|yes| R["Store once: merged at read time"]
+  U["Reader"] --> M["Merge cached feed + celebrity posts"]
+  W --> M
+  R --> M
+  M --> RANK["Rank and return"]
+```
+
+**Read:** [ByteByteGo: design a news feed system](https://bytebytego.com/courses/system-design-interview/design-a-news-feed-system) · [Twitter timelines at scale (InfoQ)](https://www.infoq.com/presentations/Twitter-Timeline-Scalability/)
+
+## Chat and notification systems {#sd-chat}
+
+**In one line:** persistent WebSocket connections deliver messages in real time; a message store keeps history; presence and push notifications cover offline users.
+
+> **Analogy.** Walkie-talkies for people who are online, voicemail plus a phone buzz for those who are not.
+
+```mermaid
+sequenceDiagram
+  participant A as Alice
+  participant WS as Chat server
+  participant DB as Message store
+  participant B as Bob
+  participant PN as Push service
+  A->>WS: send message over WebSocket
+  WS->>DB: persist with sequence id
+  alt Bob online
+    WS->>B: deliver over WebSocket
+  else Bob offline
+    WS->>PN: push notification
+  end
+```
+
+Key decisions: message ordering per conversation (sequence ids), delivery receipts, group fan-out limits, storing messages in a wide-column store keyed by conversation and time.
+
+**Read:** [ByteByteGo: design a chat system](https://bytebytego.com/courses/system-design-interview/design-a-chat-system) · [MDN: WebSockets API](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API) · [Discord: how we store trillions of messages](https://discord.com/blog/how-discord-stores-trillions-of-messages)
+
+## Search and autocomplete at scale {#sd-search}
+
+**In one line:** search uses an inverted index (term → documents) with ranking; autocomplete uses a trie or precomputed top-k suggestions per prefix, served from cache.
+
+> **Analogy.** The index at the back of a textbook (inverted index), and a librarian who finishes your sentence because she has heard the question a thousand times (autocomplete).
+
+```python
+from collections import defaultdict
+import heapq
+
+class Autocomplete:
+    def __init__(self, k=5):
+        self.k = k
+        self.top = defaultdict(list)          # prefix -> min-heap of (count, query)
+
+    def add(self, query: str, count: int):
+        for i in range(1, len(query) + 1):
+            heap = self.top[query[:i]]
+            heapq.heappush(heap, (count, query))
+            if len(heap) > self.k:
+                heapq.heappop(heap)
+
+    def suggest(self, prefix: str) -> list[str]:
+        return [q for _, q in sorted(self.top.get(prefix, []), reverse=True)]
+
+ac = Autocomplete()
+for q, c in [("refund status", 900), ("refund policy", 1200), ("referral code", 300)]:
+    ac.add(q, c)
+print(ac.suggest("ref"))
+```
+
+```mermaid
+flowchart LR
+  LOGS["Query logs"] --> AGG["Hourly aggregation job"]
+  AGG --> BUILD["Build prefix to top-k table"]
+  BUILD --> CACHE[("Distributed cache")]
+  USER["Keystroke"] --> API["Suggest API"] --> CACHE
+```
+
+**Read:** [ByteByteGo: design a search autocomplete system](https://bytebytego.com/courses/system-design-interview/design-a-search-autocomplete-system) · [Elasticsearch: what is an inverted index?](https://www.elastic.co/docs/manage-data/data-store/index-basics)
+
+[← Module 7](m7.html) · [Next: DSA elective →](dsa.html)
+</script>
+<script src="notes.js"></script>
+</body>
+</html>

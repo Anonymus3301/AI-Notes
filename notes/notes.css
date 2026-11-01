@@ -1,0 +1,132 @@
+:root {
+  --ink: #1a1814;
+  --muted: #5c564c;
+  --line: #e4dccf;
+  --paper: #f6f2ea;
+  --card: #fffdf8;
+  --forest: #1d5c45;
+  --forest-deep: #143d2e;
+  --copper: #9a4e2c;
+  --gold: #c4a15a;
+  --plum: #5b3f6e;
+  --code-bg: #1f2420;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--paper);
+  font: 16.5px/1.65 "Avenir Next", "Segoe UI", sans-serif;
+}
+a { color: var(--forest); }
+header.bar {
+  position: sticky; top: 0; z-index: 5;
+  display: flex; gap: 18px; align-items: center; flex-wrap: wrap;
+  padding: 10px 22px;
+  background: var(--forest-deep);
+  color: #f3ecdf;
+}
+header.bar a { color: #f3ecdf; text-decoration: none; font-size: 0.92rem; opacity: 0.85; }
+header.bar a:hover { opacity: 1; text-decoration: underline; }
+header.bar span { margin-left: auto; font-family: Palatino, Georgia, serif; font-size: 1.05rem; }
+.wrap {
+  display: grid;
+  grid-template-columns: 270px minmax(0, 1fr);
+  gap: 34px;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 26px 22px 90px;
+}
+nav#toc {
+  position: sticky; top: 64px; align-self: start;
+  max-height: calc(100vh - 84px); overflow: auto;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  font-size: 0.88rem;
+}
+nav#toc strong { display: block; text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.72rem; color: var(--muted); margin: 2px 6px 8px; }
+nav#toc a { display: block; padding: 5px 8px; border-radius: 7px; color: var(--ink); text-decoration: none; line-height: 1.35; }
+nav#toc a:hover { background: #efe7d8; }
+main#content { min-width: 0; }
+main#content h1 {
+  font-family: Palatino, "Iowan Old Style", Georgia, serif;
+  font-size: clamp(2rem, 4vw, 2.9rem);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin: 0 0 10px;
+}
+main#content h2 {
+  font-family: Palatino, Georgia, serif;
+  font-size: 1.65rem;
+  line-height: 1.25;
+  margin: 56px 0 12px;
+  padding-top: 18px;
+  border-top: 2px solid var(--line);
+  scroll-margin-top: 70px;
+}
+main#content h3 { font-size: 1.05rem; margin: 22px 0 6px; color: var(--forest-deep); }
+main#content p, main#content li { max-width: 78ch; }
+blockquote {
+  margin: 16px 0;
+  padding: 12px 16px;
+  background: #fbf6ec;
+  border-left: 4px solid var(--gold);
+  border-radius: 0 10px 10px 0;
+}
+blockquote p { margin: 0; }
+blockquote.analogy { border-left-color: var(--plum); background: #f6f1f8; }
+blockquote.trap { border-left-color: var(--copper); background: #fbf0ea; }
+blockquote.boss { border-left-color: var(--forest); background: #edf5f0; }
+blockquote.try { border-left-color: #2f6f9a; background: #eef4f9; }
+code { font-family: "JetBrains Mono", "SF Mono", Menlo, monospace; font-size: 0.88em; }
+:not(pre) > code { background: #efe7d8; padding: 1px 5px; border-radius: 5px; }
+pre {
+  position: relative;
+  margin: 14px 0;
+  border-radius: 12px;
+  overflow: auto;
+  background: var(--code-bg);
+}
+pre code.hljs, pre code { display: block; padding: 16px 18px; background: var(--code-bg); color: #e8e3d6; line-height: 1.5; }
+button.copy {
+  position: absolute; top: 8px; right: 8px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.08);
+  color: #e8e3d6;
+  border-radius: 7px;
+  padding: 3px 9px;
+  font: 12px/1.4 inherit;
+  cursor: pointer;
+}
+button.copy:hover { background: rgba(255,255,255,0.18); }
+.mermaid {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  margin: 14px 0;
+  text-align: center;
+  overflow: auto;
+}
+table { border-collapse: collapse; margin: 12px 0; font-size: 0.93rem; }
+th, td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
+th { background: #efe7d8; }
+details {
+  margin: 14px 0;
+  background: var(--card);
+  border: 1px dashed #cdbfa6;
+  border-radius: 10px;
+  padding: 8px 14px;
+}
+details summary { cursor: pointer; font-weight: 600; color: var(--forest-deep); }
+details[open] summary { margin-bottom: 6px; }
+.offline { color: var(--copper); }
+pre.raw { white-space: pre-wrap; background: var(--card); color: var(--ink); padding: 16px; }
+.hero-note { color: var(--muted); max-width: 75ch; }
+@media (max-width: 900px) {
+  .wrap { grid-template-columns: 1fr; }
+  nav#toc { position: static; max-height: none; }
+}

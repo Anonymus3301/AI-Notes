@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Module 3 notes — RAG Systems & Vector Intelligence</title>
+  <link rel="stylesheet" href="notes.css" />
+</head>
+<body>
+  <header class="bar">
+    <a href="../index.html">← Tutorials</a>
+    <a href="index.html">All notes</a>
+    <a href="m2.html">← Module 2</a>
+    <a href="m4.html">Module 4 →</a>
+    <span>Module 3 · RAG & vectors</span>
+  </header>
+  <div class="wrap">
+    <nav id="toc"></nav>
+    <main id="content"><p>Loading notes…</p></main>
+  </div>
+<script type="text/markdown" id="md">
+# Module 3 — RAG Systems & Vector Intelligence
+
+<p class="hero-note">Quest: “make our documents searchable” — the most common enterprise AI request. Retrieval-augmented generation (RAG) means: find the right passages, put them in the prompt, and make the model answer only from them. Three weeks.</p>
+
+```mermaid
+flowchart LR
+  subgraph Indexing
+    D["Documents"] --> L["Load"] --> S["Split into chunks"] --> E["Embed"] --> V[("Vector store")]
+  end
+  subgraph Query
+    Q["Question"] --> QE["Embed question"] --> R["Retrieve top-k"]
+    V --> R
+    R --> P["Prompt with context"] --> M["LLM"] --> A["Grounded answer + citations"]
+  end
+```
+
+Setup used below: `pip install langchain langchain-openai langchain-chroma langchain-community sentence-transformers faiss-cpu rank_bm25 ragas`.
+
+## 3.1 Embeddings — text-embedding-3, sentence-transformers, BGE {#m3-emb}
+
+**In one line:** an embedding model maps text to a vector so that texts with similar meaning land close together.
+
+> **Analogy.** A map of a city where every sentence gets GPS coordinates. “Refund my money” and “I want my cash back” are neighbours; “KYC selfie” lives across town.
+
+| Model | Where it runs | Notes |
+|---|---|---|
+| OpenAI `text-embedding-3-small` / `-large` | API | Strong default; `dimensions` parameter can shrink vectors |
+| `all-MiniLM-L6-v2` | Local CPU | 384-d, fast, good for prototypes |
+| `BAAI/bge-*` | Local GPU or CPU | Top open models; add the query instruction for retrieval |
+
+```python
+from openai import OpenAI
+from sentence_transformers import SentenceTransformer
+
+texts = ["Refund my money", "I want my cash back", "Upload KYC selfie"]
+
+oa = OpenAI()
+api_vecs = [d.embedding for d in oa.embeddings.create(model="text-embedding-3-small", input=texts).data]
+print(len(api_vecs[0]))  # 1536
+
+local = SentenceTransformer("BAAI/bge-small-en-v1.5")
+local_vecs = local.encode(texts, normalize_embeddings=True)
+print(local_vecs.shape)  # (3, 384)
+```
+
+> **Trap.** You must embed documents and queries with the **same** model. Switching models means re-embedding the whole corpus.
+
+**Read:** [OpenAI embeddings guide](https://platform.openai.com/docs/guides/embeddings) · [Sentence Transformers docs](https://sbert.net/) · [BGE model card](https://huggingface.co/BAAI/bge-large-en-v1.5) · [MTEB leaderboard](https://huggingface.co/spaces/mteb/leaderboard)
+
+## 3.2 Cosine similarity {#m3-cosine}
+
+**In one line:** cosine similarity measures the angle between two vectors: 1 = same direction (same meaning), 0 = unrelated.
+
+```text
+cos(a, b) = (a · b) / (‖a‖ × ‖b‖)        ranges from -1 to 1
+```
+
+> **Analogy.** Two people pointing. If they point the same way, they agree — no matter how long their arms are (vector length).
+
+```python
+import numpy as np
+
+def cosine(a, b):
+    a, b = np.asarray(a), np.asarray(b)
+    return float(a @ b / (np.linalg.norm(a) * np.linalg.norm(b)))
+
+v = local.encode(texts, normalize_embeddings=True)
+print(round(cosine(v[0], v[1]), 3), round(cosine(v[0], v[2]), 3))   # high, low
+
+# With normalised vectors, cosine == dot product, which is why vector DBs use inner product
+q = local.encode(["give me a refund"], normalize_embeddings=True)[0]
+scores = v @ q
+print(np.argsort(-scores))  # best matches first
+```
+
+> **Trap.** Similarity scores are not probabilities and are not comparable across models. Do not hard-code “0.8 means relevant” without checking your data.
+
+**Read:** [Pinecone: vector similarity explained](https://www.pinecone.io/learn/vector-similarity/) · [Google ML crash course: embeddings](https://developers.google.com/machine-learning/crash-course/embeddings)
+
+## 3.3 Vector databases — Pinecone, ChromaDB, FAISS {#m3-vdb}
+
+**In one line:** a vector store keeps vectors plus metadata and finds nearest neighbours fast using approximate indexes (HNSW, IVF).
+
+> **Analogy.** FAISS is a fast index card box in your backpack. Chroma is a small library with a librarian. Pinecone is a managed national library — someone else keeps the lights on.
+
+| | FAISS | Chroma | Pinecone |
+|---|---|---|---|
+| Type | Library | Embedded or server DB | Managed cloud |
+| Metadata filters | You build them | Yes | Yes |
+| Best for | Research, offline batch | Prototypes, small apps | Production scale without ops |
+
+```python
+# FAISS: raw speed
+import faiss, numpy as np
+vecs = local.encode(["refund policy", "kyc rules", "fraud alerts"], normalize_embeddings=True).astype("float32")
+index = faiss.IndexFlatIP(vecs.shape[1])     # inner product == cosine for normalised vectors
+index.add(vecs)
+scores, ids = index.search(local.encode(["money back"], normalize_embeddings=True).astype("float32"), k=2)
+
+# Chroma via LangChain: persistence + metadata
+from langchain_chroma import Chroma
+from langchain_openai import OpenAIEmbeddings
+store = Chroma(collection_name="policies", embedding_function=OpenAIEmbeddings(model="text-embedding-3-small"),
+               persist_directory="./chroma")
+store.add_texts(["Refunds within 30 days.", "KYC needs PAN and selfie."],
+                metadatas=[{"team": "payments"}, {"team": "compliance"}])
+print(store.similarity_search("how long for refunds", k=1, filter={"team": "payments"}))
+```
+
+> **Trap.** Forgetting metadata. In client work you almost always need filters: tenant id, document type, date, access level.
+
+**Read:** [FAISS wiki](https://github.com/facebookresearch/faiss/wiki) · [Chroma docs](https://docs.trychroma.com/) · [Pinecone docs](https://docs.pinecone.io/) · [Qdrant docs](https://qdrant.tech/documentation/)
+
+## 3.4 Chunking strategies {#m3-chunk}
+
+**In one line:** how you split documents decides what can be retrieved; chunks must be small enough to be specific and large enough to make sense alone.
+
+> **Analogy.** Cutting a pizza. Slices too thin: no topping on any one slice. Too big: you cannot fit one in your mouth (context window).
+
+| Strategy | How | Good for |
+|---|---|---|
+| Fixed size + overlap | N characters/tokens, overlap 10–20% | Quick baseline |
+| Recursive | Split on headings → paragraphs → sentences | Most prose documents |
+| Structure-aware | Markdown/HTML headers, PDF sections, code functions | Manuals, wikis, code |
+| Semantic | Split where embedding similarity drops | Long unstructured text |
+
+```python
+from langchain_text_splitters import RecursiveCharacterTextSplitter, MarkdownHeaderTextSplitter
+
+splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=120,
+                                          separators=["\n## ", "\n\n", "\n", ". ", " "])
+chunks = splitter.split_text(open("refund_policy.md").read())
+
+md = MarkdownHeaderTextSplitter(headers_to_split_on=[("#", "h1"), ("##", "h2")])
+sections = md.split_text(open("refund_policy.md").read())
+print(sections[0].metadata)   # {'h1': 'Refund policy', 'h2': 'Eligibility'}
+```
+
+```mermaid
+flowchart LR
+  DOC["Policy PDF"] --> H["Split by headings"]
+  H --> P["Split long sections by paragraphs"]
+  P --> O["Add 10-20 percent overlap"]
+  O --> META["Attach metadata: title, section, page"]
+```
+
+> **Trap.** Tables and lists split mid-row produce chunks that are meaningless alone. Keep tables whole, or convert each row to a sentence with its headers.
+
+**Read:** [Pinecone: chunking strategies](https://www.pinecone.io/learn/chunking-strategies/) · [LangChain text splitters](https://python.langchain.com/docs/concepts/text_splitters/) · [Anthropic: contextual retrieval](https://www.anthropic.com/news/contextual-retrieval)
+
+## 3.5 LangChain — LCEL, chains, retrievers, prompt templates {#m3-lcel}
+
+**In one line:** LCEL composes steps with the `|` pipe: retriever → prompt → model → parser, and you get streaming, batching, and async for free.
+
+> **Analogy.** Unix pipes for LLMs: `cat docs | grep refund | summarise`.
+
+```python
+from langchain_chroma import Chroma
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
+
+store = Chroma(persist_directory="./chroma", embedding_function=OpenAIEmbeddings(model="text-embedding-3-small"))
+retriever = store.as_retriever(search_kwargs={"k": 4})
+
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "Answer only from the context. If it is not there, say 'I don't know'. Cite [source]."),
+    ("human", "Context:\n{context}\n\nQuestion: {question}"),
+])
+
+def format_docs(docs):
+    return "\n\n".join(f"[{d.metadata.get('source', i)}] {d.page_content}" for i, d in enumerate(docs))
+
+chain = (
+    {"context": retriever | format_docs, "question": RunnablePassthrough()}
+    | prompt
+    | ChatOpenAI(model="gpt-4o-mini", temperature=0)
+    | StrOutputParser()
+)
+print(chain.invoke("What is the refund window?"))
+for token in chain.stream("Do you refund shipping?"):
+    print(token, end="")
+```
+
+```mermaid
+flowchart LR
+  Q["question"] --> PAR["Parallel map"]
+  PAR --> RET["retriever then format_docs"]
+  PAR --> PASS["RunnablePassthrough"]
+  RET --> PR["ChatPromptTemplate"]
+  PASS --> PR
+  PR --> LLM["ChatOpenAI"] --> OUT["StrOutputParser"]
+```
+
+> **Trap.** LangChain moves fast; imports change between versions. Pin versions in `requirements.txt` and read the version-specific docs.
+
+**Read:** [LCEL concepts](https://python.langchain.com/docs/concepts/lcel/) · [LangChain RAG tutorial](https://python.langchain.com/docs/tutorials/rag/) · [Retrievers](https://python.langchain.com/docs/concepts/retrievers/)
+
+## 3.6 End-to-end retrieval pipeline design {#m3-e2e}
+
+**In one line:** a production RAG system is two pipelines — offline indexing and online answering — plus evaluation and monitoring around both.
+
+```mermaid
+flowchart TB
+  subgraph Offline
+    SRC["S3, SharePoint, DB"] --> ING["Ingest + dedupe"] --> CL["Clean + PII mask"] --> CH["Chunk"] --> EMB["Embed"] --> IDX[("Index + metadata")]
+  end
+  subgraph Online
+    U["User question"] --> RW["Rewrite / filters"] --> RET["Hybrid retrieve"] --> RR["Rerank"] --> GEN["Generate with citations"] --> GUARD["Guardrails"] --> ANS["Answer"]
+  end
+  IDX --> RET
+  ANS --> LOGS["Traces + feedback"] --> EVAL["Offline evals"]
+```
+
+Design decisions checklist:
+- **Freshness:** how often do documents change? Incremental re-index by document hash.
+- **Access control:** filter by the user’s permissions *at retrieval time*.
+- **Citations:** return source ids and show them in the UI.
+- **Fallback:** “I don’t know” beats a confident hallucination.
+- **Cost:** embed once, cache frequent queries.
+
+```python
+import hashlib
+def doc_id(text: str, source: str) -> str:
+    return hashlib.sha256(f"{source}:{text}".encode()).hexdigest()[:16]
+# Upsert by id: unchanged chunks are skipped, edited chunks replace old ones.
+store.add_texts(texts=chunks, ids=[doc_id(c, "refund_policy.md") for c in chunks],
+                metadatas=[{"source": "refund_policy.md"}] * len(chunks))
+```
+
+> **Analogy.** A library: the back office catalogues new books overnight (indexing); the front desk answers questions all day (online), and the head librarian checks a sample of answers every week (evals).
+
+**Read:** [LangChain: build a RAG app](https://python.langchain.com/docs/tutorials/rag/) · [LlamaIndex: building RAG](https://docs.llamaindex.ai/en/stable/understanding/rag/) · [Pinecone RAG learning series](https://www.pinecone.io/learn/series/rag/)
+
+## 3.7 Parent-document retriever and contextual compression {#m3-parent}
+
+**In one line:** search with small chunks for precision, but hand the model the larger parent section for context; compress retrieved text to only the relevant sentences.
+
+> **Analogy.** You find the right sentence with a highlighter, then read the whole paragraph around it so you do not miss the “except when…”.
+
+```mermaid
+flowchart LR
+  Q["Query"] --> SMALL["Search small child chunks"]
+  SMALL --> MAP["Map child to parent id"]
+  MAP --> BIG["Return parent section"]
+  BIG --> COMP["Compressor keeps relevant sentences"]
+  COMP --> LLM["LLM"]
+```
+
+```python
+from langchain.retrievers import ParentDocumentRetriever, ContextualCompressionRetriever
+from langchain.retrievers.document_compressors import LLMChainExtractor
+from langchain.storage import InMemoryStore
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+parent_retriever = ParentDocumentRetriever(
+    vectorstore=store,
+    docstore=InMemoryStore(),
+    child_splitter=RecursiveCharacterTextSplitter(chunk_size=300),
+    parent_splitter=RecursiveCharacterTextSplitter(chunk_size=2000),
+)
+parent_retriever.add_documents(documents)
+
+compressor = LLMChainExtractor.from_llm(ChatOpenAI(model="gpt-4o-mini", temperature=0))
+compressed = ContextualCompressionRetriever(base_compressor=compressor, base_retriever=parent_retriever)
+docs = compressed.invoke("Are digital goods refundable?")
+```
+
+> **Trap.** LLM-based compression adds a model call per document. Measure latency; an embeddings-based filter is often enough.
+
+**Read:** [Parent document retriever how-to](https://python.langchain.com/docs/how_to/parent_document_retriever/) · [Contextual compression how-to](https://python.langchain.com/docs/how_to/contextual_compression/)
+
+## 3.8 RAG evaluation with RAGAS {#m3-ragas}
+
+**In one line:** score retrieval and generation separately: did we fetch the right context (context recall/precision), and is the answer supported by it (faithfulness) and on-topic (answer relevancy)?
+
+> **Analogy.** Grading an open-book exam. Did the student open the right pages? Did their answer actually come from those pages? Did they answer the question asked?
+
+| Metric | Question it answers | Needs ground truth? |
+|---|---|---|
+| Faithfulness | Is every claim supported by retrieved context? | No |
+| Answer relevancy | Does the answer address the question? | No |
+| Context precision | Are the top-ranked chunks the relevant ones? | Usually |
+| Context recall | Did we retrieve everything needed? | Yes (reference answer) |
+
+```python
+from ragas import evaluate, EvaluationDataset
+from ragas.metrics import Faithfulness, ResponseRelevancy, LLMContextRecall
+from ragas.llms import LangchainLLMWrapper
+from langchain_openai import ChatOpenAI
+
+samples = [{
+    "user_input": "What is the refund window?",
+    "retrieved_contexts": ["Refunds are accepted within 30 days of purchase."],
+    "response": "You can request a refund within 30 days.",
+    "reference": "30 days from purchase.",
+}]
+judge = LangchainLLMWrapper(ChatOpenAI(model="gpt-4o-mini"))
+result = evaluate(EvaluationDataset.from_list(samples),
+                  metrics=[Faithfulness(), ResponseRelevancy(), LLMContextRecall()], llm=judge)
+print(result)
+```
+
+```mermaid
+flowchart LR
+  G["Golden set: 50-200 Q + reference"] --> RUN["Run pipeline"]
+  RUN --> S["RAGAS scores"]
+  S --> CMP["Compare with last version"]
+  CMP -->|better| SHIP["Ship"]
+  CMP -->|worse| FIX["Investigate chunks or prompts"]
+```
+
+> **Trap.** RAGAS uses an LLM as judge, so scores are noisy. Use enough questions, fix the judge model, and spot-check by hand. The RAGAS API changes between versions — check the docs for yours.
+
+**Read:** [RAGAS docs](https://docs.ragas.io/en/stable/) · [RAGAS metrics](https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/) · [Ragas + LangSmith (LangChain blog)](https://blog.langchain.com/evaluating-rag-pipelines-with-ragas-langsmith/)
+
+## 3.9 Context window — stuff, map-reduce, refine, lost in the middle {#m3-window}
+
+**In one line:** when retrieved text is large, either stuff it all in, summarise pieces then combine (map-reduce), or update an answer chunk by chunk (refine) — and put the best chunks at the edges.
+
+> **Analogy.** Reading 40 reports for your boss. Stuff: read all, answer once. Map-reduce: summarise each, then summarise the summaries. Refine: keep a running memo and update it after each report.
+
+```mermaid
+flowchart TB
+  subgraph Stuff
+    A1["All chunks"] --> L1["One LLM call"]
+  end
+  subgraph MapReduce
+    B1["Chunk 1"] --> M1["Summary 1"]
+    B2["Chunk 2"] --> M2["Summary 2"]
+    M1 --> R1["Combine"]
+    M2 --> R1
+  end
+  subgraph Refine
+    C1["Chunk 1"] --> D1["Draft"] --> D2["Draft + Chunk 2"] --> D3["Final"]
+  end
+```
+
+```python
+def reorder_for_edges(docs):
+    """Lost in the middle: put the most relevant docs first and last."""
+    docs = list(docs)                         # assume sorted best -> worst
+    front, back = docs[0::2], docs[1::2]
+    return front + back[::-1]
+
+print(reorder_for_edges(["d1", "d2", "d3", "d4", "d5"]))   # ['d1', 'd3', 'd5', 'd4', 'd2']
+```
+
+| Approach | Calls | Good when |
+|---|---|---|
+| Stuff | 1 | Context fits comfortably |
+| Map-reduce | N + 1, parallel | Summaries of many docs |
+| Refine | N, sequential | Order matters, need nuance |
+
+> **Trap.** A 1M-token window does not mean you should use it. Long prompts are slower, pricier, and models still miss details in the middle.
+
+**Read:** [Lost in the Middle paper](https://arxiv.org/abs/2307.03172) · [LangChain summarization tutorial](https://python.langchain.com/docs/tutorials/summarization/)
+
+## 3.10 BM25 keyword search {#m3-bm25}
+
+**In one line:** BM25 scores documents by matching query words, rewarding rare words and penalising very long documents — great for ids, codes, and names.
+
+> **Analogy.** Embeddings understand that “automobile” ≈ “car”. BM25 is the colleague who instantly finds “error code E-4471” because it literally appears in the text.
+
+```python
+from rank_bm25 import BM25Okapi
+
+corpus = ["Error E-4471 means KYC document expired",
+          "Refunds take 5 to 7 business days",
+          "Selfie mismatch triggers manual review"]
+tokenised = [doc.lower().split() for doc in corpus]
+bm25 = BM25Okapi(tokenised)
+print(bm25.get_scores("e-4471 kyc".split()))
+print(bm25.get_top_n("refund days".split(), corpus, n=1))
+```
+
+Intuition for the formula: term frequency (with diminishing returns, controlled by `k1`) × inverse document frequency (rare terms matter more), normalised by document length (controlled by `b`).
+
+> **Trap.** Naive `.split()` tokenisation misses “refunds” vs “refund”. Use proper tokenisation, lowercasing, and optionally stemming.
+
+**Read:** [Okapi BM25 (Wikipedia)](https://en.wikipedia.org/wiki/Okapi_BM25) · [rank_bm25](https://github.com/dorianbrown/rank_bm25) · [Elastic: practical BM25](https://www.elastic.co/blog/practical-bm25-part-2-the-bm25-algorithm-and-its-variables)
+
+## 3.11 HyDE — hypothetical document embeddings {#m3-hyde}
+
+**In one line:** ask the LLM to write a fake answer, embed *that*, and search with it — fake answers look more like real documents than short questions do.
+
+> **Analogy.** Instead of asking the librarian “books on sad robots?”, you describe a made-up book jacket. It is easier to find books that look like your jacket.
+
+```mermaid
+flowchart LR
+  Q["Short question"] --> LLM["LLM writes hypothetical answer"]
+  LLM --> E["Embed the hypothetical answer"]
+  E --> S["Vector search"]
+  S --> REAL["Real documents"]
+```
+
+```python
+def hyde_search(question: str, k: int = 4):
+    fake = ChatOpenAI(model="gpt-4o-mini", temperature=0.3).invoke(
+        f"Write a short passage from a company policy that answers: {question}").content
+    return store.similarity_search(fake, k=k)
+
+hyde_search("can I get money back for an e-book?")
+```
+
+> **Trap.** HyDE adds an LLM call and can hallucinate jargon that pulls in wrong documents. Evaluate it against plain query embedding.
+
+**Read:** [HyDE paper: Precise Zero-Shot Dense Retrieval](https://arxiv.org/abs/2212.10496) · [LangChain: hypothetical document embeddings](https://python.langchain.com/docs/how_to/hyde/)
+
+## 3.12 Reciprocal rank fusion (RRF) {#m3-rrf}
+
+**In one line:** merge ranked lists by summing `1 / (k + rank)` for each document — no need to compare BM25 scores with cosine scores.
+
+> **Analogy.** Two judges rank singers. You do not compare their score scales; you just reward singers who are near the top on both lists.
+
+```python
+from collections import defaultdict
+
+def rrf(*rankings: list[str], k: int = 60) -> list[tuple[str, float]]:
+    scores = defaultdict(float)
+    for ranking in rankings:
+        for rank, doc_id in enumerate(ranking, start=1):
+            scores[doc_id] += 1.0 / (k + rank)
+    return sorted(scores.items(), key=lambda kv: kv[1], reverse=True)
+
+bm25_rank = ["d3", "d1", "d7"]
+vector_rank = ["d1", "d9", "d3"]
+print(rrf(bm25_rank, vector_rank))   # d1 and d3 rise to the top
+```
+
+```mermaid
+flowchart LR
+  Q["Query"] --> B["BM25 ranking"]
+  Q --> V["Vector ranking"]
+  B --> F["RRF sum 1 over k plus rank"]
+  V --> F
+  F --> TOP["Fused top-k"]
+```
+
+**Read:** [Original RRF paper (Cormack et al.)](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf) · [Elastic: reciprocal rank fusion](https://www.elastic.co/guide/en/elasticsearch/reference/current/rrf.html)
+
+## 3.13 Alpha-weighting BM25 and dense retrieval {#m3-alpha}
+
+**In one line:** hybrid score = α × dense + (1 − α) × sparse, after normalising both to 0–1; tune α on your eval set.
+
+> **Analogy.** A mixing desk with one slider: left is “exact words”, right is “meaning”. Product codes want the slider left; vague questions want it right.
+
+```python
+import numpy as np
+
+def minmax(x):
+    x = np.asarray(x, dtype=float)
+    return (x - x.min()) / (x.max() - x.min() + 1e-9)
+
+def hybrid_scores(bm25_scores, dense_scores, alpha=0.6):
+    return alpha * minmax(dense_scores) + (1 - alpha) * minmax(bm25_scores)
+
+def pick_alpha(query: str) -> float:
+    has_code = any(ch.isdigit() for ch in query) or "-" in query
+    return 0.3 if has_code else 0.7
+
+q = "error E-4471"
+print(hybrid_scores([12.1, 0.4, 0.0], [0.42, 0.40, 0.38], alpha=pick_alpha(q)))
+```
+
+> **Trap.** Raw BM25 scores are unbounded and dense scores are not. Without normalisation, one side silently dominates.
+
+**Read:** [Weaviate: hybrid search explained](https://weaviate.io/blog/hybrid-search-explained) · [Pinecone: hybrid search](https://docs.pinecone.io/guides/search/hybrid-search)
+
+## 3.14 Cross-encoder reranking {#m3-rerank}
+
+**In one line:** retrieve ~50 candidates cheaply, then score each (query, passage) pair jointly with a cross-encoder and keep the best 5.
+
+> **Analogy.** The bi-encoder is a recruiter skimming 1,000 CVs by keywords. The cross-encoder is the hiring manager who carefully interviews the 50 shortlisted.
+
+```mermaid
+flowchart LR
+  Q["Query"] --> BI["Bi-encoder or BM25: top 50, fast"]
+  BI --> CE["Cross-encoder scores each pair, slower"]
+  CE --> TOP["Top 5 to the LLM"]
+```
+
+```python
+from sentence_transformers import CrossEncoder
+
+reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+query = "how long do refunds take"
+candidates = ["Refunds take 5 to 7 business days", "Refund requests need an order id",
+              "KYC review takes 24 hours"]
+scores = reranker.predict([(query, c) for c in candidates])
+ranked = sorted(zip(candidates, scores), key=lambda x: x[1], reverse=True)
+print(ranked[0])
+```
+
+> **Trap.** Cross-encoders are slow on long passages and large candidate sets. Cap candidates (20–100) and passage length.
+
+**Read:** [Sentence Transformers: cross-encoders](https://sbert.net/examples/cross_encoder/applications/README.html) · [Pinecone: rerankers](https://www.pinecone.io/learn/series/rag/rerankers/) · [Cohere Rerank](https://docs.cohere.com/docs/rerank-overview)
+
+## 3.15 Evaluate hybrid search against a pure-vector baseline {#m3-eval-hybrid}
+
+**In one line:** same golden questions, several retrievers, retrieval metrics (hit rate, MRR, recall@k), then the winner goes to RAGAS end-to-end.
+
+> **Analogy.** A taste test with the labels hidden. You do not trust the chef who says “mine is better” — you count votes.
+
+```python
+def hit_rate_and_mrr(retrieve, golden, k=5):
+    hits, rr = 0, 0.0
+    for item in golden:                             # {"q": ..., "relevant_ids": {...}}
+        ids = retrieve(item["q"], k)
+        for rank, doc_id in enumerate(ids, start=1):
+            if doc_id in item["relevant_ids"]:
+                hits += 1
+                rr += 1 / rank
+                break
+    n = len(golden)
+    return {"hit_rate": hits / n, "mrr": rr / n}
+
+for name, fn in {"vector": vector_only, "bm25": bm25_only, "hybrid": hybrid, "hybrid+rerank": hybrid_rerank}.items():
+    print(name, hit_rate_and_mrr(fn, golden))
+```
+
+| Retriever | Hit@5 | MRR | p95 latency |
+|---|---|---|---|
+| Vector | 0.78 | 0.61 | 90 ms |
+| Hybrid (RRF) | 0.86 | 0.70 | 110 ms |
+| Hybrid + rerank | 0.91 | 0.79 | 340 ms |
+
+*(Example numbers — your table is the deliverable.)*
+
+> **Trap.** A golden set written by the engineer who built the system is biased. Get real user questions or have the client write some.
+
+**Read:** [LlamaIndex: retrieval evaluation](https://docs.llamaindex.ai/en/stable/module_guides/evaluating/usage_pattern_retrieval/) · [Evaluation measures in IR (Wikipedia)](https://en.wikipedia.org/wiki/Evaluation_measures_%28information_retrieval%29)
+
+> **Boss level.** “The Retrieval Bake-Off”: index a 200-page policy set, compare vector vs BM25 vs hybrid vs hybrid+rerank on 60 questions, and present the table above with your recommendation and its cost per 1,000 queries.
+
+[← Module 2](m2.html) · [Next: Module 4 — Advanced RAG & fine-tuning →](m4.html)
+</script>
+<script src="notes.js"></script>
+</body>
+</html>

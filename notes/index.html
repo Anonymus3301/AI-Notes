@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Engineering — All notes</title>
+  <link rel="stylesheet" href="notes.css" />
+  <style>
+    .hub { max-width: 1100px; margin: 0 auto; padding: 34px 22px 90px; }
+    .hub h1 { font-family: Palatino, "Iowan Old Style", Georgia, serif; font-size: clamp(2rem, 4vw, 3rem); margin: 0 0 8px; letter-spacing: -0.02em; }
+    .hub h2 { font-family: Palatino, Georgia, serif; margin: 40px 0 12px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+    .card { display: block; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; color: var(--ink); text-decoration: none; transition: transform .15s, box-shadow .15s; }
+    .card:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(20, 61, 46, .12); }
+    .card small { display: block; color: var(--copper); text-transform: uppercase; letter-spacing: .08em; font-size: .72rem; margin-bottom: 4px; }
+    .card strong { display: block; font-family: Palatino, Georgia, serif; font-size: 1.15rem; margin-bottom: 6px; }
+    .card span { color: var(--muted); font-size: .92rem; }
+    .legend { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0 0; }
+    .legend blockquote { margin: 0; flex: 1 1 220px; }
+  </style>
+</head>
+<body>
+  <header class="bar">
+    <a href="../index.html">← Video tutorials</a>
+    <a href="m1.html">Start with Module 1 →</a>
+    <span>AI Engineering · Notes</span>
+  </header>
+  <main class="hub">
+    <h1>Field notes for the Forward Deployed Engineer</h1>
+    <p class="hero-note">One page per module, with every topic from the brochure. Each topic has a one-line summary, an analogy, a diagram, runnable code, a common trap, and links to official docs and articles. Topic cards on the tutorials page link straight to the matching section here.</p>
+
+    <div class="legend">
+      <blockquote class="analogy"><p><strong>Analogy.</strong> The idea explained with everyday things.</p></blockquote>
+      <blockquote class="trap"><p><strong>Trap.</strong> The mistake most people make.</p></blockquote>
+      <blockquote class="boss"><p><strong>Boss level.</strong> A challenge that pulls the module together.</p></blockquote>
+      <blockquote class="try"><p><strong>Try it.</strong> A small exercise to do right now.</p></blockquote>
+    </div>
+
+    <h2>Core modules</h2>
+    <div class="grid">
+      <a class="card" href="m1.html"><small>Module 1 · 17 topics</small><strong>Prompt Engineering &amp; LLM Mastery</strong><span>Transformers, chain of thought, tool calling, structured outputs, injection, tokens, DSPy.</span></a>
+      <a class="card" href="m2.html"><small>Module 2 · 18 topics</small><strong>Python &amp; API Foundations for AI</strong><span>OOP, decorators, typing, pytest, async, HTTP, retries, webhooks, provider SDKs.</span></a>
+      <a class="card" href="m3.html"><small>Module 3 · 15 topics</small><strong>RAG Systems &amp; Vector Intelligence</strong><span>Cosine similarity, vector DBs, chunking, LCEL, BM25, HyDE, RRF, reranking, RAGAS.</span></a>
+      <a class="card" href="m4.html"><small>Module 4 · 13 topics</small><strong>Advanced RAG &amp; LLM Fine-Tuning</strong><span>Multi-hop, corrective RAG, QLoRA, PEFT, Axolotl, alignment, Ollama, GGUF.</span></a>
+      <a class="card" href="m5.html"><small>Module 5 · 12 topics</small><strong>Agentic AI Systems</strong><span>ReAct, arbiters, MCP, LangGraph, CrewAI, memory, orchestration, evals, guardrails.</span></a>
+      <a class="card" href="m6.html"><small>Module 6 · 16 topics</small><strong>Cloud &amp; DevOps</strong><span>FastAPI, Docker, GitHub Actions, Kubernetes, Helm, Terraform, AWS, LangSmith, load tests.</span></a>
+      <a class="card" href="m7.html"><small>Module 7 · 19 topics</small><strong>Forward Deployed AI Engineering</strong><span>Discovery, scoping, CDC, VPC, SSO, security reviews, rollouts, cost, incidents.</span></a>
+    </div>
+
+    <h2>Electives</h2>
+    <div class="grid">
+      <a class="card" href="sd.html"><small>Elective · 10 topics</small><strong>System design</strong><span>Caching, sharding, CAP, queues, circuit breakers, estimation, classic designs.</span></a>
+      <a class="card" href="dsa.html"><small>Elective · 11 topics</small><strong>Data structures and algorithms</strong><span>Python templates for two pointers, stacks, trees, heaps, backtracking, graphs, DP.</span></a>
+    </div>
+
+    <h2>Build and reference</h2>
+    <div class="grid">
+      <a class="card" href="projects.html"><small>14 blueprints</small><strong>Project blueprints</strong><span>Architecture, starter code, milestones, and a definition of done for every project.</span></a>
+      <a class="card" href="stack.html"><small>29 tools</small><strong>Tool stack cheat sheet</strong><span>What each tool is for, a short snippet, and where its docs live.</span></a>
+    </div>
+  </main>
+</body>
+</html>

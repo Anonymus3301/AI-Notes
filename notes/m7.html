@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Module 7 notes — Forward Deployed AI Engineering</title>
+  <link rel="stylesheet" href="notes.css" />
+</head>
+<body>
+  <header class="bar">
+    <a href="../index.html">← Tutorials</a>
+    <a href="index.html">All notes</a>
+    <a href="m6.html">← Module 6</a>
+    <a href="sd.html">System design →</a>
+    <span>Module 7 · Client engineering</span>
+  </header>
+  <div class="wrap">
+    <nav id="toc"></nav>
+    <main id="content"><p>Loading notes…</p></main>
+  </div>
+<script type="text/markdown" id="md">
+# Module 7 — Forward Deployed AI Engineering & Client Consulting
+
+<p class="hero-note">Quest: the demo worked. Now ship it inside a bank with a firewall, a legacy database nobody documented, a security team that says “no” by default, and a CTO who wants the token bill explained. Six weeks — the module that turns engineers into trusted advisors.</p>
+
+```mermaid
+flowchart LR
+  D["Discovery"] --> S["Scope + SOW"]
+  S --> DA["Data access"]
+  DA --> AR["Architecture + security review"]
+  AR --> B["Build + evals"]
+  B --> R["Staged rollout"]
+  R --> O["Operate + report"]
+  O --> D
+```
+
+## 7.1 Stated problem vs actual problem {#m7-problem}
+
+**In one line:** clients describe a solution (“we need a chatbot”); your job is to find the underlying problem (“agents spend 40% of their time searching three wikis”) and the metric that proves you fixed it.
+
+> **Analogy.** A patient says “I need antibiotics”. A good doctor asks where it hurts, since when, and what they have tried.
+
+Discovery question bank:
+- “Walk me through the last time this went wrong.” (story, not opinion)
+- “What happens today, step by step, and who touches it?”
+- “What does it cost when it fails — time, money, risk?”
+- “If this worked perfectly, what number changes, and who notices?”
+- “What have you tried before, and why did it stop?”
+- “Who has to say yes for this to go live?”
+
+```mermaid
+flowchart TD
+  ASK["Stated: build a chatbot"] --> WHY1["Why? Support is slow"]
+  WHY1 --> WHY2["Why? Agents search 3 wikis per ticket"]
+  WHY2 --> WHY3["Why? Policies are scattered and outdated"]
+  WHY3 --> REAL["Actual: findable, current answers for agents"]
+  REAL --> MET["Metric: median handle time down 25 percent"]
+```
+
+```text
+Problem statement template
+For  [user group]
+who  [struggle with X, measured as Y today]
+we will [capability], so that [metric] moves from [baseline] to [target] by [date].
+Out of scope: [list]
+```
+
+> **Trap.** Asking “would you use a feature that…?” — everyone says yes to hypotheticals. Ask about past behaviour instead.
+
+**Read:** [The Mom Test (Rob Fitzpatrick)](https://www.momtestbook.com/) · [Five whys (Wikipedia)](https://en.wikipedia.org/wiki/Five_whys) · [Jobs to be done (Christensen Institute)](https://www.christenseninstitute.org/theory/jobs-to-be-done/)
+
+## 7.2 Scoping under political and budget constraints {#m7-scope}
+
+**In one line:** pick the smallest slice that proves value to the person who controls the budget, avoids the political landmines, and can ship in weeks, not quarters.
+
+> **Analogy.** Building a bridge across a river with angry landowners on both banks. Start with a footbridge where everyone agrees, prove people use it, then widen it.
+
+```mermaid
+quadrantChart
+  title Pick the first slice
+  x-axis Low effort --> High effort
+  y-axis Low value --> High value
+  quadrant-1 Plan later
+  quadrant-2 Do first
+  quadrant-3 Skip
+  quadrant-4 Avoid
+  Agent search assistant: [0.3, 0.8]
+  Full auto replies: [0.85, 0.75]
+  FAQ bot for website: [0.25, 0.35]
+  Replace CRM: [0.95, 0.4]
+```
+
+Stakeholder map: **Sponsor** (pays), **Users** (adopt), **Gatekeepers** (security, legal, data owners — can block), **Bystanders**. Meet gatekeepers *early*.
+
+| Lever | Tight budget move |
+|---|---|
+| Scope | One team, one document set, one language |
+| Model | Small model + RAG before fine-tuning |
+| Infra | Client’s existing cloud and SSO |
+| Timeline | 4–6 week pilot with a go/no-go metric |
+
+> **Trap.** Scope creep disguised as “small asks”. Keep a written change log; every new ask gets an estimate and a trade-off.
+
+**Read:** [Atlassian: project scope](https://www.atlassian.com/work-management/project-management/project-scope) · [Stakeholder analysis (MindTools)](https://www.mindtools.com/aol0rms/stakeholder-analysis)
+
+## 7.3 Engagement artefacts — PRD-lite, SOW, ADRs {#m7-docs}
+
+**In one line:** a one-page PRD aligns *what* and *why*, the statement of work fixes *what you deliver and when*, and architecture decision records capture *why you chose X over Y*.
+
+> **Analogy.** PRD is the trip plan, SOW is the booking confirmation, ADRs are the diary entries explaining why you took the mountain road.
+
+```markdown
+# PRD-lite: Agent Policy Assistant
+Problem: Agents take 6 min median to find policy answers.
+Users: 120 tier-1 support agents (Hindi + English).
+Goal: Median lookup time < 90 s; answer accuracy ≥ 90% on golden set.
+Scope: Refund, KYC, fraud policies (≈400 pages). Web UI inside the CRM.
+Out of scope: Customer-facing bot, auto-replies, voice.
+Risks: Outdated policies; PII in tickets; SSO integration lead time.
+Success check: Week 6 pilot with 20 agents, A/B against current process.
+```
+
+```markdown
+# ADR-003: Use hybrid search (BM25 + vectors) with reranking
+Status: Accepted — 2026-11-01
+Context: Agents search by policy codes (e.g. "RF-12") and by natural language.
+Decision: Hybrid retrieval with RRF, cross-encoder rerank top 30 → 5.
+Alternatives: Pure vector (missed codes: hit@5 0.71); BM25 only (missed paraphrases: 0.64).
+Consequences: +120 ms p95 latency; one more model to host; hit@5 0.89.
+```
+
+SOW essentials: deliverables, milestones and dates, acceptance criteria, assumptions (client provides data access by week 1), out-of-scope list, change process, and fees.
+
+**Read:** [ADR GitHub organisation](https://adr.github.io/) · [Michael Nygard: Documenting architecture decisions](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions) · [Atlassian: product requirements](https://www.atlassian.com/agile/product-management/requirements)
+
+## 7.4 Getting data out — firewalls, read replicas, change data capture {#m7-cdc}
+
+**In one line:** never hammer the client’s production database; read from a replica or export, and use change data capture (CDC) to stream inserts and updates as events.
+
+> **Analogy.** Instead of repeatedly asking the busy shopkeeper “anything new?”, you install a doorbell that rings every time stock changes (CDC).
+
+```mermaid
+flowchart LR
+  PROD[("Prod Postgres")] -->|WAL replication| REP[("Read replica")]
+  PROD -->|write-ahead log| DBZ["Debezium connector"]
+  DBZ --> K["Kafka topic per table"]
+  K --> C["Your consumer: clean, mask PII, chunk, embed"]
+  C --> VS[("Vector store")]
+```
+
+```json
+{
+  "name": "policies-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "database.hostname": "replica.internal",
+    "database.port": "5432",
+    "database.user": "cdc_reader",
+    "database.password": "${file:/secrets/db.properties:password}",
+    "database.dbname": "crm",
+    "topic.prefix": "crm",
+    "table.include.list": "public.policies,public.tickets",
+    "plugin.name": "pgoutput"
+  }
+}
+```
+
+```python
+from kafka import KafkaConsumer
+import json
+
+consumer = KafkaConsumer("crm.public.policies", bootstrap_servers="kafka:9092",
+                         value_deserializer=lambda b: json.loads(b) if b else None)
+for msg in consumer:
+    event = msg.value["payload"] if msg.value else None
+    if not event:
+        continue
+    op, after = event["op"], event.get("after")      # c=create, u=update, d=delete
+    if op in ("c", "u"):
+        upsert_policy(after)                          # re-chunk and re-embed this row
+    elif op == "d":
+        delete_policy(event["before"]["id"])
+```
+
+> **Trap.** Asking for broad database credentials. Request a least-privilege read-only user on specific tables, and get the data owner’s written approval.
+
+**Read:** [Debezium documentation](https://debezium.io/documentation/) · [Debezium PostgreSQL connector](https://debezium.io/documentation/reference/stable/connectors/postgresql.html) · [AWS RDS read replicas](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ReadRepl.html)
+
+## 7.5 Schema archaeology on undocumented systems {#m7-schema}
+
+**In one line:** reflect the schema, profile every column (nulls, distinct values, formats), find the real join keys, and write the data dictionary nobody else did.
+
+> **Analogy.** An archaeologist brushing dust off bones: you do not know what animal it is yet, but measurements and patterns tell you.
+
+```python
+from sqlalchemy import create_engine, inspect, text
+import pandas as pd
+
+engine = create_engine("postgresql+psycopg://reader:***@replica.internal/crm")
+insp = inspect(engine)
+
+for table in insp.get_table_names(schema="public"):
+    cols = insp.get_columns(table, schema="public")
+    fks = insp.get_foreign_keys(table, schema="public")
+    print(table, [c["name"] for c in cols], "FKs:", [(f["constrained_columns"], f["referred_table"]) for f in fks])
+
+def profile(table: str, sample=50_000) -> pd.DataFrame:
+    df = pd.read_sql(text(f'SELECT * FROM "{table}" TABLESAMPLE SYSTEM (5) LIMIT {sample}'), engine)
+    return pd.DataFrame({
+        "null_pct": df.isna().mean().round(3),
+        "distinct": df.nunique(),
+        "example": df.apply(lambda s: s.dropna().astype(str).head(3).tolist()),
+    })
+
+print(profile("tickets"))
+```
+
+Clues to look for: columns named `*_id` without foreign keys (implicit joins), status codes stored as integers (find the lookup table or ask), `deleted_at` soft deletes, text columns secretly holding JSON, and timestamps in mixed time zones.
+
+```mermaid
+erDiagram
+  CUSTOMER ||--o{ TICKET : raises
+  TICKET ||--o{ TICKET_EVENT : has
+  POLICY ||--o{ TICKET : referenced_by
+  CUSTOMER {
+    int cust_no
+    string full_nm
+  }
+  TICKET {
+    int id
+    int cust_ref
+    int status_cd
+  }
+```
+
+> **Trap.** Trusting column names. `cust_ref` might join to `cust_no` only for tickets after 2019. Verify joins with match-rate queries.
+
+**Read:** [SQLAlchemy: reflecting database objects](https://docs.sqlalchemy.org/en/20/core/reflection.html) · [ydata-profiling](https://docs.profiling.ydata.ai/latest/) · [Great Expectations](https://docs.greatexpectations.io/docs/home/)
+
+## 7.6 PII identification and masking at extraction {#m7-pii-extract}
+
+**In one line:** detect and mask personal data *before* it leaves the source boundary — in the extraction job — so it never lands in your vector store, logs, or prompts.
+
+> **Analogy.** Redacting a document with a black marker before photocopying it, not after it is already on everyone’s desk.
+
+```python
+import re
+from presidio_analyzer import AnalyzerEngine, PatternRecognizer, Pattern
+from presidio_anonymizer import AnonymizerEngine
+from presidio_anonymizer.entities import OperatorConfig
+
+pan = PatternRecognizer(supported_entity="IN_PAN",
+                        patterns=[Pattern("pan", r"\b[A-Z]{5}[0-9]{4}[A-Z]\b", 0.85)])
+aadhaar = PatternRecognizer(supported_entity="IN_AADHAAR",
+                            patterns=[Pattern("aadhaar", r"\b\d{4}\s?\d{4}\s?\d{4}\b", 0.6)])
+
+analyzer = AnalyzerEngine()
+analyzer.registry.add_recognizer(pan)
+analyzer.registry.add_recognizer(aadhaar)
+anonymizer = AnonymizerEngine()
+
+text = "Customer Rahul Verma, PAN ABCDE1234F, Aadhaar 1234 5678 9012, called about refund."
+results = analyzer.analyze(text=text, language="en")
+masked = anonymizer.anonymize(text=text, analyzer_results=results, operators={
+    "DEFAULT": OperatorConfig("replace", {"new_value": "<REDACTED>"}),
+    "PERSON": OperatorConfig("replace", {"new_value": "<CUSTOMER>"}),
+})
+print(masked.text)
+```
+
+```mermaid
+flowchart LR
+  SRC[("Client DB")] --> EXT["Extraction job inside client network"]
+  EXT --> DET["Detect PII: Presidio + custom rules"]
+  DET --> MASK["Mask or tokenise"]
+  MASK --> OUT["Clean data to RAG pipeline"]
+  DET --> MAP[("Token vault, client-owned, if re-identification is needed")]
+```
+
+> **Trap.** Regexes alone miss names and addresses; NER alone misses IDs. Combine both, then measure recall on a hand-labelled sample.
+
+**Read:** [Presidio docs](https://microsoft.github.io/presidio/) · [Presidio analyzer and custom recognizers](https://microsoft.github.io/presidio/analyzer/) · [AWS Comprehend PII detection](https://docs.aws.amazon.com/comprehend/latest/dg/how-pii.html)
+
+## 7.7 VPC-only, private endpoints, air-gapped inference {#m7-vpc}
+
+**In one line:** keep all traffic on private networks: private endpoints to cloud model services, or models hosted inside the client’s VPC — and fully offline (air-gapped) when the data cannot touch the internet at all.
+
+> **Analogy.** Three levels of a secure building: (1) visitors use a private corridor (private endpoint), (2) the expert works inside your office (self-hosted in VPC), (3) the room has no windows or doors to the outside at all (air-gapped).
+
+```mermaid
+flowchart LR
+  subgraph VPC["Client VPC, private subnets only"]
+    APP["App on ECS or EKS"] --> PE["VPC endpoint / PrivateLink"]
+    APP --> LLM["Self-hosted model: vLLM or Ollama on GPU"]
+    APP --> VDB[("Vector DB")]
+  end
+  PE --> BR["Managed model service: Bedrock or Azure OpenAI private endpoint"]
+  APP -.->|blocked, no internet gateway| X["Public internet"]
+```
+
+| Pattern | Data leaves VPC? | Ops burden | Typical client |
+|---|---|---|---|
+| Public API over internet | Yes | Low | Startups |
+| Managed service via private endpoint | To provider, privately | Low–medium | Most enterprises |
+| Self-hosted in VPC | No | High | Banks, healthcare |
+| Air-gapped | No, ever | Very high | Defence, some government |
+
+```bash
+# Air-gapped: ship models and images in, nothing comes out
+ollama pull llama3.1:8b && tar czf models.tgz ~/.ollama/models     # on a connected machine
+docker save policy-assistant:1.4 | gzip > app.tgz
+# Transfer via approved media, then on the isolated host:
+docker load < app.tgz
+```
+
+> **Trap.** Pip, npm, Hugging Face downloads, and telemetry quietly need the internet. Mirror packages internally and disable telemetry before claiming “air-gapped”.
+
+**Read:** [AWS PrivateLink](https://docs.aws.amazon.com/vpc/latest/privatelink/what-is-privatelink.html) · [Amazon Bedrock VPC endpoints](https://docs.aws.amazon.com/bedrock/latest/userguide/vpc-interface-endpoints.html) · [Azure OpenAI private networking](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/network) · [vLLM docs](https://docs.vllm.ai/en/latest/)
+
+## 7.8 Enterprise auth — SSO, SAML, OIDC, service principals, RBAC {#m7-sso}
+
+**In one line:** humans log in through the client’s identity provider (SAML or OIDC); workloads use service principals or IAM roles; RBAC decides what each can see — including which documents RAG may retrieve.
+
+> **Analogy.** The office building’s badge (SSO) opens the front door; your role decides which floors the badge works on (RBAC); the cleaning robot has its own badge (service principal).
+
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant App
+  participant IdP as Okta or Entra ID
+  U->>App: open app
+  App->>IdP: redirect, OIDC authorization code flow
+  IdP->>U: login + MFA
+  IdP-->>App: code
+  App->>IdP: exchange code for ID token
+  IdP-->>App: ID token with groups claim
+  App->>App: map groups to roles, filter retrieval
+```
+
+```python
+import jwt                                  # pip install pyjwt[crypto]
+from jwt import PyJWKClient
+
+JWKS = PyJWKClient("https://login.example.com/.well-known/jwks.json")
+
+def verify(token: str) -> dict:
+    key = JWKS.get_signing_key_from_jwt(token).key
+    return jwt.decode(token, key, algorithms=["RS256"], audience="policy-assistant",
+                      issuer="https://login.example.com/")
+
+ROLE_FILTERS = {"support_agent": {"visibility": {"$in": ["public", "internal"]}},
+                "compliance": {}}           # no filter: sees everything
+
+def retrieval_filter(claims: dict) -> dict:
+    roles = claims.get("groups", [])
+    return ROLE_FILTERS["compliance"] if "compliance" in roles else ROLE_FILTERS["support_agent"]
+```
+
+| | SAML | OIDC |
+|---|---|---|
+| Format | XML assertions | JSON / JWT tokens |
+| Built on | Its own spec | OAuth 2.0 |
+| Common in | Older enterprise web apps | Modern web, mobile, APIs |
+
+> **Trap.** Filtering documents *after* the LLM has seen them. Access control must be applied in the retrieval query, or the model can leak restricted text.
+
+**Read:** [OpenID Connect: how it works](https://openid.net/developers/how-connect-works/) · [OAuth 2.0 simplified](https://www.oauth.com/) · [Microsoft: application and service principal objects](https://learn.microsoft.com/en-us/entra/identity-platform/app-objects-and-service-principals) · [OWASP Authorization cheat sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html)
+
+## 7.9 Why the security team rejects your first architecture {#m7-security-review}
+
+**In one line:** they reject what they cannot verify — data leaving the boundary, unclear retention, broad permissions, no audit trail, unvetted third parties — so pre-answer those questions in your design document.
+
+> **Analogy.** Airport security does not hate you; they just need to see everything in a clear plastic bag.
+
+Common rejection reasons and the fix to bring with you:
+
+| They ask | Bring |
+|---|---|
+| Where does our data go? | Data-flow diagram with every hop, region, and vendor |
+| Does the vendor train on our data? | Vendor terms + zero-retention / no-training settings |
+| Who can access what? | RBAC matrix, SSO, least-privilege IAM policies |
+| How long are prompts kept? | Retention policy + deletion mechanism |
+| Can you prove what happened? | Audit logs: who asked what, which docs, which model version |
+| What about prompt injection? | Threat model, tool arbiter, red-team results |
+| What if the vendor is down? | Fallback model, graceful degradation |
+
+```mermaid
+flowchart LR
+  U["User in corp network"] -->|SSO, TLS| APP["App in client VPC"]
+  APP -->|private endpoint, TLS| LLM["LLM: zero retention"]
+  APP --> VDB[("Vector DB, encrypted, same region")]
+  APP --> LOG[("Audit log, 1 year, immutable")]
+  SRC[("Source systems")] -->|masked extract| VDB
+```
+
+> **Trap.** Showing up with a vendor-heavy architecture and no data-flow diagram. Draw the diagram first; it is usually the first thing they ask for.
+
+**Read:** [OWASP Top 10 for LLM applications](https://genai.owasp.org/llm-top-10/) · [STRIDE threat modelling (Microsoft)](https://learn.microsoft.com/en-us/azure/security/develop/threat-modeling-tool-threats) · [OpenAI enterprise privacy](https://openai.com/enterprise-privacy/)
+
+## 7.10 Inference serving and throughput under real SLAs {#m7-sla}
+
+**In one line:** throughput depends on batching, KV-cache memory, and output length; size GPUs from expected concurrent requests and tokens per second, then load-test against the SLA.
+
+> **Analogy.** A bus is more efficient than taxis (batching), but passengers wait for it to fill. Continuous batching is a bus that picks people up at every stop without stopping the route.
+
+```text
+Capacity back-of-envelope
+peak requests per second (RPS)  = 20
+average output tokens           = 250
+tokens per second needed        = 20 × 250 = 5,000 tok/s
+one GPU serving an 8B model     ≈ 1,500–3,000 tok/s aggregate (measure yours!)
+→ 2–4 GPUs + 1 spare for failover
+```
+
+```bash
+# vLLM: OpenAI-compatible server with continuous batching and paged KV cache
+pip install vllm
+vllm serve meta-llama/Llama-3.1-8B-Instruct --max-model-len 8192 --gpu-memory-utilization 0.9
+```
+
+```mermaid
+flowchart LR
+  LB["Load balancer"] --> G1["GPU node 1: vLLM"]
+  LB --> G2["GPU node 2: vLLM"]
+  LB --> G3["GPU node 3: spare"]
+  Q["Queue depth + TTFT metrics"] -.->|autoscale| LB
+```
+
+| Knob | Effect |
+|---|---|
+| `max_tokens` | Shorter outputs = more requests per GPU |
+| Context length | Longer contexts eat KV-cache memory, fewer concurrent requests |
+| Quantisation (AWQ, FP8) | More throughput, small quality cost |
+| Batch / concurrency limits | Higher throughput vs higher per-request latency |
+
+**Read:** [vLLM docs](https://docs.vllm.ai/en/latest/) · [PagedAttention paper (vLLM)](https://arxiv.org/abs/2309.06180) · [Anyscale: continuous batching](https://www.anyscale.com/blog/continuous-batching-llm-inference) · [Hugging Face TGI](https://huggingface.co/docs/text-generation-inference/index)
+
+## 7.11 Vector search at 10M+ documents {#m7-scale-vec}
+
+**In one line:** at tens of millions of vectors, use approximate indexes (HNSW, IVF-PQ), shard by tenant or time, filter on metadata efficiently, and budget memory explicitly.
+
+> **Analogy.** Finding a friend in a stadium. Checking every seat (flat search) works for a classroom, not 80,000 people. You use sections, rows, and a good guess (approximate search).
+
+```text
+Memory estimate (float32)
+10,000,000 vectors × 1,536 dims × 4 bytes ≈ 61 GB  (before index overhead)
+Options: smaller dims (512), int8 or binary quantisation, product quantisation (PQ)
+```
+
+```python
+import faiss, numpy as np
+
+d, nlist, m = 768, 4096, 64                    # dims, clusters, PQ sub-vectors
+quantizer = faiss.IndexFlatIP(d)
+index = faiss.IndexIVFPQ(quantizer, d, nlist, m, 8)
+train = np.random.rand(200_000, d).astype("float32")
+index.train(train)
+index.add(train)
+index.nprobe = 32                              # recall vs speed knob
+D, I = index.search(train[:5], 10)
+
+hnsw = faiss.IndexHNSWFlat(d, 32)              # M=32 links per node
+hnsw.hnsw.efSearch = 64                        # higher = better recall, slower
+```
+
+```mermaid
+flowchart TB
+  Q["Query + tenant filter"] --> R["Router by tenant or date"]
+  R --> S1["Shard 1: HNSW"]
+  R --> S2["Shard 2: HNSW"]
+  R --> S3["Shard 3: HNSW"]
+  S1 --> M["Merge top-k"]
+  S2 --> M
+  S3 --> M
+  M --> RR["Rerank top 50"]
+```
+
+> **Trap.** Restrictive metadata filters can wreck HNSW recall (most neighbours get filtered out). Check that your database supports filtered search well, or partition by the filter key.
+
+**Read:** [HNSW paper](https://arxiv.org/abs/1603.09320) · [Pinecone: HNSW explained](https://www.pinecone.io/learn/series/faiss/hnsw/) · [FAISS: guidelines to choose an index](https://github.com/facebookresearch/faiss/wiki/Guidelines-to-choose-an-index) · [Qdrant: filtering](https://qdrant.tech/documentation/concepts/filtering/)
+
+## 7.12 Model versioning, staged rollout, fleet-wide observability {#m7-rollout}
+
+**In one line:** every response is tagged with model + prompt + index version; new versions go to a small canary slice first; compare quality, latency, and cost before widening.
+
+> **Analogy.** A new recipe goes on the menu at one branch for a week before the whole chain adopts it.
+
+```mermaid
+flowchart LR
+  V2["New version: prompt v4 + model B"] --> SH["Shadow: run silently, compare offline"]
+  SH --> C5["Canary: 5 percent of users"]
+  C5 --> C25["25 percent"]
+  C25 --> ALL["100 percent"]
+  C5 -->|quality or cost worse| RB["Roll back to v3"]
+  C25 -->|regression| RB
+```
+
+```python
+import hashlib
+
+RELEASES = {"stable": {"prompt": "answer_v3", "model": "gpt-4o-mini", "index": "2026-10-28"},
+            "canary": {"prompt": "answer_v4", "model": "gpt-4.1-mini", "index": "2026-10-31"}}
+CANARY_PCT = 5
+
+def pick_release(user_id: str) -> dict:
+    bucket = int(hashlib.sha256(user_id.encode()).hexdigest(), 16) % 100   # sticky per user
+    name = "canary" if bucket < CANARY_PCT else "stable"
+    return {"release": name, **RELEASES[name]}
+
+release = pick_release("agent-1042")
+# log release fields with every request and trace, then compare dashboards by release
+```
+
+> **Trap.** Comparing canary vs stable on different traffic mixes. Use sticky hashing and segment metrics by release on comparable cohorts.
+
+**Read:** [Martin Fowler: canary release](https://martinfowler.com/bliki/CanaryRelease.html) · [Google SRE: canarying releases](https://sre.google/workbook/canarying-releases/) · [MLflow model registry](https://mlflow.org/docs/latest/ml/model-registry/)
+
+## 7.13 Cost modelling and the token-economics talk with a CTO {#m7-cost}
+
+**In one line:** translate tokens into business units — cost per ticket, per agent per month, per resolved query — show the levers, and compare against the cost of the problem you are solving.
+
+> **Analogy.** The CTO does not care about litres of fuel; they care about cost per delivery and whether a bigger truck pays off.
+
+```python
+def cost_per_query(tok_in=2500, tok_out=300, price_in=0.40, price_out=1.60,
+                   cache_hit=0.6, cache_discount=0.9, rerank=0.0002, embed=0.00002):
+    effective_in = tok_in * (1 - cache_hit * cache_discount)
+    llm = (effective_in * price_in + tok_out * price_out) / 1e6
+    return llm + rerank + embed
+
+q = cost_per_query()
+queries_per_agent_day, agents, workdays = 60, 120, 22
+monthly = q * queries_per_agent_day * agents * workdays
+saved_minutes = 4.5 * queries_per_agent_day * agents * workdays
+print(f"${q:.4f}/query  ${monthly:,.0f}/month  {saved_minutes / 60:,.0f} agent-hours saved/month")
+```
+
+| Lever | Typical saving |
+|---|---|
+| Smaller model for easy queries (routing) | 50–90% on routed traffic |
+| Prompt caching of system + docs | Large on repeated prefixes |
+| Trim retrieved context (rerank top 5, not 20) | 30–60% input tokens |
+| Cap output length | Direct, output tokens cost more |
+| Cache answers to frequent questions | Near 100% on hits |
+
+> **Trap.** Presenting only the LLM bill. Include vector DB, GPUs, observability tools, and engineering time — and the value side (hours saved, errors avoided).
+
+**Read:** [OpenAI pricing](https://openai.com/api/pricing/) · [Anthropic pricing](https://www.anthropic.com/pricing) · [a16z: Navigating the high cost of AI compute](https://a16z.com/navigating-the-high-cost-of-ai-compute/)
+
+## 7.14 India’s DPDP Act, GDPR, data residency {#m7-privacy}
+
+**In one line:** process personal data only for a stated purpose with a lawful basis (often consent), collect the minimum, keep it secure, honour user rights, and respect where data must be stored and processed.
+
+> **Analogy.** Borrowing someone’s car: ask first (consent), use it only for the trip you said (purpose limitation), do not copy the keys (minimisation), and return it when asked (erasure).
+
+| Concept | DPDP Act 2023 (India) | GDPR (EU) |
+|---|---|---|
+| Who | Data fiduciary / data principal | Controller / data subject |
+| Lawful basis | Consent or certain “legitimate uses” | Six lawful bases |
+| Rights | Access, correction, erasure, grievance | Access, rectification, erasure, portability, objection |
+| Cross-border | Allowed except to countries the government restricts | Adequacy, SCCs, and similar safeguards |
+| Penalties | Up to ₹250 crore per breach category | Up to €20M or 4% of global turnover |
+
+```mermaid
+flowchart LR
+  C["Collect with notice + consent"] --> P["Process for stated purpose only"]
+  P --> S["Store: encrypted, in approved region"]
+  S --> R["Retain only as long as needed"]
+  R --> D["Delete or anonymise"]
+  U["User request: access or erase"] --> S
+```
+
+Engineering checklist: purpose recorded per dataset; PII masked before LLM calls where possible; region-pinned storage and model endpoints; deletion that also covers vector stores, caches, logs, and backups; DPIA (impact assessment) for high-risk uses. *Not legal advice — involve the client’s DPO and counsel.*
+
+**Read:** [MeitY: data protection framework (DPDP)](https://www.meity.gov.in/data-protection-framework) · [GDPR full text (EUR-Lex)](https://eur-lex.europa.eu/eli/reg/2016/679/oj) · [GDPR.eu overview](https://gdpr.eu/what-is-gdpr/) · [ICO: guide to data protection](https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/)
+
+## 7.15 Audit logging, model cards, retention policy {#m7-audit}
+
+**In one line:** record who asked what, which documents and model version produced the answer, and what action followed; document each model’s intended use and limits in a model card; delete on schedule.
+
+> **Analogy.** A ship’s logbook: every course change, who ordered it, and why. Model cards are the ship’s specification plate.
+
+```python
+import hashlib, json, time
+
+def audit_event(user, question, doc_ids, release, answer, action=None):
+    return {
+        "ts": time.time(),
+        "user_id": user["id"],
+        "roles": user["roles"],
+        "question_sha256": hashlib.sha256(question.encode()).hexdigest(),   # hash if content is sensitive
+        "doc_ids": doc_ids,
+        "release": release,                    # prompt/model/index versions
+        "answer_chars": len(answer),
+        "action": action,                      # e.g. "refund_approved_by:lead-7"
+    }
+
+line = json.dumps(audit_event({"id": "a-1042", "roles": ["agent"]}, "refund rules?", ["RF-12#3"],
+                              {"prompt": "answer_v3", "model": "gpt-4o-mini"}, "You can..."))
+# append to WORM storage (e.g. S3 Object Lock) with a retention period
+```
+
+Model card headings: intended use · out-of-scope uses · training/eval data · metrics (overall and by segment) · known limitations · ethical considerations · contact.
+
+| Data | Retention example |
+|---|---|
+| Raw prompts and answers | 30 days, then delete |
+| Audit events (hashed) | 1–7 years per regulation |
+| Eval datasets | Until superseded, PII-free |
+
+**Read:** [Model Cards for Model Reporting paper](https://arxiv.org/abs/1810.03993) · [Hugging Face model cards guide](https://huggingface.co/docs/hub/model-cards) · [S3 Object Lock](https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock.html)
+
+## 7.16 Human-in-the-loop gates for consequential actions {#m7-hitl}
+
+**In one line:** the AI drafts and recommends; a named human approves anything irreversible, costly, or affecting someone’s rights — and the approval is logged.
+
+> **Analogy.** Autopilot flies the plane; a pilot still decides to land.
+
+```mermaid
+flowchart LR
+  AI["Agent proposes: refund 18,000"] --> RISK{"Risk tier"}
+  RISK -->|low: under 2k| AUTO["Auto-execute + log"]
+  RISK -->|medium| ONE["One approver"]
+  RISK -->|high: over 50k or legal| TWO["Two approvers + reason"]
+  ONE --> EXEC["Execute"]
+  TWO --> EXEC
+  ONE -->|rejected| FB["Feedback to eval set"]
+```
+
+```python
+def risk_tier(action: str, amount: int) -> str:
+    if action in {"close_account", "deny_claim"}:
+        return "high"
+    if amount < 2_000:
+        return "low"
+    return "medium" if amount < 50_000 else "high"
+
+APPROVERS_NEEDED = {"low": 0, "medium": 1, "high": 2}
+```
+
+Design the reviewer UI for speed: show the proposed action, the evidence (retrieved docs, tool outputs), the model’s reasoning summary, and one-click approve / edit / reject with a reason.
+
+> **Trap.** Rubber-stamping. If reviewers approve 99.9% in two seconds, the gate is theatre. Track approval time and disagreement rate, and sample-audit approvals.
+
+**Read:** [LangGraph human-in-the-loop](https://langchain-ai.github.io/langgraph/concepts/human_in_the_loop/) · [EU AI Act: human oversight (Article 14)](https://artificialintelligenceact.eu/article/14/)
+
+## 7.17 Incident response when a live AI system fails {#m7-incident}
+
+**In one line:** detect, contain (kill switch or rollback), communicate, fix, and write a blameless postmortem — with AI-specific steps like rolling back prompts and checking for data exposure.
+
+> **Analogy.** A fire drill. Everyone knows where the extinguisher (kill switch) is before the fire.
+
+```mermaid
+flowchart LR
+  DET["Detect: alert or user report"] --> TRI["Triage severity"]
+  TRI --> CON["Contain: feature flag off, rollback prompt or model"]
+  CON --> COM["Communicate: client + users"]
+  COM --> FIX["Fix + add eval case"]
+  FIX --> PM["Blameless postmortem"]
+```
+
+AI-specific runbook items:
+- **Kill switch:** feature flag that routes to “a human will help you” instantly.
+- **Rollback:** prompt/model/index version pinned in config, not hard-coded.
+- **Exposure check:** search traces for leaked PII or other tenants’ data.
+- **Regression test:** add the failing case to the eval set so it can never silently return.
+
+```python
+import os
+def answer(q, user):
+    if os.environ.get("ASSISTANT_ENABLED", "true") != "true":
+        return "Our assistant is temporarily unavailable. A support agent will help you shortly."
+    ...
+```
+
+**Read:** [Google SRE: managing incidents](https://sre.google/sre-book/managing-incidents/) · [Google SRE: postmortem culture](https://sre.google/sre-book/postmortem-culture/) · [AI Incident Database](https://incidentdatabase.ai/)
+
+## 7.18 Presenting trade-offs to a hostile stakeholder panel {#m7-panel}
+
+**In one line:** lead with the decision and the number, show the options you rejected and why, name the risks before they do, and say “I don’t know, I’ll find out by Thursday” when true.
+
+> **Analogy.** A courtroom: you win with evidence and a clear argument, not volume.
+
+Structure (10 minutes):
+1. **Decision** in one sentence.
+2. **Why it matters:** the business metric.
+3. **Options considered** (table) with cost, quality, risk.
+4. **Recommendation** and the evidence (eval results).
+5. **Risks + mitigations** — say them first.
+6. **Ask:** what you need from them, by when.
+
+| Option | Accuracy | p95 | Monthly cost | Data leaves VPC | Verdict |
+|---|---|---|---|---|---|
+| A. Public API, large model | 93% | 2.1 s | $9.8k | Yes | Rejected by security |
+| B. Private endpoint, mid model | 91% | 1.4 s | $4.1k | Privately | **Recommended** |
+| C. Self-hosted 8B fine-tuned | 88% | 0.9 s | $6.5k + ops | No | Phase 2 option |
+
+Handling hostile questions: acknowledge (“That is a fair concern”), answer with evidence or a commitment, and bridge back to the decision. Never argue about feelings; argue about numbers.
+
+**Read:** [Barbara Minto: the Pyramid Principle (overview)](https://www.barbaraminto.com/) · [Amazon’s six-page memo approach (Writing at Amazon)](https://writingcooperative.com/the-anatomy-of-an-amazon-6-pager-fc79f31a41c9)
+
+## 7.19 Defending your design to the client’s architects {#m7-architects}
+
+**In one line:** architects probe failure modes, scaling limits, coupling, and operability; come with diagrams at two zoom levels, explicit non-functional requirements, and the ADRs behind each choice.
+
+> **Analogy.** A structural engineer reviewing your building: they do not care how pretty the lobby is; they ask what happens in an earthquake.
+
+Questions to pre-answer:
+- What happens when the LLM provider, vector DB, or IdP is down?
+- How does it scale 10×? Where is the first bottleneck?
+- How do you deploy, roll back, and monitor it — who is on call?
+- How is tenant data isolated? How is access enforced in retrieval?
+- What are the data flows and where is each piece stored and for how long?
+- What is coupled to a single vendor, and how hard is it to swap?
+
+```mermaid
+flowchart TB
+  subgraph Context["C4 level 1: context"]
+    AG["Support agents"] --> SYS["Policy Assistant"]
+    SYS --> IDP["Corporate IdP"]
+    SYS --> CRM["CRM"]
+    SYS --> LLMS["LLM service"]
+  end
+```
+
+```mermaid
+flowchart LR
+  subgraph Containers["C4 level 2: containers"]
+    UI["Web UI"] --> API["FastAPI service"]
+    API --> RET["Retrieval service"]
+    RET --> VDB[("Vector DB")]
+    API --> GW["LLM gateway: LiteLLM"]
+    ING["Ingestion workers"] --> VDB
+    API --> AUD[("Audit log")]
+  end
+```
+
+**Read:** [C4 model](https://c4model.com/) · [AWS Well-Architected Framework](https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html) · [AWS Well-Architected: Generative AI lens](https://docs.aws.amazon.com/wellarchitected/latest/generative-ai-lens/generative-ai-lens.html)
+
+> **Boss level.** “The Discovery Engagement” + “The Data Excavation”: role-play a discovery call, write the PRD-lite, SOW, and three ADRs, then reverse-engineer a messy legacy database with CDC and RapidFuzz entity resolution into a clean sync pipeline.
+
+[← Module 6](m6.html) · [Next: System design elective →](sd.html)
+</script>
+<script src="notes.js"></script>
+</body>
+</html>

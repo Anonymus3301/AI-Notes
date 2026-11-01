@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Module 2 notes — Python & API Foundations for AI</title>
+  <link rel="stylesheet" href="notes.css" />
+</head>
+<body>
+  <header class="bar">
+    <a href="../index.html">← Tutorials</a>
+    <a href="index.html">All notes</a>
+    <a href="m1.html">← Module 1</a>
+    <a href="m3.html">Module 3 →</a>
+    <span>Module 2 · Python & APIs</span>
+  </header>
+  <div class="wrap">
+    <nav id="toc"></nav>
+    <main id="content"><p>Loading notes…</p></main>
+  </div>
+<script type="text/markdown" id="md">
+# Module 2 — Python & API Foundations for AI
+
+<p class="hero-note">Quest: become the engineer who can plug into any client system by Tuesday. Two weeks of Python that actually ships: types, tests, async, retries, and SDKs. Every snippet runs on Python 3.11+.</p>
+
+## 2.1 Python foundations — the 20% you use 80% of the time {#m2-py}
+
+**In one line:** variables, collections, functions, comprehensions, and modules carry almost every AI script you will write.
+
+> **Analogy.** Python is a kitchen. Lists are shelves (ordered), dicts are labelled jars (lookup by name), sets are a spice rack with no duplicates, and functions are recipes you reuse.
+
+```python
+# Collections you will use daily
+docs = ["kyc policy", "refund policy", "fraud policy"]          # list
+meta = {"source": "s3", "pages": 12}                               # dict
+labels = {"refund", "fraud", "refund"}                             # set -> {"refund", "fraud"}
+
+# Comprehensions: build data in one readable line
+lengths = {d: len(d.split()) for d in docs}
+long_docs = [d for d in docs if lengths[d] > 1]
+
+# Functions with defaults and keyword args
+def chunk(text: str, size: int = 500, overlap: int = 50) -> list[str]:
+    step = size - overlap
+    return [text[i:i + size] for i in range(0, len(text), step)]
+
+# Unpacking and enumerate
+for i, piece in enumerate(chunk("abc" * 400, size=300), start=1):
+    print(i, len(piece))
+
+# f-strings with formatting
+cost = 0.004213
+print(f"Cost so far: ${cost:.3f}")
+```
+
+```mermaid
+flowchart LR
+  S["str, int, float, bool"] --> C["list, dict, set, tuple"]
+  C --> F["functions + comprehensions"]
+  F --> M["modules and packages"]
+  M --> P["classes, async, typing"]
+```
+
+> **Trap.** Mutable default arguments: `def f(x=[])` shares one list across calls. Use `x: list | None = None` then `x = x or []`.
+
+**Read:** [The official Python tutorial](https://docs.python.org/3/tutorial/) · [Real Python](https://realpython.com/) · [Python built-in types](https://docs.python.org/3/library/stdtypes.html)
+
+## 2.2 Files and JSON {#m2-files}
+
+**In one line:** open files with a context manager, and convert between Python objects and JSON with `json.load` / `json.dumps`.
+
+> **Analogy.** JSON is the universal shipping box. `dumps` packs your dict into a box; `loads` unpacks a box someone else sent.
+
+```python
+import json
+from pathlib import Path
+
+data = {"question": "What is KYC?", "contexts": ["Know Your Customer..."], "score": 0.91}
+
+Path("out").mkdir(exist_ok=True)
+Path("out/sample.json").write_text(json.dumps(data, indent=2, ensure_ascii=False))
+
+with open("out/sample.json", encoding="utf-8") as f:
+    loaded = json.load(f)
+print(loaded["score"])
+
+# JSON Lines: one JSON object per line — ideal for eval sets and logs
+with open("out/evals.jsonl", "a", encoding="utf-8") as f:
+    f.write(json.dumps({"q": "refund window?", "expected": "30 days"}) + "\n")
+
+rows = [json.loads(line) for line in Path("out/evals.jsonl").read_text().splitlines()]
+```
+
+| Function | Direction | Works on |
+|---|---|---|
+| `json.dumps` / `json.loads` | object ↔ string | strings |
+| `json.dump` / `json.load` | object ↔ file | file handles |
+
+> **Trap.** LLMs often wrap JSON in triple backticks. Strip fences before `json.loads`, or better, use structured outputs so you never have to.
+
+**Read:** [json module](https://docs.python.org/3/library/json.html) · [pathlib](https://docs.python.org/3/library/pathlib.html) · [JSON Lines](https://jsonlines.org/)
+
+## 2.3 OOP and error handling {#m2-oop}
+
+**In one line:** classes bundle state and behaviour (a client with its config); exceptions let you fail loudly and recover deliberately.
+
+> **Analogy.** A class is a cookie cutter; objects are the cookies. Exceptions are smoke alarms — you want them to go off, and you want a plan for when they do.
+
+```python
+class LLMError(Exception):
+    """Base error for our LLM layer."""
+
+class RateLimited(LLMError):
+    def __init__(self, retry_after: float):
+        super().__init__(f"rate limited, retry after {retry_after}s")
+        self.retry_after = retry_after
+
+class SupportBot:
+    def __init__(self, llm, system_prompt: str):
+        self.llm = llm
+        self.system_prompt = system_prompt
+        self.history: list[dict] = []
+
+    def reply(self, text: str) -> str:
+        try:
+            answer = self.llm.complete(self.system_prompt, text)
+        except RateLimited as e:
+            return f"We are busy, try again in {e.retry_after:.0f}s."
+        except LLMError:
+            return "Something went wrong; a human will follow up."
+        else:
+            self.history.append({"user": text, "bot": answer})
+            return answer
+        finally:
+            pass  # always runs: close resources, record metrics
+```
+
+```mermaid
+classDiagram
+  class LLMError
+  class RateLimited {
+    retry_after float
+  }
+  LLMError <|-- RateLimited
+  class SupportBot {
+    llm
+    system_prompt str
+    history list
+    reply(text) str
+  }
+  SupportBot ..> LLMError : handles
+```
+
+> **Trap.** `except Exception: pass` hides bugs forever. Catch the specific errors you can handle, and log the rest.
+
+**Read:** [Classes tutorial](https://docs.python.org/3/tutorial/classes.html) · [Errors and exceptions](https://docs.python.org/3/tutorial/errors.html)
+
+## 2.4 Decorators, context managers, dataclasses {#m2-dec}
+
+**In one line:** decorators wrap functions with extra behaviour, context managers guarantee setup and cleanup, and dataclasses write boring class code for you.
+
+> **Analogy.** A decorator is gift wrap — same present inside, nicer outside. A context manager is a hotel room: check-in and checkout happen even if you leave in a hurry.
+
+```python
+import time, functools
+from contextlib import contextmanager
+from dataclasses import dataclass, field
+
+def timed(fn):
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        t0 = time.perf_counter()
+        try:
+            return fn(*args, **kwargs)
+        finally:
+            print(f"{fn.__name__} took {time.perf_counter() - t0:.3f}s")
+    return wrapper
+
+@contextmanager
+def budget(limit_usd: float):
+    spent = {"usd": 0.0}
+    yield spent
+    if spent["usd"] > limit_usd:
+        print(f"Over budget: ${spent['usd']:.2f} > ${limit_usd}")
+
+@dataclass(frozen=True)
+class RetrievalConfig:
+    top_k: int = 5
+    chunk_size: int = 800
+    filters: dict = field(default_factory=dict)
+
+@timed
+def answer(q: str, cfg: RetrievalConfig) -> str:
+    return f"answering {q!r} with k={cfg.top_k}"
+
+with budget(1.0) as spent:
+    print(answer("refund policy?", RetrievalConfig(top_k=3)))
+    spent["usd"] += 0.02
+```
+
+> **Trap.** Forgetting `functools.wraps` makes every decorated function show up as `wrapper` in logs and tracebacks.
+
+**Read:** [Real Python: decorators primer](https://realpython.com/primer-on-python-decorators/) · [contextlib](https://docs.python.org/3/library/contextlib.html) · [dataclasses](https://docs.python.org/3/library/dataclasses.html)
+
+## 2.5 Type hints and mypy {#m2-types}
+
+**In one line:** type hints document intent; mypy reads them and catches “you passed a list where a string was expected” before production does.
+
+> **Analogy.** Type hints are labels on electrical sockets. mypy is the electrician who checks you did not plug 220 V into a 110 V device.
+
+```python
+from typing import TypedDict, Literal, Protocol
+
+Role = Literal["system", "user", "assistant"]
+
+class Message(TypedDict):
+    role: Role
+    content: str
+
+class Embedder(Protocol):
+    def embed(self, texts: list[str]) -> list[list[float]]: ...
+
+def top_k(scores: dict[str, float], k: int = 3) -> list[tuple[str, float]]:
+    return sorted(scores.items(), key=lambda kv: kv[1], reverse=True)[:k]
+
+msg: Message = {"role": "user", "content": "hi"}
+top_k({"a": 0.2, "b": 0.9}, k="2")   # mypy: Argument "k" has incompatible type "str"
+```
+
+```bash
+pip install mypy
+mypy src/ --strict
+```
+
+> **Trap.** Type hints do nothing at runtime. For validating *external* data (API responses, LLM output), use Pydantic.
+
+**Read:** [typing module](https://docs.python.org/3/library/typing.html) · [mypy docs](https://mypy.readthedocs.io/en/stable/) · [mypy cheat sheet](https://mypy.readthedocs.io/en/stable/cheat_sheet_py3.html)
+
+## 2.6 pytest and mocking external APIs {#m2-pytest}
+
+**In one line:** pytest runs plain `assert` tests; mocks replace the real LLM call so tests are fast, free, and deterministic.
+
+> **Analogy.** Testing with the real API is rehearsing a play with real fire. Mocks are the stage fire — looks the same to the actors, nobody gets burned.
+
+```python
+# src/classify.py
+def classify(client, text: str) -> str:
+    r = client.chat.completions.create(model="gpt-4o-mini",
+                                       messages=[{"role": "user", "content": text}])
+    label = r.choices[0].message.content.strip().lower()
+    return label if label in {"refund", "fraud", "kyc"} else "other"
+```
+
+```python
+# tests/test_classify.py
+from unittest.mock import MagicMock
+import pytest
+from src.classify import classify
+
+def fake_client(reply: str):
+    client = MagicMock()
+    client.chat.completions.create.return_value.choices = [MagicMock(message=MagicMock(content=reply))]
+    return client
+
+@pytest.mark.parametrize("reply,expected", [("Refund", "refund"), ("banana", "other")])
+def test_classify_normalises_labels(reply, expected):
+    assert classify(fake_client(reply), "charged twice") == expected
+
+def test_sends_user_text():
+    client = fake_client("kyc")
+    classify(client, "PAN failed")
+    sent = client.chat.completions.create.call_args.kwargs["messages"][0]["content"]
+    assert sent == "PAN failed"
+```
+
+```bash
+pytest -q
+```
+
+> **Trap.** Mocking everything means you test the mock. Keep a small, separately marked set of “live” tests (`@pytest.mark.live`) that hit the real API nightly.
+
+**Read:** [pytest docs](https://docs.pytest.org/en/stable/) · [unittest.mock](https://docs.python.org/3/library/unittest.mock.html) · [respx (mock httpx)](https://lundberg.github.io/respx/)
+
+## 2.7 Structured logging {#m2-log}
+
+**In one line:** log events as key–value fields (JSON), not prose, so you can search “all requests where `latency_ms > 2000` and `model = X`”.
+
+> **Analogy.** Prose logs are a diary. Structured logs are a spreadsheet. Try finding every Tuesday you spent over ₹500 in a diary.
+
+```python
+import logging, json, sys, time
+
+class JsonFormatter(logging.Formatter):
+    def format(self, record):
+        payload = {"ts": time.time(), "level": record.levelname, "msg": record.getMessage()}
+        payload.update(getattr(record, "fields", {}))
+        return json.dumps(payload)
+
+handler = logging.StreamHandler(sys.stdout)
+handler.setFormatter(JsonFormatter())
+log = logging.getLogger("rag")
+log.addHandler(handler)
+log.setLevel(logging.INFO)
+
+log.info("llm_call", extra={"fields": {"model": "gpt-4o-mini", "tokens_in": 812,
+                                      "tokens_out": 96, "latency_ms": 640, "request_id": "r-123"}})
+```
+
+Or use **structlog**, which does this nicely out of the box:
+
+```python
+import structlog
+log = structlog.get_logger()
+log.info("retrieval", top_k=5, hits=3, request_id="r-123")
+```
+
+> **Trap.** Logging full prompts and responses can leak PII into your log store. Log ids, lengths, and hashes by default; log content only where policy allows.
+
+**Read:** [Logging HOWTO](https://docs.python.org/3/howto/logging.html) · [Logging cookbook](https://docs.python.org/3/howto/logging-cookbook.html) · [structlog](https://www.structlog.org/en/stable/)
+
+## 2.8 Async Python — async def, await, asyncio {#m2-async}
+
+**In one line:** while one request waits on the network, asyncio runs others, so 50 LLM calls take about as long as the slowest one, not the sum.
+
+> **Analogy.** A waiter who takes table 1’s order, then table 2’s while table 1’s food cooks. A synchronous waiter stands at the kitchen door until each plate is ready.
+
+```mermaid
+sequenceDiagram
+  participant EL as Event loop
+  participant A as Call A
+  participant B as Call B
+  EL->>A: start
+  A-->>EL: await network
+  EL->>B: start
+  B-->>EL: await network
+  A-->>EL: done
+  B-->>EL: done
+```
+
+```python
+import asyncio
+from openai import AsyncOpenAI
+
+client = AsyncOpenAI()
+sem = asyncio.Semaphore(10)                     # at most 10 calls in flight
+
+async def summarise(text: str) -> str:
+    async with sem:
+        r = await client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": f"One-line summary: {text}"}])
+        return r.choices[0].message.content
+
+async def main():
+    docs = [f"Document {i} about refunds..." for i in range(50)]
+    results = await asyncio.gather(*(summarise(d) for d in docs), return_exceptions=True)
+    ok = [r for r in results if not isinstance(r, Exception)]
+    print(len(ok), "succeeded")
+
+asyncio.run(main())
+```
+
+> **Trap.** Calling a blocking function (like `requests.get` or `time.sleep`) inside `async def` freezes every other task. Use async libraries (`httpx.AsyncClient`, `asyncio.sleep`) or `asyncio.to_thread`.
+
+**Read:** [asyncio docs](https://docs.python.org/3/library/asyncio.html) · [Real Python: async IO walkthrough](https://realpython.com/async-io-python/)
+
+## 2.9 venv, python-dotenv, secrets hygiene, Git {#m2-env}
+
+**In one line:** one virtual environment per project, secrets in `.env` (never committed), and Git for every change.
+
+> **Analogy.** A venv is a separate toolbox per job so the plumber’s wrench never ends up in the electrician’s kit. `.gitignore` is the shredder for anything with a password on it.
+
+```bash
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install openai python-dotenv
+pip freeze > requirements.txt
+
+printf "OPENAI_API_KEY=sk-...\n" > .env
+printf ".venv/\n.env\n__pycache__/\n" >> .gitignore
+
+git init && git add . && git commit -m "Initial project skeleton"
+```
+
+```python
+import os
+from dotenv import load_dotenv
+load_dotenv()                                   # reads .env into os.environ
+api_key = os.environ["OPENAI_API_KEY"]          # KeyError if missing: fail fast
+```
+
+Secrets hygiene: commit a `.env.example` with fake values, rotate any key that was ever pushed, and use a secret manager in production (Module 6).
+
+> **Trap.** Deleting a leaked key from the latest commit does not remove it from Git history. Rotate the key immediately.
+
+**Read:** [venv](https://docs.python.org/3/library/venv.html) · [python-dotenv](https://github.com/theskumar/python-dotenv) · [Pro Git book](https://git-scm.com/book/en/v2) · [GitHub: removing sensitive data](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository)
+
+## 2.10 Project structure — src/, prompts/, tests/, notebooks/ {#m2-layout}
+
+**In one line:** separate importable code, prompt files, tests, and exploration so the notebook mess never leaks into production.
+
+```text
+policy-assistant/
+├── src/policy_assistant/
+│   ├── __init__.py
+│   ├── config.py          # pydantic-settings, reads env
+│   ├── llm.py             # provider wrapper
+│   ├── retrieval.py
+│   └── api.py             # FastAPI app
+├── prompts/
+│   ├── answer_v2.txt
+│   └── classify_v1.txt
+├── tests/
+│   ├── test_retrieval.py
+│   └── evals/golden.jsonl
+├── notebooks/             # exploration only, never imported
+├── pyproject.toml
+├── .env.example
+└── README.md
+```
+
+```python
+from pathlib import Path
+PROMPTS = Path(__file__).resolve().parents[2] / "prompts"
+def load_prompt(name: str) -> str:
+    return (PROMPTS / f"{name}.txt").read_text()
+```
+
+> **Analogy.** A restaurant: kitchen (`src`), recipe book (`prompts`), health inspector (`tests`), and the test kitchen where chefs experiment (`notebooks`).
+
+> **Trap.** Importing from a notebook into production code. If it is worth reusing, move it into `src/` with a test.
+
+**Read:** [src layout vs flat layout](https://packaging.python.org/en/latest/discussions/src-layout-vs-flat-layout/) · [Writing pyproject.toml](https://packaging.python.org/en/latest/guides/writing-pyproject-toml/)
+
+## 2.11 HTTP — requests, status codes, pagination, JSON parsing {#m2-http}
+
+**In one line:** an API call is a method + URL + headers + body; you read the status code, parse the JSON, and follow pagination until there are no more pages.
+
+> **Analogy.** Pagination is a waiter who brings 100 dishes at a time and a note saying “ask for page 2”. You keep asking until the note says “that is everything”.
+
+| Code | Meaning | What you do |
+|---|---|---|
+| 200 / 201 | OK / created | Parse body |
+| 400 / 422 | Your request is wrong | Fix input, do not retry |
+| 401 / 403 | Auth problem | Check key or permissions |
+| 404 | Not found | Handle gracefully |
+| 429 | Rate limited | Back off, retry |
+| 500 / 502 / 503 | Server problem | Retry with backoff |
+
+```python
+import httpx
+
+def fetch_all(base_url: str, token: str):
+    url, params = f"{base_url}/records", {"limit": 100}
+    with httpx.Client(timeout=10, headers={"Authorization": f"Bearer {token}"}) as client:
+        while url:
+            r = client.get(url, params=params)
+            r.raise_for_status()
+            body = r.json()
+            yield from body["data"]
+            url, params = body.get("next"), None       # cursor pagination
+```
+
+```mermaid
+flowchart LR
+  A["GET page 1"] --> B{"next cursor?"}
+  B -->|yes| C["GET next"] --> B
+  B -->|no| D["Done"]
+```
+
+> **Trap.** Offset pagination (`?page=7`) skips or duplicates rows when data changes during the crawl. Prefer cursor pagination when the API offers it.
+
+**Read:** [requests docs](https://requests.readthedocs.io/en/latest/) · [HTTPX docs](https://www.python-httpx.org/) · [MDN: HTTP status codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status)
+
+## 2.12 Authentication — API keys, headers, rotation {#m2-auth}
+
+**In one line:** most AI APIs authenticate with a secret key in a header; you load it from the environment and design for rotating it without downtime.
+
+> **Analogy.** An API key is a hotel key card. Lose it, and you deactivate it and issue a new one — the room (your account) stays the same.
+
+```python
+import os, httpx
+
+headers = {
+    "Authorization": f"Bearer {os.environ['OPENAI_API_KEY']}",   # OpenAI style
+    # Anthropic style: "x-api-key": os.environ["ANTHROPIC_API_KEY"], "anthropic-version": "2023-06-01"
+}
+
+def current_key() -> str:
+    # Rotation-friendly: try the new key first, fall back to the old one during the overlap window.
+    return os.environ.get("API_KEY_NEW") or os.environ["API_KEY"]
+```
+
+Rotation playbook: create key B → deploy apps that accept B → switch traffic to B → revoke key A → alert if A is ever used again.
+
+> **Trap.** Putting keys in frontend JavaScript. Anyone can open DevTools. LLM calls with secret keys belong on a backend.
+
+**Read:** [OpenAI API key safety](https://help.openai.com/en/articles/5112595-best-practices-for-api-key-safety) · [OWASP Secrets Management cheat sheet](https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html)
+
+## 2.13 Retries — exponential backoff with jitter {#m2-retry}
+
+**In one line:** when a call fails transiently (429, 5xx, timeouts), wait 1 s, 2 s, 4 s… plus randomness, so thousands of clients do not retry in lockstep.
+
+> **Analogy.** A crowd at a jammed door. If everyone pushes again at exactly the same moment, it stays jammed. Jitter is everyone waiting a slightly random number of seconds.
+
+```mermaid
+flowchart LR
+  C["Call"] --> R{"Success?"}
+  R -->|yes| D["Done"]
+  R -->|429 or 5xx| W["Wait base x 2^attempt + random"]
+  W --> C
+  R -->|400 401 403| F["Fail fast, no retry"]
+```
+
+```python
+import random, time
+import httpx
+from tenacity import retry, stop_after_attempt, wait_random_exponential, retry_if_exception
+
+def is_retryable(e: BaseException) -> bool:
+    if isinstance(e, httpx.TimeoutException):
+        return True
+    return isinstance(e, httpx.HTTPStatusError) and e.response.status_code in {429, 500, 502, 503, 504}
+
+@retry(retry=retry_if_exception(is_retryable), wait=wait_random_exponential(min=1, max=30),
+       stop=stop_after_attempt(6), reraise=True)
+def fetch(url: str) -> dict:
+    r = httpx.get(url, timeout=10)
+    r.raise_for_status()
+    return r.json()
+
+# Hand-rolled "full jitter" if you cannot add a dependency:
+def sleep_for(attempt: int, base=1.0, cap=30.0) -> float:
+    return random.uniform(0, min(cap, base * 2 ** attempt))
+```
+
+> **Trap.** Retrying a non-idempotent call (like “charge card”) can do it twice. Only retry operations that are safe to repeat, or send an idempotency key.
+
+**Read:** [AWS: Exponential backoff and jitter](https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/) · [Tenacity docs](https://tenacity.readthedocs.io/en/latest/) · [OpenAI rate limits guide](https://platform.openai.com/docs/guides/rate-limits)
+
+## 2.14 Webhooks — signature verification and idempotency {#m2-webhook}
+
+**In one line:** a webhook is the other system calling *you*; verify the HMAC signature to prove it is really them, and dedupe by event id because they will retry.
+
+> **Analogy.** A courier rings your bell with a parcel. You check the company seal (signature) and that you have not already signed for this tracking number (idempotency).
+
+```mermaid
+sequenceDiagram
+  participant P as Provider
+  participant API as Your endpoint
+  participant DB
+  P->>API: POST event, header X-Signature
+  API->>API: recompute HMAC of raw body, compare
+  API->>DB: insert event_id if new
+  DB-->>API: duplicate? skip
+  API-->>P: 200 quickly
+  API->>API: process in background
+```
+
+```python
+import hmac, hashlib
+from fastapi import FastAPI, Request, HTTPException
+
+app = FastAPI()
+SECRET = b"whsec_..."
+seen: set[str] = set()                       # use a DB unique constraint in production
+
+@app.post("/webhooks/payments")
+async def payments(request: Request):
+    raw = await request.body()                # verify the RAW bytes, not re-serialised JSON
+    expected = hmac.new(SECRET, raw, hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected, request.headers.get("X-Signature", "")):
+        raise HTTPException(401, "bad signature")
+    event = await request.json()
+    if event["id"] in seen:
+        return {"status": "duplicate"}
+    seen.add(event["id"])
+    # enqueue work; respond fast so the provider does not time out and retry
+    return {"status": "ok"}
+```
+
+> **Trap.** Comparing signatures with `==` leaks timing information. Use `hmac.compare_digest`. Also check a timestamp header to block replayed requests.
+
+**Read:** [Stripe: verify webhook signatures](https://docs.stripe.com/webhooks#verify-events) · [Stripe: designing robust APIs with idempotency](https://stripe.com/blog/idempotency) · [GitHub: validating webhook deliveries](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries)
+
+## 2.15 OpenAI SDK — chat completions and streaming {#m2-oai}
+
+**In one line:** `chat.completions.create` returns the whole answer; `stream=True` gives you tokens as they are generated, which is what makes chat UIs feel instant.
+
+> **Analogy.** Non-streaming is waiting for the full letter in the post. Streaming is a phone call — you hear the first word immediately.
+
+```python
+from openai import OpenAI
+client = OpenAI()
+
+# Non-streaming
+r = client.chat.completions.create(
+    model="gpt-4o-mini",
+    messages=[{"role": "system", "content": "Be brief."},
+              {"role": "user", "content": "Explain RAG in one sentence."}],
+    temperature=0.2, max_tokens=120)
+print(r.choices[0].message.content, r.usage)
+
+# Streaming
+stream = client.chat.completions.create(
+    model="gpt-4o-mini", stream=True, stream_options={"include_usage": True},
+    messages=[{"role": "user", "content": "Write a haiku about vector databases."}])
+for chunk in stream:
+    if chunk.choices and chunk.choices[0].delta.content:
+        print(chunk.choices[0].delta.content, end="", flush=True)
+    if chunk.usage:
+        print("\n", chunk.usage)
+```
+
+Key parameters: `temperature` (randomness), `max_tokens` (hard cap on output), `top_p`, `seed` (best-effort reproducibility), `response_format`, `tools`.
+
+> **Trap.** Measure **time to first token** for streaming UX, not total latency. Users forgive a long answer that starts fast.
+
+**Read:** [OpenAI Python SDK](https://github.com/openai/openai-python) · [OpenAI streaming guide](https://platform.openai.com/docs/guides/streaming-responses) · [Chat completions reference](https://platform.openai.com/docs/api-reference/chat)
+
+## 2.16 Anthropic SDK — prompt caching {#m2-anthropic}
+
+**In one line:** mark a long, stable prefix (system prompt, documents, tools) with `cache_control`; repeat calls within the cache window read it at a big discount and lower latency.
+
+> **Analogy.** Photocopying the same 50-page manual for every customer vs keeping one copy on the counter that everyone reads.
+
+```mermaid
+flowchart LR
+  S["System + 40 page policy doc, cache_control"] --> C1["Call 1: cache write, full price plus a bit"]
+  S --> C2["Call 2..N: cache read, much cheaper"]
+  Q["Changing user question"] --> C1
+  Q --> C2
+```
+
+```python
+import anthropic
+client = anthropic.Anthropic()
+POLICY = open("policy.md").read()             # large and stable
+
+def ask(question: str):
+    r = client.messages.create(
+        model="claude-sonnet-4-5",
+        max_tokens=500,
+        system=[
+            {"type": "text", "text": "You answer only from the policy."},
+            {"type": "text", "text": POLICY, "cache_control": {"type": "ephemeral"}},
+        ],
+        messages=[{"role": "user", "content": question}],
+    )
+    u = r.usage
+    print("cache write:", u.cache_creation_input_tokens, "cache read:", u.cache_read_input_tokens)
+    return r.content[0].text
+
+ask("What is the refund window?")
+ask("Do you refund shipping?")                 # should show cache read tokens
+```
+
+> **Trap.** Caching only works on an *exact* prefix. Put stable content first and variable content (the question, timestamps) last. A single changed character at the top busts the cache.
+
+**Read:** [Anthropic prompt caching](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching) · [Anthropic Python SDK](https://github.com/anthropics/anthropic-sdk-python) · [OpenAI prompt caching](https://platform.openai.com/docs/guides/prompt-caching)
+
+## 2.17 Client configuration — timeouts, base_url, connection pooling {#m2-client}
+
+**In one line:** set explicit timeouts and retries, reuse one client (it pools connections), and point `base_url` at any OpenAI-compatible server (Ollama, vLLM, LiteLLM, Azure gateways).
+
+> **Analogy.** One client is a car you keep running. Creating a client per request is buying a new car for every trip to the shop.
+
+```python
+import httpx
+from openai import OpenAI
+
+client = OpenAI(
+    timeout=httpx.Timeout(30.0, connect=5.0),
+    max_retries=3,
+    http_client=httpx.Client(limits=httpx.Limits(max_connections=50, max_keepalive_connections=20)),
+)
+
+local = OpenAI(base_url="http://localhost:11434/v1", api_key="ollama")   # Ollama, same SDK
+r = local.chat.completions.create(model="llama3.1", messages=[{"role": "user", "content": "hi"}])
+print(r.choices[0].message.content)
+```
+
+> **Trap.** The default timeout on many SDKs is minutes long. In a web request, a hung LLM call ties up a worker. Always set a timeout that fits your SLA.
+
+**Read:** [openai-python: timeouts and retries](https://github.com/openai/openai-python#retries) · [HTTPX: resource limits](https://www.python-httpx.org/advanced/resource-limits/) · [Ollama OpenAI compatibility](https://docs.ollama.com/api/openai-compatibility)
+
+## 2.18 DSPy hands-on — compile and optimise {#m2-dspy}
+
+**In one line:** build a small DSPy program with a real metric and dev set, compile it, and compare it with your hand-written prompt.
+
+```python
+import dspy, random
+dspy.configure(lm=dspy.LM("openai/gpt-4o-mini", temperature=0))
+
+class Extract(dspy.Signature):
+    """Extract the invoice total in INR as a number."""
+    text: str = dspy.InputField()
+    total: float = dspy.OutputField()
+
+data = [dspy.Example(text=f"Invoice ... Grand total: Rs. {n:,}", total=float(n)).with_inputs("text")
+        for n in random.sample(range(500, 90_000), 40)]
+train, dev = data[:25], data[25:]
+
+def metric(ex, pred, trace=None):
+    try:
+        return abs(float(pred.total) - ex.total) < 0.5
+    except (TypeError, ValueError):
+        return False
+
+baseline = dspy.Predict(Extract)
+evaluate = dspy.Evaluate(devset=dev, metric=metric, display_progress=True)
+print("baseline:", evaluate(baseline))
+
+optimised = dspy.MIPROv2(metric=metric, auto="light").compile(baseline, trainset=train)
+print("optimised:", evaluate(optimised))
+optimised.save("extract_total.json")
+```
+
+```mermaid
+flowchart LR
+  B["Baseline program"] --> E1["Evaluate on dev"]
+  B --> O["MIPROv2 optimise on train"]
+  O --> P["Optimised program"]
+  P --> E2["Evaluate on dev"]
+  E1 --> CMP["Compare scores and cost"]
+  E2 --> CMP
+```
+
+> **Trap.** Never evaluate on the training examples. Keep the dev set untouched, or your “improvement” is memorisation.
+
+**Read:** [DSPy: optimizers](https://dspy.ai/learn/optimization/optimizers/) · [DSPy tutorials](https://dspy.ai/tutorials/)
+
+> **Boss level.** Build “The Resilient Ingestor”: pull 50,000 records from a flaky paginated API with `httpx` + `asyncio`, retries with jitter, Pydantic validation, and a checkpoint file so a crash resumes where it stopped.
+
+[← Module 1](m1.html) · [Next: Module 3 — RAG →](m3.html)
+</script>
+<script src="notes.js"></script>
+</body>
+</html>

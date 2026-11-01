@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Module 4 notes — Advanced RAG & LLM Fine-Tuning</title>
+  <link rel="stylesheet" href="notes.css" />
+</head>
+<body>
+  <header class="bar">
+    <a href="../index.html">← Tutorials</a>
+    <a href="index.html">All notes</a>
+    <a href="m3.html">← Module 3</a>
+    <a href="m5.html">Module 5 →</a>
+    <span>Module 4 · Advanced RAG & tuning</span>
+  </header>
+  <div class="wrap">
+    <nav id="toc"></nav>
+    <main id="content"><p>Loading notes…</p></main>
+  </div>
+<script type="text/markdown" id="md">
+# Module 4 — Advanced RAG & LLM Fine-Tuning
+
+<p class="hero-note">Quest: the client asks, “Should we fine-tune, use RAG, or run our own model?” By the end of these three weeks you answer with a cost-and-quality table, not a vibe.</p>
+
+```mermaid
+flowchart TD
+  Q["What is wrong today?"] --> K{"Missing or changing knowledge?"}
+  K -->|yes| RAG["RAG: fix retrieval first"]
+  K -->|no| B{"Wrong format, tone, or narrow skill?"}
+  B -->|yes| FT["Fine-tune a small model: LoRA or QLoRA"]
+  B -->|no| C{"Data cannot leave the building or cost too high?"}
+  C -->|yes| LOCAL["Local or self-hosted model"]
+  C -->|no| PROMPT["Better prompting and a bigger model"]
+```
+
+## 4.1 Query rewriting and multi-hop retrieval {#m4-multihop}
+
+**In one line:** rewrite vague questions into good search queries, and for questions that need several facts, decompose them and retrieve once per hop.
+
+> **Analogy.** “Who approved the vendor that caused last month’s outage?” is two questions wearing a trench coat: (1) which vendor caused the outage, (2) who approved that vendor.
+
+```mermaid
+flowchart LR
+  Q["Complex question"] --> D["Decompose into sub-questions"]
+  D --> H1["Hop 1: retrieve + answer"]
+  H1 --> H2["Hop 2: query uses hop 1 answer"]
+  H2 --> S["Synthesise with citations from each hop"]
+```
+
+```python
+from langchain_openai import ChatOpenAI
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+
+def decompose(q: str) -> list[str]:
+    text = llm.invoke(f"Break this into the minimal ordered sub-questions, one per line:\n{q}").content
+    return [line.strip("- ").strip() for line in text.splitlines() if line.strip()]
+
+def multi_hop(q: str, retriever):
+    notes = []
+    for sub in decompose(q):
+        query = llm.invoke(f"Known so far: {notes}\nRewrite as a search query: {sub}").content
+        docs = retriever.invoke(query)
+        ans = llm.invoke(f"Answer briefly from context only.\nContext: {docs}\nQ: {sub}").content
+        notes.append({"q": sub, "a": ans, "sources": [d.metadata.get("source") for d in docs]})
+    return llm.invoke(f"Answer '{q}' using these findings and cite sources:\n{notes}").content
+```
+
+Other rewriting tricks: **multi-query** (generate 3–5 paraphrases and union the results), **step-back** (ask a more general question first), and adding filters extracted from the question (dates, product names).
+
+> **Trap.** Every hop multiplies latency and cost and can drift. Cap the hops (2–3), and stop early when a hop finds nothing.
+
+**Read:** [LangChain MultiQueryRetriever](https://python.langchain.com/docs/how_to/MultiQueryRetriever/) · [Step-back prompting paper](https://arxiv.org/abs/2310.06117) · [Least-to-most prompting paper](https://arxiv.org/abs/2205.10625)
+
+## 4.2 Cross-encoder reranking as a pipeline stage {#m4-rerank}
+
+**In one line:** in advanced RAG, reranking is not optional — retrieve wide (top 30–50), rerank, then keep a small, high-precision context.
+
+```python
+import cohere
+co = cohere.ClientV2()                         # reads CO_API_KEY
+
+def rerank(query: str, docs: list[str], top_n=5):
+    r = co.rerank(model="rerank-v3.5", query=query, documents=docs, top_n=top_n)
+    return [(docs[x.index], x.relevance_score) for x in r.results]
+```
+
+```mermaid
+flowchart LR
+  R["Hybrid retrieve 40"] --> RR["Rerank"] --> T["Top 5"] --> TH{"Best score above threshold?"}
+  TH -->|yes| GEN["Generate"]
+  TH -->|no| IDK["Say I don't know or ask a clarifying question"]
+```
+
+> **Analogy.** Casting: open auditions pull in 40 people; the director’s callback picks five; if nobody is good enough, you do not cast someone anyway.
+
+> **Trap.** A reranker threshold tuned on one domain will not transfer to another. Re-tune on each client’s golden set.
+
+**Read:** [Cohere Rerank docs](https://docs.cohere.com/docs/rerank-overview) · [Sentence Transformers cross-encoders](https://sbert.net/docs/cross_encoder/usage/usage.html)
+
+## 4.3 Self-correcting RAG — CRAG, Self-RAG, agentic RAG {#m4-crag}
+
+**In one line:** grade the retrieved documents; if they are weak, rewrite the query or search elsewhere; grade the answer for grounding before returning it.
+
+> **Analogy.** A student who checks the textbook, realises it is the wrong chapter, goes back, and finally checks their answer against the page before handing it in.
+
+```mermaid
+flowchart TD
+  Q["Question"] --> RET["Retrieve"]
+  RET --> G{"Docs relevant?"}
+  G -->|yes| GEN["Generate"]
+  G -->|no| RW["Rewrite query or web search"]
+  RW --> RET
+  GEN --> H{"Answer grounded in docs?"}
+  H -->|yes| OUT["Return"]
+  H -->|no| GEN
+```
+
+```python
+from typing import TypedDict
+from langgraph.graph import StateGraph, START, END
+
+class S(TypedDict):
+    question: str
+    docs: list
+    answer: str
+    tries: int
+
+def retrieve(s): return {"docs": retriever.invoke(s["question"])}
+def grade(s):
+    verdict = llm.invoke(f"Are these docs relevant to '{s['question']}'? yes/no\n{s['docs']}").content
+    return "generate" if "yes" in verdict.lower() or s["tries"] >= 2 else "rewrite"
+def rewrite(s):
+    return {"question": llm.invoke(f"Rewrite for better search: {s['question']}").content,
+            "tries": s["tries"] + 1}
+def generate(s):
+    return {"answer": llm.invoke(f"Answer from context only.\n{s['docs']}\nQ: {s['question']}").content}
+
+g = StateGraph(S)
+g.add_node("retrieve", retrieve); g.add_node("rewrite", rewrite); g.add_node("generate", generate)
+g.add_edge(START, "retrieve")
+g.add_conditional_edges("retrieve", grade, {"generate": "generate", "rewrite": "rewrite"})
+g.add_edge("rewrite", "retrieve")
+g.add_edge("generate", END)
+app = g.compile()
+print(app.invoke({"question": "refund for damaged item?", "tries": 0})["answer"])
+```
+
+| Pattern | Key idea |
+|---|---|
+| CRAG | A lightweight grader decides: use docs, discard, or fall back to web search |
+| Self-RAG | Model emits reflection tokens deciding when to retrieve and whether output is supported |
+| Agentic RAG | An agent decides which tool or index to search, possibly several times |
+
+> **Trap.** Loops without a counter become infinite loops with a credit card attached. Always cap retries.
+
+**Read:** [CRAG paper](https://arxiv.org/abs/2401.15884) · [Self-RAG paper](https://arxiv.org/abs/2310.11511) · [LangGraph agentic RAG tutorial](https://langchain-ai.github.io/langgraph/tutorials/rag/langgraph_agentic_rag/)
+
+## 4.4 LoRA and QLoRA (bitsandbytes 4-bit) {#m4-qlora}
+
+**In one line:** LoRA freezes the base model and trains two tiny matrices per layer; QLoRA does that on top of a 4-bit quantised base, so a 7–8B model fine-tunes on one consumer GPU.
+
+> **Analogy.** Instead of repainting the whole house (full fine-tune), you add removable wallpaper to a few walls (LoRA). QLoRA also shrinks the house to a dollhouse so it fits in your garage (4-bit) while you wallpaper it.
+
+```text
+Full update:   W' = W + ΔW              (ΔW is d × d, millions of params)
+LoRA:          W' = W + B·A             (B is d × r, A is r × d, r ≈ 8–64)
+Trainable params drop by 100–1000×.
+```
+
+```mermaid
+flowchart LR
+  X["Input"] --> W["Frozen W, 4-bit in QLoRA"]
+  X --> A["A: r x d, trainable"]
+  A --> B["B: d x r, trainable"]
+  W --> SUM["Add"]
+  B --> SUM
+  SUM --> Y["Output"]
+```
+
+```python
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+
+base = "meta-llama/Llama-3.1-8B-Instruct"
+bnb = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4",
+                         bnb_4bit_compute_dtype=torch.bfloat16, bnb_4bit_use_double_quant=True)
+model = AutoModelForCausalLM.from_pretrained(base, quantization_config=bnb, device_map="auto")
+tok = AutoTokenizer.from_pretrained(base)
+
+model = prepare_model_for_kbit_training(model)
+lora = LoraConfig(r=16, lora_alpha=32, lora_dropout=0.05, task_type="CAUSAL_LM",
+                  target_modules=["q_proj", "k_proj", "v_proj", "o_proj"])
+model = get_peft_model(model, lora)
+model.print_trainable_parameters()   # e.g. trainable params: 13.6M || all params: 8.0B || 0.17%
+```
+
+> **Trap.** Fine-tuning does not reliably teach *new facts*; it teaches *behaviour* (format, style, a narrow skill). For facts, use RAG.
+
+**Read:** [LoRA paper](https://arxiv.org/abs/2106.09685) · [QLoRA paper](https://arxiv.org/abs/2305.14314) · [Hugging Face: 4-bit with bitsandbytes](https://huggingface.co/blog/4bit-transformers-bitsandbytes)
+
+## 4.5 Adapters, prefix tuning — transformers, PEFT, datasets {#m4-peft}
+
+**In one line:** PEFT is a library of parameter-efficient methods (LoRA, prefix tuning, prompt tuning, IA3); `datasets` loads and formats training data; `transformers` + TRL run the training.
+
+> **Analogy.** The base model is a camera body. Adapters are lenses: swap a macro lens (legal summaries) for a zoom lens (SQL generation) without buying a new camera.
+
+| Method | What is trained | Typical use |
+|---|---|---|
+| LoRA | Low-rank matrices in attention/MLP | Default choice |
+| Prefix tuning | Learned key/value vectors prepended per layer | Generation tasks, very small budgets |
+| Prompt tuning | Soft prompt embeddings only | Huge models, many tasks |
+| IA3 | Learned scaling vectors | Even fewer params than LoRA |
+
+```python
+from datasets import load_dataset
+from trl import SFTTrainer, SFTConfig
+
+ds = load_dataset("json", data_files="train.jsonl", split="train")   # {"messages": [...]} rows
+
+trainer = SFTTrainer(
+    model=model,                      # the PEFT-wrapped model from 4.4
+    train_dataset=ds,
+    processing_class=tok,
+    args=SFTConfig(output_dir="out/lora", per_device_train_batch_size=2, gradient_accumulation_steps=8,
+                   num_train_epochs=2, learning_rate=2e-4, logging_steps=10, bf16=True,
+                   report_to="wandb"),
+)
+trainer.train()
+model.save_pretrained("out/lora-adapter")      # only a few MB
+```
+
+```json
+{"messages": [{"role": "system", "content": "Return SQL only."},
+              {"role": "user", "content": "Total refunds last week by city"},
+              {"role": "assistant", "content": "SELECT city, SUM(amount) FROM refunds WHERE ... GROUP BY city;"}]}
+```
+
+> **Trap.** Data quality beats data quantity. 500 clean, consistent examples outperform 20,000 noisy ones.
+
+**Read:** [PEFT docs](https://huggingface.co/docs/peft/index) · [Transformers docs](https://huggingface.co/docs/transformers/index) · [Datasets docs](https://huggingface.co/docs/datasets/index) · [Prefix-tuning paper](https://arxiv.org/abs/2101.00190)
+
+## 4.6 Fine-tuning with Axolotl (YAML) {#m4-axolotl}
+
+**In one line:** Axolotl wraps the whole fine-tuning pipeline in one YAML file: model, dataset format, adapter, and hyperparameters.
+
+> **Analogy.** A meal kit. The recipe card (YAML) lists everything; you do not have to write the cooking script yourself.
+
+```yaml
+# qlora.yml
+base_model: meta-llama/Llama-3.1-8B-Instruct
+load_in_4bit: true
+adapter: qlora
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+lora_target_linear: true
+
+datasets:
+  - path: data/train.jsonl
+    type: chat_template
+val_set_size: 0.05
+sequence_len: 2048
+sample_packing: true
+
+micro_batch_size: 2
+gradient_accumulation_steps: 8
+num_epochs: 2
+learning_rate: 0.0002
+optimizer: adamw_bnb_8bit
+lr_scheduler: cosine
+bf16: auto
+
+output_dir: ./outputs/qlora-sql
+wandb_project: specialist
+```
+
+```bash
+pip install axolotl
+axolotl preprocess qlora.yml      # tokenise and check the data
+axolotl train qlora.yml
+axolotl inference qlora.yml --lora-model-dir ./outputs/qlora-sql
+axolotl merge-lora qlora.yml       # optional: merge adapter into base weights
+```
+
+> **Trap.** Always run `preprocess` and inspect a few tokenised samples. A wrong chat template silently trains the model on garbage.
+
+**Read:** [Axolotl docs](https://docs.axolotl.ai/) · [Axolotl GitHub](https://github.com/axolotl-ai-cloud/axolotl)
+
+## 4.7 GPU rental — RunPod and vast.ai {#m4-gpu}
+
+**In one line:** rent a GPU by the hour, train, download the adapter, and shut it down — never leave a pod running overnight by accident.
+
+> **Analogy.** Renting a moving truck. You do not buy a truck to move house once.
+
+| VRAM | Roughly fits (QLoRA training) |
+|---|---|
+| 16–24 GB (RTX 4090, A10) | 7–8B models |
+| 40–48 GB (A6000, L40S) | 13–14B, longer context |
+| 80 GB (A100, H100) | 30–70B with care |
+
+```bash
+# On the rented box
+nvidia-smi                         # check GPU and VRAM
+git clone https://github.com/you/specialist && cd specialist
+pip install -r requirements.txt
+export HF_TOKEN=... WANDB_API_KEY=...
+nohup axolotl train qlora.yml > train.log 2>&1 &
+tail -f train.log
+# Afterwards: push the adapter to the Hugging Face Hub or copy it to S3, then STOP the pod.
+```
+
+```mermaid
+flowchart LR
+  P["Pick GPU by VRAM"] --> V["Attach persistent volume"]
+  V --> T["Train"]
+  T --> S["Save adapter to Hub or S3"]
+  S --> X["Stop the pod"]
+```
+
+> **Trap.** Spot/interruptible instances are cheap but can vanish mid-training. Save checkpoints often to persistent storage.
+
+**Read:** [RunPod docs](https://docs.runpod.io/) · [vast.ai docs](https://docs.vast.ai/) · [Hugging Face: model memory estimator (Accelerate)](https://huggingface.co/docs/accelerate/usage_guides/model_size_estimator)
+
+## 4.8 Distillation, RLHF, and DPO with TRL {#m4-align}
+
+**In one line:** distillation trains a small model to imitate a big one; RLHF trains a reward model on human preferences and optimises against it; DPO skips the reward model and learns directly from chosen-vs-rejected pairs.
+
+> **Analogy.** Distillation is an apprentice copying a master chef. RLHF is a food critic scoring dishes and the chef chasing higher scores. DPO is simply showing the chef “this plate, not that one” many times.
+
+```mermaid
+flowchart LR
+  SFT["SFT model"] --> RM["Reward model from human rankings"]
+  RM --> PPO["PPO optimise against reward"]
+  SFT --> DPO["DPO on chosen vs rejected pairs"]
+  PPO --> A["Aligned model"]
+  DPO --> A
+```
+
+```python
+from datasets import load_dataset
+from trl import DPOTrainer, DPOConfig
+
+# rows: {"prompt": "...", "chosen": "...", "rejected": "..."}
+pairs = load_dataset("json", data_files="prefs.jsonl", split="train")
+trainer = DPOTrainer(model=model, ref_model=None, train_dataset=pairs, processing_class=tok,
+                     args=DPOConfig(output_dir="out/dpo", beta=0.1, per_device_train_batch_size=2,
+                                    learning_rate=5e-6, num_train_epochs=1, bf16=True))
+trainer.train()
+```
+
+Distillation recipe: generate high-quality answers with a large model on your task prompts → filter them with evals → SFT a small model on that data. (Check provider terms of service before training on another model’s outputs.)
+
+> **Trap.** DPO with a high learning rate destroys general ability fast. Use small learning rates and evaluate on a general benchmark too, not only your task.
+
+**Read:** [TRL docs](https://huggingface.co/docs/trl/index) · [DPO paper](https://arxiv.org/abs/2305.18290) · [Illustrating RLHF (Hugging Face)](https://huggingface.co/blog/rlhf) · [Knowledge distillation paper (Hinton et al.)](https://arxiv.org/abs/1503.02531)
+
+## 4.9 Training monitoring with Weights & Biases {#m4-wandb}
+
+**In one line:** log loss, learning rate, eval scores, and sample generations live, so you can kill a bad run in minutes instead of hours.
+
+> **Analogy.** The dashboard in your car. You would not drive across the country with the dashboard taped over.
+
+```python
+import wandb
+wandb.init(project="specialist", config={"r": 16, "lr": 2e-4, "base": "llama-3.1-8b"})
+for step in range(100):
+    wandb.log({"train/loss": 2.0 * 0.97 ** step, "lr": 2e-4})
+table = wandb.Table(columns=["prompt", "output"])
+table.add_data("Total refunds by city", "SELECT city, SUM(amount) ...")
+wandb.log({"samples": table})
+wandb.finish()
+```
+
+What to watch: training loss going down smoothly; **eval loss** going up while training loss falls (overfitting); gradient norm spikes (instability); GPU memory and utilisation (waste).
+
+```mermaid
+flowchart LR
+  TL["Train loss falling"] --> OK{"Eval loss also falling?"}
+  OK -->|yes| GOOD["Keep training"]
+  OK -->|no, rising| STOP["Overfitting: stop or add data"]
+```
+
+**Read:** [Weights & Biases docs](https://docs.wandb.ai/) · [W&B Hugging Face integration](https://docs.wandb.ai/guides/integrations/huggingface/)
+
+## 4.10 Ollama for local inference {#m4-ollama}
+
+**In one line:** Ollama downloads and runs quantised open models on your laptop or server with one command and exposes an HTTP API (including an OpenAI-compatible one).
+
+> **Analogy.** Docker, but for LLMs: `ollama pull`, `ollama run`.
+
+```bash
+ollama pull llama3.1:8b
+ollama run llama3.1:8b "Explain RAG in one line"
+ollama list
+curl http://localhost:11434/api/chat -d '{"model":"llama3.1:8b","messages":[{"role":"user","content":"hi"}],"stream":false}'
+```
+
+```python
+import ollama
+print(ollama.chat(model="llama3.1:8b", messages=[{"role": "user", "content": "hi"}])["message"]["content"])
+
+from openai import OpenAI          # same code you use for OpenAI
+local = OpenAI(base_url="http://localhost:11434/v1", api_key="ollama")
+```
+
+A `Modelfile` packages a model with its system prompt and parameters:
+
+```text
+FROM llama3.1:8b
+PARAMETER temperature 0.2
+SYSTEM You are a concise compliance assistant.
+```
+
+```bash
+ollama create compliance-bot -f Modelfile && ollama run compliance-bot
+```
+
+> **Trap.** Laptop speed is not server speed. For multi-user production serving, look at vLLM or TGI; Ollama shines for local dev and single-tenant boxes.
+
+**Read:** [Ollama GitHub](https://github.com/ollama/ollama) · [Ollama docs](https://docs.ollama.com/) · [Ollama Python library](https://github.com/ollama/ollama-python)
+
+## 4.11 GGUF quantisation — Q4_K_M and Q8_0 {#m4-gguf}
+
+**In one line:** GGUF is the llama.cpp file format for quantised models; the suffix says how many bits each weight uses and which scheme.
+
+> **Analogy.** Photo compression. Q8 is a high-quality JPEG (barely different), Q4 is a smaller JPEG (fine for most uses), Q2 is a meme screenshot of a screenshot.
+
+| Quant | Bits per weight (approx.) | 8B model size (approx.) | Quality |
+|---|---|---|---|
+| F16 | 16 | 16 GB | Reference |
+| Q8_0 | 8.5 | 8.5 GB | Near-lossless |
+| Q5_K_M | 5.7 | 5.7 GB | Very good |
+| Q4_K_M | 4.8 | 4.9 GB | Popular default |
+| Q2_K | 2.6 | 3.2 GB | Noticeably worse |
+
+Rule of thumb: model memory ≈ parameters × bits ÷ 8, plus KV cache for your context length.
+
+```bash
+ollama pull llama3.1:8b-instruct-q4_K_M
+ollama pull llama3.1:8b-instruct-q8_0
+# llama.cpp directly:
+llama-cli -m Llama-3.1-8B-Instruct-Q4_K_M.gguf -p "Hello" -n 64
+```
+
+> **Trap.** Quality loss shows up first on reasoning, maths, and non-English text. Run your own eval set on each quant before choosing.
+
+**Read:** [Hugging Face: GGUF](https://huggingface.co/docs/hub/gguf) · [llama.cpp](https://github.com/ggml-org/llama.cpp) · [Hugging Face: quantization overview](https://huggingface.co/docs/transformers/main/en/quantization/overview)
+
+## 4.12 Llama 3, Phi-3, Mistral {#m4-models}
+
+**In one line:** open-weight families with different sizes, licences, and strengths — pick by size budget, licence, language needs, and your eval results.
+
+> **Analogy.** Car models. A city hatchback (Phi-3 mini) is cheap and nimble; a sedan (Llama 3.1 8B, Mistral 7B) is the everyday workhorse; an SUV (Llama 70B) carries more but guzzles fuel.
+
+| Family | Sizes (examples) | Notes |
+|---|---|---|
+| Llama 3.x | 1B, 3B, 8B, 70B, 405B | Strong general models; Llama community licence |
+| Phi-3 / Phi-4 | ~3.8B to 14B | Small, good reasoning per parameter; MIT licence |
+| Mistral / Mixtral | 7B, 8x7B MoE, larger | Apache 2.0 for several releases; efficient |
+
+```python
+import time, ollama
+prompt = "Classify: 'charged twice for my order' -> refund, fraud, kyc, other. Reply with one word."
+for m in ["llama3.1:8b", "phi3:mini", "mistral:7b"]:
+    t0 = time.time()
+    out = ollama.generate(model=m, prompt=prompt)["response"].strip()
+    print(f"{m:15s} {time.time() - t0:5.2f}s  {out}")
+```
+
+> **Trap.** Read the licence before a client deployment. “Open weights” does not always mean “any commercial use”.
+
+**Read:** [Meta Llama](https://www.llama.com/) · [Phi-3 model card](https://huggingface.co/microsoft/Phi-3-mini-4k-instruct) · [Mistral docs](https://docs.mistral.ai/) · [Ollama model library](https://ollama.com/library)
+
+## 4.13 Model selection and cost–performance trade-offs {#m4-tradeoff}
+
+**In one line:** choose the cheapest model that passes your eval bar at your latency target, and compare API cost per call with the all-in cost of hosting.
+
+> **Analogy.** Taxi vs owning a car. Few trips: taxi (API). Driving all day every day: owning (self-hosting) can win — if you also count insurance, parking, and maintenance (ops time).
+
+```python
+def api_monthly(calls_per_day, tok_in, tok_out, price_in, price_out):
+    return calls_per_day * 30 * (tok_in * price_in + tok_out * price_out) / 1e6
+
+def selfhost_monthly(gpu_hourly, gpus=1, hours=24 * 30, ops_overhead=1.3):
+    return gpu_hourly * gpus * hours * ops_overhead
+
+print(f"API:       ${api_monthly(50_000, 1200, 200, 0.15, 0.60):,.0f}/month")
+print(f"Self-host: ${selfhost_monthly(1.2):,.0f}/month")
+```
+
+| Option | Quality | Latency | Monthly cost | Data leaves VPC? |
+|---|---|---|---|---|
+| Large API model | ★★★★★ | Medium | $$$ | Yes |
+| Small API model | ★★★★ | Fast | $ | Yes |
+| Fine-tuned 8B, self-hosted | ★★★★ on task | Fast | $$ fixed | No |
+| Local 8B Q4, no tuning | ★★★ | Fast | $ fixed | No |
+
+*(Fill this table with your numbers — that table is what wins the client conversation.)*
+
+```mermaid
+flowchart LR
+  E["Eval set"] --> M1["Model A"]
+  E --> M2["Model B"]
+  E --> M3["Model C"]
+  M1 --> T["Table: accuracy, p95 latency, cost per 1k calls"]
+  M2 --> T
+  M3 --> T
+  T --> D["Cheapest model above the bar"]
+```
+
+**Read:** [Artificial Analysis: model comparisons](https://artificialanalysis.ai/) · [LMArena leaderboard](https://lmarena.ai/) · [OpenAI pricing](https://openai.com/api/pricing/) · [Anthropic pricing](https://www.anthropic.com/pricing)
+
+> **Boss level.** “The Specialist”: QLoRA-tune an 8B model on 1,000 text-to-SQL examples for one client schema, then show it beats a much larger general model on accuracy *and* cost on a held-out set.
+
+[← Module 3](m3.html) · [Next: Module 5 — Agents →](m5.html)
+</script>
+<script src="notes.js"></script>
+</body>
+</html>

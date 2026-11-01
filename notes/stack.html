@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tool stack cheat sheet — AI Engineering notes</title>
+  <link rel="stylesheet" href="notes.css" />
+</head>
+<body>
+  <header class="bar">
+    <a href="../index.html">← Tutorials</a>
+    <a href="index.html">All notes</a>
+    <a href="projects.html">← Projects</a>
+    <a href="m1.html">Module 1 →</a>
+    <span>Tool stack</span>
+  </header>
+  <div class="wrap">
+    <nav id="toc"></nav>
+    <main id="content"><p>Loading notes…</p></main>
+  </div>
+<script type="text/markdown" id="md">
+# Tool stack cheat sheet
+
+<p class="hero-note">Quest: know what every tool is for in one sentence, have a 10-line snippet ready, and know where its docs live. Deep dives are linked to the module notes.</p>
+
+```mermaid
+flowchart LR
+  subgraph Models
+    OA["OpenAI"]
+    AN["Anthropic"]
+    OL["Ollama"]
+    LL["LiteLLM"]
+    CO["Cohere"]
+  end
+  subgraph Build
+    LC["LangChain"]
+    LI["LlamaIndex"]
+    LG["LangGraph"]
+    CR["CrewAI"]
+    DS["DSPy"]
+    PY["Pydantic"]
+    MCP["MCP"]
+  end
+  subgraph Data
+    PC["Pinecone"]
+    CH["Chroma"]
+  end
+  subgraph Quality
+    RG["RAGAS"]
+    DE["DeepEval"]
+    PF["Promptfoo"]
+    LS["LangSmith"]
+    AR["Arize"]
+  end
+  subgraph Ship
+    FA["FastAPI"]
+    DK["Docker"]
+    GA["GitHub Actions"]
+    TF["Terraform"]
+    K8["Kubernetes"]
+    AW["AWS"]
+  end
+  Models --> Build --> Data
+  Build --> Quality
+  Build --> Ship
+```
+
+## OpenAI API {#t-openai}
+
+**What:** GPT models, embeddings, structured outputs, tool calling, and the Responses API.
+
+```python
+from openai import OpenAI
+client = OpenAI()
+r = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": "Say hi in 3 words"}])
+print(r.choices[0].message.content, r.usage.total_tokens)
+```
+
+**Docs:** [platform.openai.com/docs](https://platform.openai.com/docs) · **Notes:** [OpenAI SDK](m2.html#m2-oai)
+
+## Anthropic API {#t-anthropic}
+
+**What:** Claude models with a Messages API, tool use, prompt caching, and long context.
+
+```python
+import anthropic
+client = anthropic.Anthropic()
+msg = client.messages.create(model="claude-3-5-haiku-latest", max_tokens=200, messages=[{"role": "user", "content": "Say hi in 3 words"}])
+print(msg.content[0].text)
+```
+
+**Docs:** [docs.anthropic.com](https://docs.anthropic.com/) · **Notes:** [Anthropic SDK](m2.html#m2-anthropic)
+
+## LangChain {#t-lc}
+
+**What:** building blocks (prompts, models, retrievers, parsers) composed with the `|` operator (LCEL).
+
+```python
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
+chain = ChatPromptTemplate.from_template("Explain {topic} to a 10-year-old") | ChatOpenAI(model="gpt-4o-mini")
+print(chain.invoke({"topic": "embeddings"}).content)
+```
+
+**Docs:** [python.langchain.com](https://python.langchain.com/docs/introduction/) · **Notes:** [LCEL](m3.html#m3-lcel)
+
+## LlamaIndex {#t-llama}
+
+**What:** data framework focused on ingesting, indexing, and querying your documents for RAG.
+
+```python
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
+index = VectorStoreIndex.from_documents(SimpleDirectoryReader("docs").load_data())
+print(index.as_query_engine().query("What is the refund window?"))
+```
+
+**Docs:** [docs.llamaindex.ai](https://docs.llamaindex.ai/en/stable/) · **Notes:** [End-to-end RAG](m3.html#m3-e2e)
+
+## Pinecone {#t-pine}
+
+**What:** managed, serverless vector database with metadata filtering and namespaces.
+
+```python
+from pinecone import Pinecone
+index = Pinecone().Index("policies")
+index.upsert(vectors=[{"id": "doc1", "values": vec, "metadata": {"team": "hr"}}])
+print(index.query(vector=qvec, top_k=5, filter={"team": "hr"}, include_metadata=True))
+```
+
+**Docs:** [docs.pinecone.io](https://docs.pinecone.io/) · **Notes:** [Vector databases](m3.html#m3-vdb)
+
+## ChromaDB {#t-chroma}
+
+**What:** open-source embedding database that runs in-process — perfect for local RAG.
+
+```python
+import chromadb
+col = chromadb.PersistentClient(path="db").get_or_create_collection("notes")
+col.add(ids=["a", "b"], documents=["Refunds take 7 days", "Shipping is free over 500"])
+print(col.query(query_texts=["how long for refund?"], n_results=1)["documents"])
+```
+
+**Docs:** [docs.trychroma.com](https://docs.trychroma.com/) · **Notes:** [Vector databases](m3.html#m3-vdb)
+
+## LangGraph {#t-lg}
+
+**What:** stateful agent workflows as graphs, with cycles, checkpoints, and human-in-the-loop interrupts.
+
+```python
+from typing import TypedDict
+from langgraph.graph import StateGraph, START, END
+class S(TypedDict): n: int
+g = StateGraph(S)
+g.add_node("inc", lambda s: {"n": s["n"] + 1})
+g.add_edge(START, "inc"); g.add_edge("inc", END)
+print(g.compile().invoke({"n": 1}))
+```
+
+**Docs:** [langchain-ai.github.io/langgraph](https://langchain-ai.github.io/langgraph/) · **Notes:** [LangGraph](m5.html#m5-langgraph)
+
+## CrewAI {#t-crew}
+
+**What:** role-based multi-agent framework — agents with roles and goals collaborate on tasks.
+
+```python
+from crewai import Agent, Task, Crew
+researcher = Agent(role="Researcher", goal="Find facts", backstory="Curious analyst")
+task = Task(description="List 3 uses of RAG", expected_output="3 bullet points", agent=researcher)
+print(Crew(agents=[researcher], tasks=[task]).kickoff())
+```
+
+**Docs:** [docs.crewai.com](https://docs.crewai.com/) · **Notes:** [CrewAI](m5.html#m5-crew)
+
+## Ollama {#t-ollama}
+
+**What:** run open models locally with one command and an OpenAI-compatible API.
+
+```bash
+ollama pull llama3.2
+ollama run llama3.2 "Explain LoRA in one line"
+curl http://localhost:11434/api/generate -d '{"model":"llama3.2","prompt":"hi","stream":false}'
+```
+
+**Docs:** [github.com/ollama/ollama](https://github.com/ollama/ollama) · **Notes:** [Ollama](m4.html#m4-ollama)
+
+## Pydantic {#t-pyd}
+
+**What:** data validation with type hints — the backbone of structured LLM outputs and FastAPI.
+
+```python
+from pydantic import BaseModel, Field
+class Ticket(BaseModel):
+    title: str
+    priority: int = Field(ge=1, le=5)
+print(Ticket.model_validate_json('{"title": "Login broken", "priority": 2}'))
+```
+
+**Docs:** [docs.pydantic.dev](https://docs.pydantic.dev/latest/) · **Notes:** [Structured outputs](m1.html#m1-pydantic) · [Type hints](m2.html#m2-types)
+
+## MCP {#t-mcp}
+
+**What:** Model Context Protocol — a standard way to expose tools, resources, and prompts to any AI client.
+
+```python
+from mcp.server.fastmcp import FastMCP
+mcp = FastMCP("weather")
+@mcp.tool()
+def forecast(city: str) -> str:
+    return f"Sunny in {city}"
+if __name__ == "__main__":
+    mcp.run()
+```
+
+**Docs:** [modelcontextprotocol.io](https://modelcontextprotocol.io/) · **Notes:** [MCP](m5.html#m5-mcp)
+
+## DSPy {#t-dspy}
+
+**What:** program LLMs with signatures and modules, then let optimisers tune prompts against a metric.
+
+```python
+import dspy
+dspy.configure(lm=dspy.LM("openai/gpt-4o-mini"))
+qa = dspy.ChainOfThought("question -> answer")
+print(qa(question="What is 17 * 3?").answer)
+```
+
+**Docs:** [dspy.ai](https://dspy.ai/) · **Notes:** [DSPy](m1.html#m1-dspy) · [DSPy in Python](m2.html#m2-dspy)
+
+## QLoRA, PEFT, bitsandbytes, Hugging Face {#t-qlora}
+
+**What:** load a model in 4-bit (bitsandbytes), train small adapters (PEFT LoRA), on models from the Hugging Face Hub.
+
+```python
+from transformers import AutoModelForCausalLM, BitsAndBytesConfig
+from peft import LoraConfig, get_peft_model
+bnb = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4")
+model = AutoModelForCausalLM.from_pretrained("Qwen/Qwen2.5-1.5B-Instruct", quantization_config=bnb)
+model = get_peft_model(model, LoraConfig(r=16, lora_alpha=32, target_modules="all-linear", task_type="CAUSAL_LM"))
+model.print_trainable_parameters()
+```
+
+**Docs:** [PEFT](https://huggingface.co/docs/peft/index) · [bitsandbytes](https://huggingface.co/docs/bitsandbytes/main/en/index) · [Transformers](https://huggingface.co/docs/transformers/index) · **Notes:** [QLoRA](m4.html#m4-qlora) · [PEFT](m4.html#m4-peft)
+
+## Axolotl {#t-ax}
+
+**What:** config-driven fine-tuning — one YAML file describes model, data, and LoRA settings.
+
+```bash
+pip install axolotl
+axolotl train config.yml
+axolotl inference config.yml --lora-model-dir ./out
+```
+
+**Docs:** [docs.axolotl.ai](https://docs.axolotl.ai/) · **Notes:** [Axolotl](m4.html#m4-axolotl)
+
+## DeepEval {#t-de}
+
+**What:** pytest-style unit tests for LLM outputs with metrics like answer relevancy and hallucination.
+
+```python
+from deepeval import assert_test
+from deepeval.test_case import LLMTestCase
+from deepeval.metrics import AnswerRelevancyMetric
+
+def test_refund():
+    case = LLMTestCase(input="Refund window?", actual_output="You can get a refund within 30 days.")
+    assert_test(case, [AnswerRelevancyMetric(threshold=0.7)])
+```
+
+**Docs:** [deepeval.com/docs](https://deepeval.com/docs/getting-started) · **Notes:** [Agent evaluation](m5.html#m5-eval)
+
+## LangSmith {#t-ls}
+
+**What:** tracing, datasets, and evaluations for LLM apps — see every step, token, and cost.
+
+```python
+import os
+os.environ["LANGSMITH_TRACING"] = "true"
+from langsmith import traceable
+@traceable
+def summarise(text: str) -> str:
+    return llm(text)
+```
+
+**Docs:** [docs.smith.langchain.com](https://docs.smith.langchain.com/) · **Notes:** [LangSmith](m6.html#m6-smith)
+
+## Promptfoo {#t-pf}
+
+**What:** CLI for prompt testing and red-teaming with YAML test cases and side-by-side model comparison.
+
+```yaml
+prompts: ["Answer briefly: {{question}}"]
+providers: [openai:gpt-4o-mini, anthropic:messages:claude-3-5-haiku-latest]
+tests:
+  - vars: { question: "Capital of France?" }
+    assert:
+      - type: contains
+        value: Paris
+```
+
+**Docs:** [promptfoo.dev/docs](https://www.promptfoo.dev/docs/intro/) · **Notes:** [CI evals](m6.html#m6-ci-eval)
+
+## RAGAS {#t-ragas}
+
+**What:** RAG evaluation metrics — faithfulness, answer relevancy, context precision and recall.
+
+```python
+from ragas import evaluate, EvaluationDataset
+from ragas.metrics import Faithfulness, LLMContextRecall
+ds = EvaluationDataset.from_list([{"user_input": "Refund window?", "retrieved_contexts": ["Refunds within 30 days"], "response": "30 days", "reference": "30 days"}])
+print(evaluate(ds, metrics=[Faithfulness(), LLMContextRecall()]))
+```
+
+**Docs:** [docs.ragas.io](https://docs.ragas.io/en/stable/) · **Notes:** [RAGAS](m3.html#m3-ragas)
+
+## Arize {#t-arize}
+
+**What:** ML and LLM observability; its open-source Phoenix gives local tracing and evals over OpenTelemetry.
+
+```python
+import phoenix as px
+from phoenix.otel import register
+px.launch_app()
+register(project_name="rag-app", auto_instrument=True)
+```
+
+**Docs:** [arize.com/docs/phoenix](https://arize.com/docs/phoenix) · **Notes:** [LLMOps](m6.html#m6-llmops)
+
+## FastAPI {#t-fastapi}
+
+**What:** async Python web framework with Pydantic validation and automatic OpenAPI docs.
+
+```python
+from fastapi import FastAPI
+app = FastAPI()
+@app.get("/health")
+async def health():
+    return {"ok": True}
+```
+
+**Docs:** [fastapi.tiangolo.com](https://fastapi.tiangolo.com/) · **Notes:** [FastAPI](m6.html#m6-fastapi)
+
+## Docker {#t-docker}
+
+**What:** package your app and its dependencies into an image that runs the same everywhere.
+
+```bash
+docker build -t answer-service .
+docker run -p 8000:8000 --env-file .env answer-service
+docker compose up --build
+```
+
+**Docs:** [docs.docker.com](https://docs.docker.com/get-started/) · **Notes:** [Docker](m6.html#m6-docker)
+
+## LiteLLM {#t-lite}
+
+**What:** one OpenAI-style interface (and proxy) for 100+ model providers, with fallbacks and spend tracking.
+
+```python
+from litellm import completion
+for model in ["gpt-4o-mini", "anthropic/claude-3-5-haiku-latest", "ollama/llama3.2"]:
+    print(model, completion(model=model, messages=[{"role": "user", "content": "hi"}]).choices[0].message.content)
+```
+
+**Docs:** [docs.litellm.ai](https://docs.litellm.ai/) · **Notes:** [Unified client](m2.html#m2-client)
+
+## GitHub Actions {#t-gha}
+
+**What:** CI/CD workflows defined in YAML that run on every push or pull request.
+
+```yaml
+on: [pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r requirements.txt && pytest -q
+```
+
+**Docs:** [docs.github.com/actions](https://docs.github.com/en/actions) · **Notes:** [GitHub Actions](m6.html#m6-gha)
+
+## Cohere {#t-cohere}
+
+**What:** enterprise LLMs, embeddings, and the popular Rerank endpoint for boosting retrieval quality.
+
+```python
+import cohere
+co = cohere.ClientV2()
+r = co.rerank(model="rerank-v3.5", query="refund window", documents=["Refunds in 30 days", "Free shipping over 500"], top_n=1)
+print(r.results[0].index, r.results[0].relevance_score)
+```
+
+**Docs:** [docs.cohere.com](https://docs.cohere.com/) · **Notes:** [Reranking](m3.html#m3-rerank)
+
+## AWS {#t-aws}
+
+**What:** cloud building blocks — ECS/EKS for compute, S3 for storage, Bedrock for managed models, Secrets Manager, CloudWatch.
+
+```python
+import boto3, json
+bedrock = boto3.client("bedrock-runtime", region_name="us-east-1")
+resp = bedrock.converse(modelId="anthropic.claude-3-haiku-20240307-v1:0",
+                        messages=[{"role": "user", "content": [{"text": "hi"}]}])
+print(resp["output"]["message"]["content"][0]["text"])
+```
+
+**Docs:** [docs.aws.amazon.com](https://docs.aws.amazon.com/) · [Bedrock user guide](https://docs.aws.amazon.com/bedrock/latest/userguide/what-is-bedrock.html) · **Notes:** [AWS](m6.html#m6-aws)
+
+## Vercel and v0 {#t-vercel}
+
+**What:** Vercel hosts frontends and serverless functions with git-push deploys; v0 generates React UI from prompts; the AI SDK streams model output to the browser.
+
+```ts
+import { streamText } from "ai";
+import { openai } from "@ai-sdk/openai";
+
+export async function POST(req: Request) {
+  const { prompt } = await req.json();
+  return streamText({ model: openai("gpt-4o-mini"), prompt }).toTextStreamResponse();
+}
+```
+
+**Docs:** [vercel.com/docs](https://vercel.com/docs) · [AI SDK](https://ai-sdk.dev/docs/introduction) · [v0](https://v0.dev/)
+
+## Streamlit {#t-st}
+
+**What:** turn a Python script into a web app in minutes — ideal for demos of RAG and agents.
+
+```python
+import streamlit as st
+st.title("Policy assistant")
+if q := st.chat_input("Ask about a policy"):
+    st.chat_message("user").write(q)
+    st.chat_message("assistant").write(chain.invoke(q))
+```
+
+**Docs:** [docs.streamlit.io](https://docs.streamlit.io/) · **Notes:** [No-code and quick UIs](m1.html#m1-nocode)
+
+## Terraform {#t-tf}
+
+**What:** infrastructure as code — declare cloud resources in HCL, review a plan, then apply.
+
+```hcl
+resource "aws_s3_bucket" "docs" {
+  bucket = "rag-source-docs-dev"
+}
+```
+
+```bash
+terraform init && terraform plan && terraform apply
+```
+
+**Docs:** [developer.hashicorp.com/terraform](https://developer.hashicorp.com/terraform/docs) · **Notes:** [Terraform](m6.html#m6-tf)
+
+## Kubernetes {#t-k8s}
+
+**What:** orchestrates containers — scheduling, scaling, self-healing, and rolling updates.
+
+```bash
+kubectl create deployment answer --image=ghcr.io/me/answer-service:1.0
+kubectl expose deployment answer --port=80 --target-port=8000
+kubectl autoscale deployment answer --min=2 --max=10 --cpu-percent=70
+kubectl rollout status deployment/answer
+```
+
+**Docs:** [kubernetes.io/docs](https://kubernetes.io/docs/home/) · **Notes:** [Kubernetes](m6.html#m6-k8s) · [Helm](m6.html#m6-helm)
+
+[← Projects](projects.html) · [Back to all notes](index.html)
+</script>
+<script src="notes.js"></script>
+</body>
+</html>

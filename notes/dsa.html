@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Elective notes — DSA for Tech Interviews</title>
+  <link rel="stylesheet" href="notes.css" />
+</head>
+<body>
+  <header class="bar">
+    <a href="../index.html">← Tutorials</a>
+    <a href="index.html">All notes</a>
+    <a href="sd.html">← System design</a>
+    <a href="projects.html">Projects →</a>
+    <span>Elective · DSA</span>
+  </header>
+  <div class="wrap">
+    <nav id="toc"></nav>
+    <main id="content"><p>Loading notes…</p></main>
+  </div>
+<script type="text/markdown" id="md">
+# Elective — DSA for Tech Interviews
+
+<p class="hero-note">Quest: recognise the pattern in 2 minutes, code it in 15, and explain the complexity without sweating. Each section gives you the trigger words, a reusable template, and a classic problem to practise.</p>
+
+## Learning order and complexity under questioning {#dsa-order}
+
+**In one line:** learn patterns in dependency order (arrays → hashing → two pointers → stack → binary search → linked list → trees → heaps → backtracking → graphs → DP), and always state time and space complexity with a reason.
+
+```mermaid
+flowchart LR
+  A["Arrays + hashing"] --> TP["Two pointers"] --> SW["Sliding window"]
+  A --> ST["Stack"]
+  TP --> BS["Binary search"]
+  TP --> LL["Linked list"]
+  BS --> TR["Trees"]
+  LL --> TR
+  TR --> HP["Heaps"]
+  TR --> BT["Backtracking"]
+  TR --> TRIE["Tries"]
+  BT --> GR["Graphs"]
+  BT --> DP["1-D DP"]
+  GR --> AG["Advanced graphs"]
+  DP --> DP2["2-D DP"]
+```
+
+| Complexity | 1 second handles about | Typical source |
+|---|---|---|
+| O(log n) | anything | binary search |
+| O(n) | 10⁸ | one pass |
+| O(n log n) | 10⁶–10⁷ | sorting, heap |
+| O(n²) | 10⁴ | nested loops |
+| O(2ⁿ) | n ≈ 20–25 | subsets |
+| O(n!) | n ≈ 10 | permutations |
+
+> **Analogy.** Complexity is how your commute time grows when the city doubles. O(n) doubles too; O(n²) quadruples; O(log n) barely notices.
+
+Interview script: restate the problem → examples and edge cases → brute force and its complexity → optimise → code → test with an example → state final complexity.
+
+**Read:** [NeetCode roadmap](https://neetcode.io/roadmap) · [Big-O cheat sheet](https://www.bigocheatsheet.com/) · [Tech Interview Handbook](https://www.techinterviewhandbook.org/)
+
+## Arrays, strings, two pointers, sliding window {#dsa-arrays}
+
+**Trigger words:** “sorted array”, “pair that sums to”, “longest/shortest substring/subarray with…”.
+
+> **Analogy.** Two pointers: two people walking toward each other from both ends of a corridor. Sliding window: a caterpillar that stretches its head forward and pulls its tail when it gets too long.
+
+```python
+def two_sum_sorted(nums: list[int], target: int) -> tuple[int, int] | None:
+    l, r = 0, len(nums) - 1
+    while l < r:
+        s = nums[l] + nums[r]
+        if s == target:
+            return l, r
+        if s < target:
+            l += 1
+        else:
+            r -= 1
+    return None
+
+def longest_unique_substring(s: str) -> int:
+    seen, left, best = {}, 0, 0
+    for right, ch in enumerate(s):
+        if ch in seen and seen[ch] >= left:
+            left = seen[ch] + 1                     # shrink window past the duplicate
+        seen[ch] = right
+        best = max(best, right - left + 1)
+    return best
+
+print(two_sum_sorted([1, 3, 4, 6, 9], 10), longest_unique_substring("abcabcbb"))  # (1, 4) 3
+```
+
+```mermaid
+flowchart LR
+  L["left"] --> W["window: valid?"]
+  R["right moves forward"] --> W
+  W -->|invalid| SH["move left forward"]
+  W -->|valid| UP["update best answer"]
+```
+
+Practise: Valid Palindrome, 3Sum, Container With Most Water, Minimum Window Substring. **O(n)** time.
+
+**Read:** [NeetCode: two pointers problems](https://neetcode.io/practice) · [LeetCode: sliding window explore card](https://leetcode.com/explore/interview/card/leetcodes-interview-crash-course-data-structures-and-algorithms/703/arraystrings/)
+
+## Hashing, prefix sums, frequency maps {#dsa-hash}
+
+**Trigger words:** “seen before”, “count of”, “subarray sum equals k”, “anagram”.
+
+> **Analogy.** A hash map is a coat-check: hand over a key, get your item back instantly. A prefix sum is the odometer: distance between two points = later reading − earlier reading.
+
+```python
+from collections import Counter, defaultdict
+
+def is_anagram(a: str, b: str) -> bool:
+    return Counter(a) == Counter(b)
+
+def subarray_sum_equals_k(nums: list[int], k: int) -> int:
+    count, prefix, seen = 0, 0, defaultdict(int)
+    seen[0] = 1
+    for x in nums:
+        prefix += x
+        count += seen[prefix - k]                   # earlier prefix that makes the gap k
+        seen[prefix] += 1
+    return count
+
+print(is_anagram("listen", "silent"), subarray_sum_equals_k([1, 2, 3, -2, 2], 3))
+```
+
+Practise: Two Sum, Group Anagrams, Top K Frequent Elements, Longest Consecutive Sequence. Usually **O(n)** time, **O(n)** space.
+
+**Read:** [Python collections](https://docs.python.org/3/library/collections.html) · [cp-algorithms: prefix sums and more](https://cp-algorithms.com/)
+
+## Stacks, queues, monotonic structures {#dsa-stack}
+
+**Trigger words:** “matching brackets”, “next greater element”, “most recent”, “sliding window maximum”.
+
+> **Analogy.** A stack of plates (last in, first out). A monotonic stack is a queue at a concert where shorter people in front step aside when a taller person arrives behind them — whoever is left can see the stage.
+
+```python
+from collections import deque
+
+def valid_parentheses(s: str) -> bool:
+    pairs, stack = {")": "(", "]": "[", "}": "{"}, []
+    for ch in s:
+        if ch in pairs:
+            if not stack or stack.pop() != pairs[ch]:
+                return False
+        else:
+            stack.append(ch)
+    return not stack
+
+def daily_temperatures(t: list[int]) -> list[int]:
+    ans, stack = [0] * len(t), []                    # stack of indices, decreasing temps
+    for i, temp in enumerate(t):
+        while stack and t[stack[-1]] < temp:
+            j = stack.pop()
+            ans[j] = i - j
+        stack.append(i)
+    return ans
+
+def window_max(nums: list[int], k: int) -> list[int]:
+    dq, out = deque(), []                            # indices, values decreasing
+    for i, x in enumerate(nums):
+        while dq and nums[dq[-1]] <= x:
+            dq.pop()
+        dq.append(i)
+        if dq[0] <= i - k:
+            dq.popleft()
+        if i >= k - 1:
+            out.append(nums[dq[0]])
+    return out
+
+print(valid_parentheses("([]{})"), daily_temperatures([73, 74, 75, 71, 69, 72, 76]), window_max([1, 3, -1, -3, 5, 3], 3))
+```
+
+Practise: Min Stack, Evaluate Reverse Polish Notation, Largest Rectangle in Histogram. Monotonic stack: **O(n)** because each index is pushed and popped once.
+
+**Read:** [NeetCode practice: stack](https://neetcode.io/practice) · [Python deque](https://docs.python.org/3/library/collections.html#collections.deque)
+
+## Linked lists {#dsa-lists}
+
+**Trigger words:** “reverse”, “cycle”, “merge”, “k-th from the end”, “middle”.
+
+> **Analogy.** A treasure hunt where each clue tells you where the next one is. Fast/slow pointers: a hare and a tortoise — if the track loops, the hare laps the tortoise.
+
+```python
+class Node:
+    def __init__(self, val, nxt=None):
+        self.val, self.next = val, nxt
+
+def reverse(head):
+    prev = None
+    while head:
+        head.next, prev, head = prev, head, head.next
+    return prev
+
+def has_cycle(head) -> bool:
+    slow = fast = head
+    while fast and fast.next:
+        slow, fast = slow.next, fast.next.next
+        if slow is fast:
+            return True
+    return False
+
+def merge(a, b):
+    dummy = tail = Node(0)                           # dummy node avoids edge cases
+    while a and b:
+        if a.val <= b.val:
+            tail.next, a = a, a.next
+        else:
+            tail.next, b = b, b.next
+        tail = tail.next
+    tail.next = a or b
+    return dummy.next
+```
+
+```mermaid
+flowchart LR
+  A["1"] --> B["2"] --> C["3"] --> D["4"] --> E["None"]
+```
+
+Practise: Reverse Linked List, Merge Two Sorted Lists, Reorder List, LRU Cache. Mostly **O(n)** time, **O(1)** space.
+
+**Read:** [NeetCode practice: linked list](https://neetcode.io/practice) · [VisuAlgo: linked list](https://visualgo.net/en/list)
+
+## Trees, BSTs, traversals {#dsa-trees}
+
+**Trigger words:** “depth”, “path”, “level order”, “lowest common ancestor”, “validate BST”.
+
+> **Analogy.** A family tree. DFS explores one family line all the way down before backtracking; BFS meets every cousin of one generation before the next.
+
+```python
+from collections import deque
+
+class TreeNode:
+    def __init__(self, val, left=None, right=None):
+        self.val, self.left, self.right = val, left, right
+
+def max_depth(root) -> int:
+    return 0 if not root else 1 + max(max_depth(root.left), max_depth(root.right))
+
+def level_order(root) -> list[list[int]]:
+    if not root:
+        return []
+    out, q = [], deque([root])
+    while q:
+        out.append([n.val for n in q])
+        q = deque(c for n in q for c in (n.left, n.right) if c)
+    return out
+
+def is_valid_bst(node, lo=float("-inf"), hi=float("inf")) -> bool:
+    if not node:
+        return True
+    return lo < node.val < hi and is_valid_bst(node.left, lo, node.val) and is_valid_bst(node.right, node.val, hi)
+```
+
+```mermaid
+flowchart TB
+  R["8"] --> L["3"]
+  R --> RR["10"]
+  L --> LL["1"]
+  L --> LR["6"]
+  RR --> RRR["14"]
+```
+
+Traversals: **preorder** (node, left, right), **inorder** (left, node, right — sorted for a BST), **postorder** (left, right, node), **level order** (BFS).
+
+**Read:** [NeetCode practice: trees](https://neetcode.io/practice) · [VisuAlgo: binary search tree](https://visualgo.net/en/bst)
+
+## Heaps, tries, union-find {#dsa-heap}
+
+**Trigger words:** heap — “top k”, “k-th largest”, “merge k sorted”, “median of a stream”; trie — “prefix”, “word search”; union-find — “connected components”, “redundant connection”.
+
+> **Analogy.** Heap: an A&E triage desk, always serving the most urgent first. Trie: a phone keypad tree of prefixes. Union-find: friend groups merging at a party — “are these two in the same group?” answered instantly.
+
+```python
+import heapq
+
+def top_k(nums, k):
+    return heapq.nlargest(k, nums)                   # O(n log k)
+
+class Trie:
+    def __init__(self):
+        self.root = {}
+    def insert(self, word):
+        node = self.root
+        for ch in word:
+            node = node.setdefault(ch, {})
+        node["$"] = True
+    def starts_with(self, prefix) -> bool:
+        node = self.root
+        for ch in prefix:
+            if ch not in node:
+                return False
+            node = node[ch]
+        return True
+
+class DSU:
+    def __init__(self, n):
+        self.parent, self.size = list(range(n)), [1] * n
+    def find(self, x):
+        while self.parent[x] != x:
+            self.parent[x] = self.parent[self.parent[x]]   # path compression
+            x = self.parent[x]
+        return x
+    def union(self, a, b) -> bool:
+        ra, rb = self.find(a), self.find(b)
+        if ra == rb:
+            return False
+        if self.size[ra] < self.size[rb]:
+            ra, rb = rb, ra
+        self.parent[rb] = ra
+        self.size[ra] += self.size[rb]
+        return True
+```
+
+Practise: Kth Largest Element in a Stream, Find Median from Data Stream, Implement Trie, Number of Connected Components.
+
+**Read:** [Python heapq](https://docs.python.org/3/library/heapq.html) · [cp-algorithms: disjoint set union](https://cp-algorithms.com/data_structures/disjoint_set_union.html)
+
+## Recursion, backtracking, pruning {#dsa-bt}
+
+**Trigger words:** “all combinations / permutations / subsets”, “N-Queens”, “word search in grid”.
+
+> **Analogy.** Exploring a maze: walk down a path, and when you hit a dead end, step back to the last fork and try the next turn. Pruning is not walking down paths you can already see are blocked.
+
+```python
+def subsets(nums):
+    out, path = [], []
+    def dfs(i):
+        if i == len(nums):
+            out.append(path[:])
+            return
+        path.append(nums[i]); dfs(i + 1); path.pop()      # choose, explore, un-choose
+        dfs(i + 1)                                         # skip
+    dfs(0)
+    return out
+
+def combination_sum(cands, target):
+    cands.sort()
+    out, path = [], []
+    def dfs(start, remaining):
+        if remaining == 0:
+            out.append(path[:]); return
+        for i in range(start, len(cands)):
+            if cands[i] > remaining:
+                break                                      # pruning: sorted, so stop
+            path.append(cands[i]); dfs(i, remaining - cands[i]); path.pop()
+    dfs(0, target)
+    return out
+
+print(subsets([1, 2, 3])[:4], combination_sum([2, 3, 6, 7], 7))
+```
+
+```mermaid
+flowchart TB
+  S["start"] --> A["take 1"]
+  S --> B["skip 1"]
+  A --> A1["take 2"]
+  A --> A2["skip 2"]
+  B --> B1["take 2"]
+  B --> B2["skip 2"]
+```
+
+**Read:** [NeetCode practice: backtracking](https://neetcode.io/practice) · [LeetCode: recursion explore card](https://leetcode.com/explore/learn/card/recursion-i/)
+
+## Binary search on the answer and sorting patterns {#dsa-bs}
+
+**Trigger words:** “sorted”, “minimum/maximum value such that…”, “capacity”, “speed”, “split into k parts”.
+
+> **Analogy.** Guessing a number between 1 and 100 with “higher/lower” hints: seven guesses at most. Binary search on the answer: guess a speed, check if it works, then halve the range.
+
+```python
+def lower_bound(nums, target):
+    lo, hi = 0, len(nums)
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if nums[mid] < target:
+            lo = mid + 1
+        else:
+            hi = mid
+    return lo
+
+def min_eating_speed(piles, hours):               # Koko eating bananas
+    def ok(speed):
+        return sum((p + speed - 1) // speed for p in piles) <= hours
+    lo, hi = 1, max(piles)
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if ok(mid):
+            hi = mid
+        else:
+            lo = mid + 1
+    return lo
+
+print(lower_bound([1, 3, 3, 5], 3), min_eating_speed([3, 6, 7, 11], 8))   # 1 4
+```
+
+Sorting patterns: sort intervals by start to merge them; sort + two pointers for k-sum; custom keys with `sorted(items, key=...)`; counting sort / bucket sort when values are bounded.
+
+**Read:** [NeetCode practice: binary search](https://neetcode.io/practice) · [Python bisect](https://docs.python.org/3/library/bisect.html) · [Python sorting HOWTO](https://docs.python.org/3/howto/sorting.html)
+
+## Graphs — BFS, DFS, shortest paths {#dsa-graph}
+
+**Trigger words:** “grid”, “islands”, “dependencies / prerequisites”, “minimum steps”, “network delay”.
+
+> **Analogy.** BFS is ripples from a stone in a pond — reaches nearest places first (shortest path in unweighted graphs). DFS is exploring one hallway to the end. Dijkstra is a taxi app always extending the cheapest route found so far.
+
+```python
+from collections import deque, defaultdict
+import heapq
+
+def num_islands(grid):
+    rows, cols, seen, count = len(grid), len(grid[0]), set(), 0
+    for r in range(rows):
+        for c in range(cols):
+            if grid[r][c] == "1" and (r, c) not in seen:
+                count += 1
+                q = deque([(r, c)]); seen.add((r, c))
+                while q:
+                    x, y = q.popleft()
+                    for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                        nx, ny = x + dx, y + dy
+                        if 0 <= nx < rows and 0 <= ny < cols and grid[nx][ny] == "1" and (nx, ny) not in seen:
+                            seen.add((nx, ny)); q.append((nx, ny))
+    return count
+
+def can_finish(n, prereqs):                       # topological sort (Kahn)
+    graph, indeg = defaultdict(list), [0] * n
+    for a, b in prereqs:
+        graph[b].append(a); indeg[a] += 1
+    q = deque(i for i in range(n) if indeg[i] == 0)
+    done = 0
+    while q:
+        node = q.popleft(); done += 1
+        for nxt in graph[node]:
+            indeg[nxt] -= 1
+            if indeg[nxt] == 0:
+                q.append(nxt)
+    return done == n
+
+def dijkstra(n, edges, src):
+    graph = defaultdict(list)
+    for u, v, w in edges:
+        graph[u].append((v, w))
+    dist, pq = {src: 0}, [(0, src)]
+    while pq:
+        d, u = heapq.heappop(pq)
+        if d > dist.get(u, float("inf")):
+            continue
+        for v, w in graph[u]:
+            if d + w < dist.get(v, float("inf")):
+                dist[v] = d + w
+                heapq.heappush(pq, (d + w, v))
+    return dist
+```
+
+```mermaid
+flowchart LR
+  A["A"] -->|4| B["B"]
+  A -->|1| C["C"]
+  C -->|2| B
+  B -->|1| D["D"]
+  C -->|5| D
+```
+
+**Read:** [NeetCode practice: graphs](https://neetcode.io/practice) · [cp-algorithms: Dijkstra](https://cp-algorithms.com/graph/dijkstra.html) · [VisuAlgo: graph traversal](https://visualgo.net/en/dfsbfs)
+
+## Dynamic programming — 1-D, 2-D, state design {#dsa-dp}
+
+**Trigger words:** “number of ways”, “minimum/maximum cost”, “longest … subsequence”, choices that overlap.
+
+> **Analogy.** Climbing stairs and writing on each step how many ways you reached it. You never recount the same step — you read what you already wrote.
+
+Recipe: (1) define the **state** in words (“`dp[i]` = best answer for the first i items”), (2) the **transition** (how `dp[i]` uses smaller states), (3) **base cases**, (4) the **answer** location, (5) optimise space if only the last row is used.
+
+```python
+from functools import cache
+
+def climb_stairs(n: int) -> int:
+    a, b = 1, 1                                    # dp[i-2], dp[i-1]
+    for _ in range(n - 1):
+        a, b = b, a + b
+    return b
+
+def coin_change(coins, amount):
+    dp = [0] + [float("inf")] * amount
+    for x in range(1, amount + 1):
+        for c in coins:
+            if c <= x:
+                dp[x] = min(dp[x], dp[x - c] + 1)
+    return -1 if dp[amount] == float("inf") else dp[amount]
+
+def lcs(a: str, b: str) -> int:
+    @cache
+    def go(i, j):
+        if i == len(a) or j == len(b):
+            return 0
+        if a[i] == b[j]:
+            return 1 + go(i + 1, j + 1)
+        return max(go(i + 1, j), go(i, j + 1))
+    return go(0, 0)
+
+print(climb_stairs(5), coin_change([1, 2, 5], 11), lcs("abcde", "ace"))   # 8 3 3
+```
+
+```mermaid
+flowchart LR
+  S["State: what does dp of i mean?"] --> T["Transition from smaller states"]
+  T --> B["Base cases"]
+  B --> O["Order: top-down memo or bottom-up table"]
+  O --> SP["Space optimise"]
+```
+
+Practise: House Robber, Longest Increasing Subsequence, Word Break, Unique Paths, Edit Distance.
+
+**Read:** [NeetCode practice: 1-D and 2-D DP](https://neetcode.io/practice) · [MIT 6.006: dynamic programming lectures](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/) · [cp-algorithms: dynamic programming](https://cp-algorithms.com/dynamic_programming/intro-to-dp.html)
+
+[← System design](sd.html) · [Next: Projects →](projects.html)
+</script>
+<script src="notes.js"></script>
+</body>
+</html>
