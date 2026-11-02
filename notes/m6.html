@@ -1,338 +1,682 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Module 6 notes — Cloud & DevOps</title>
-  <link rel="stylesheet" href="notes.css" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Module 6 booklet — Cloud &amp; DevOps</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f3f5f8; --paper:#ffffff; --ink:#16202e; --muted:#5b6778; --line:#dde3ea;
+  --accent:#0a6c8f; --accent-soft:#e3f1f6;
+  --trap:#a4440b; --trap-soft:#fdf0e6;
+  --why:#4b3fa0; --why-soft:#eeecfa;
+  --tip:#12724a; --tip-soft:#e6f5ee;
+  --boss:#8a1c3a; --boss-soft:#fbe9ee;
+  --code-bg:#f6f8fa; --code-ink:#1f2933; --inline-bg:#e9eef3;
+  --head:"Space Grotesk","Segoe UI",system-ui,sans-serif;
+  --body:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e141c; --paper:#151d28; --ink:#e4e9f0; --muted:#97a3b4; --line:#27323f;
+    --accent:#52b8da; --accent-soft:#12303c;
+    --trap:#f2a066; --trap-soft:#2c1e14;
+    --why:#b3a8ff; --why-soft:#211e3a;
+    --tip:#6fd3a0; --tip-soft:#14291f;
+    --boss:#ff8fab; --boss-soft:#341822;
+    --code-bg:#0b1118; --code-ink:#e6edf3; --inline-bg:#202b38;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e141c; --paper:#151d28; --ink:#e4e9f0; --muted:#97a3b4; --line:#27323f;
+  --accent:#52b8da; --accent-soft:#12303c;
+  --trap:#f2a066; --trap-soft:#2c1e14;
+  --why:#b3a8ff; --why-soft:#211e3a;
+  --tip:#6fd3a0; --tip-soft:#14291f;
+  --boss:#ff8fab; --boss-soft:#341822;
+  --code-bg:#0b1118; --code-ink:#e6edf3; --inline-bg:#202b38;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:18px;line-height:1.7}
+.bar{position:sticky;top:0;z-index:20;display:flex;gap:16px;align-items:center;flex-wrap:wrap;
+  padding:10px 20px;background:var(--paper);border-bottom:1px solid var(--line);font-family:var(--head);font-size:14px}
+.bar a{color:var(--accent);text-decoration:none}
+.bar a:hover{text-decoration:underline}
+.bar .grow{flex:1}
+.bar button{font:inherit;background:none;border:1px solid var(--line);color:var(--ink);padding:4px 10px;border-radius:6px;cursor:pointer}
+.bar button:hover{border-color:var(--accent)}
+#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:30}
+.wrap{display:grid;grid-template-columns:290px minmax(0,1fr);gap:0;max-width:1280px;margin:0 auto}
+nav#toc{position:sticky;top:52px;align-self:start;height:calc(100vh - 52px);overflow:auto;
+  padding:24px 12px 40px 20px;font-family:var(--head);font-size:14px;border-right:1px solid var(--line)}
+nav#toc h4{margin:0 0 10px;font-size:13px;color:var(--muted);font-weight:600}
+nav#toc a{display:flex;gap:10px;padding:6px 8px;border-radius:6px;color:var(--ink);text-decoration:none;line-height:1.35}
+nav#toc a b{min-width:30px;color:var(--muted);font-weight:600}
+nav#toc a:hover{background:var(--accent-soft)}
+nav#toc a.active{background:var(--accent-soft);color:var(--accent)}
+nav#toc a.active b{color:var(--accent)}
+main#content{padding:36px clamp(18px,4vw,56px) 80px;max-width:860px}
+.cover{padding:8px 0 28px;border-bottom:2px solid var(--ink);margin-bottom:28px}
+.cover h1{font-family:var(--head);font-size:clamp(30px,4.4vw,46px);line-height:1.1;margin:0 0 14px;letter-spacing:-.02em}
+.cover .sub{font-family:var(--head);font-size:15px;color:var(--muted);margin:0}
+.hero-note{margin:18px 0 0;padding:14px 18px;background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:0 8px 8px 0;font-size:19px}
+h2{font-family:var(--head);font-size:clamp(25px,3vw,32px);line-height:1.2;margin:68px 0 14px;padding-top:26px;border-top:1px solid var(--line);letter-spacing:-.01em;display:flex;gap:14px;align-items:baseline}
+h2 .chnum{flex:none;font-size:.62em;font-weight:600;color:var(--paper);background:var(--accent);padding:3px 10px;border-radius:6px;position:relative;top:-3px}
+h3{font-family:var(--head);font-size:20px;margin:36px 0 8px;color:var(--accent)}
+p{margin:0 0 14px}
+a{color:var(--accent)}
+.oneline{font-size:20px;line-height:1.55;padding:12px 0;border-top:1px dashed var(--line);border-bottom:1px dashed var(--line)}
+.read{font-family:var(--head);font-size:15px;padding:12px 14px;background:var(--paper);border:1px solid var(--line);border-radius:8px;margin-top:22px}
+blockquote.callout{margin:18px 0;padding:12px 18px;border-radius:8px;border-left:4px solid var(--accent);background:var(--accent-soft)}
+blockquote.callout p{margin:0}
+blockquote.callout.trap{border-color:var(--trap);background:var(--trap-soft)}
+blockquote.callout.trap strong:first-child{color:var(--trap)}
+blockquote.callout.why{border-color:var(--why);background:var(--why-soft)}
+blockquote.callout.why strong:first-child{color:var(--why)}
+blockquote.callout.tip{border-color:var(--tip);background:var(--tip-soft)}
+blockquote.callout.tip strong:first-child{color:var(--tip)}
+blockquote.callout.boss{border-color:var(--boss);background:var(--boss-soft)}
+blockquote.callout.boss strong:first-child{color:var(--boss)}
+blockquote.callout.analogy strong:first-child{color:var(--accent)}
+code{font-family:var(--mono);font-size:.84em;background:var(--inline-bg);padding:1px 6px;border-radius:4px}
+.hl{margin:16px 0;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;overflow-x:auto}
+.hl pre{margin:0;padding:14px 16px;line-height:1.55;font-size:14px;color:var(--code-ink)}
+.hl pre{font-family:var(--mono)}
+.hl code{font-family:var(--mono);background:none;padding:0;font-size:inherit}
+.hl pre{font-size:14px}
+pre.mermaid{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:16px;text-align:center;overflow-x:auto;font-family:var(--mono);font-size:13px;white-space:pre}
+.tblwrap{overflow-x:auto;margin:16px 0}
+table{border-collapse:collapse;width:100%;font-family:var(--head);font-size:15px;background:var(--paper)}
+th,td{border:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top;line-height:1.45}
+th{background:var(--accent-soft);font-weight:600}
+td code,th code{font-size:.9em}
+details{margin:12px 0;border:1px solid var(--line);border-radius:8px;background:var(--paper)}
+summary{cursor:pointer;padding:10px 14px;font-family:var(--head);font-size:15px;font-weight:600;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:700}
+details[open] summary::before{content:"−"}
+details[open] summary{border-bottom:1px solid var(--line)}
+details > :not(summary){margin-left:16px;margin-right:16px}
+details > :nth-child(2){margin-top:12px}
+details > :last-child{margin-bottom:14px}
+ol,ul{padding-left:26px}
+li{margin:4px 0}
+li>p{margin:0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:900px){
+  .wrap{grid-template-columns:1fr}
+  nav#toc{position:static;height:auto;max-height:260px;border-right:0;border-bottom:1px solid var(--line)}
+  body{font-size:17px}
+}
+@media print{
+  :root{--bg:#fff;--paper:#fff}
+  .bar,nav#toc,#progress{display:none}
+  .wrap{display:block}
+  body{font-size:11.5pt}
+  main#content{max-width:none;padding:0}
+  h2{break-before:page;margin-top:0;border-top:0}
+  .cover+*+h2,h2:first-of-type{break-before:auto}
+  pre,table,blockquote,details{break-inside:avoid}
+  .hl{overflow:visible}.hl pre{white-space:pre-wrap}
+  @page{margin:18mm 16mm}
+}
+
+/* code colours */
+.hl .hll{background:none}
+pre { line-height: 125%; }
+td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+
+
+.hl .c { color: #3D7B7B; font-style: italic } /* Comment */
+.hl .err { border: 1px solid #F00 } /* Error */
+.hl .k { color: #008000; font-weight: bold } /* Keyword */
+.hl .o { color: #666 } /* Operator */
+.hl .ch { color: #3D7B7B; font-style: italic } /* Comment.Hashbang */
+.hl .cm { color: #3D7B7B; font-style: italic } /* Comment.Multiline */
+.hl .cp { color: #9C6500 } /* Comment.Preproc */
+.hl .cpf { color: #3D7B7B; font-style: italic } /* Comment.PreprocFile */
+.hl .c1 { color: #3D7B7B; font-style: italic } /* Comment.Single */
+.hl .cs { color: #3D7B7B; font-style: italic } /* Comment.Special */
+.hl .gd { color: #A00000 } /* Generic.Deleted */
+.hl .ge { font-style: italic } /* Generic.Emph */
+.hl .ges { font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.hl .gr { color: #E40000 } /* Generic.Error */
+.hl .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+.hl .gi { color: #008400 } /* Generic.Inserted */
+.hl .go { color: #717171 } /* Generic.Output */
+.hl .gp { color: #000080; font-weight: bold } /* Generic.Prompt */
+.hl .gs { font-weight: bold } /* Generic.Strong */
+.hl .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+.hl .gt { color: #04D } /* Generic.Traceback */
+.hl .kc { color: #008000; font-weight: bold } /* Keyword.Constant */
+.hl .kd { color: #008000; font-weight: bold } /* Keyword.Declaration */
+.hl .kn { color: #008000; font-weight: bold } /* Keyword.Namespace */
+.hl .kp { color: #008000 } /* Keyword.Pseudo */
+.hl .kr { color: #008000; font-weight: bold } /* Keyword.Reserved */
+.hl .kt { color: #B00040 } /* Keyword.Type */
+.hl .m { color: #666 } /* Literal.Number */
+.hl .s { color: #BA2121 } /* Literal.String */
+.hl .na { color: #687822 } /* Name.Attribute */
+.hl .nb { color: #008000 } /* Name.Builtin */
+.hl .nc { color: #00F; font-weight: bold } /* Name.Class */
+.hl .no { color: #800 } /* Name.Constant */
+.hl .nd { color: #A2F } /* Name.Decorator */
+.hl .ni { color: #717171; font-weight: bold } /* Name.Entity */
+.hl .ne { color: #CB3F38; font-weight: bold } /* Name.Exception */
+.hl .nf { color: #00F } /* Name.Function */
+.hl .nl { color: #767600 } /* Name.Label */
+.hl .nn { color: #00F; font-weight: bold } /* Name.Namespace */
+.hl .nt { color: #008000; font-weight: bold } /* Name.Tag */
+.hl .nv { color: #19177C } /* Name.Variable */
+.hl .ow { color: #A2F; font-weight: bold } /* Operator.Word */
+.hl .w { color: #BBB } /* Text.Whitespace */
+.hl .mb { color: #666 } /* Literal.Number.Bin */
+.hl .mf { color: #666 } /* Literal.Number.Float */
+.hl .mh { color: #666 } /* Literal.Number.Hex */
+.hl .mi { color: #666 } /* Literal.Number.Integer */
+.hl .mo { color: #666 } /* Literal.Number.Oct */
+.hl .sa { color: #BA2121 } /* Literal.String.Affix */
+.hl .sb { color: #BA2121 } /* Literal.String.Backtick */
+.hl .sc { color: #BA2121 } /* Literal.String.Char */
+.hl .dl { color: #BA2121 } /* Literal.String.Delimiter */
+.hl .sd { color: #BA2121; font-style: italic } /* Literal.String.Doc */
+.hl .s2 { color: #BA2121 } /* Literal.String.Double */
+.hl .se { color: #AA5D1F; font-weight: bold } /* Literal.String.Escape */
+.hl .sh { color: #BA2121 } /* Literal.String.Heredoc */
+.hl .si { color: #A45A77; font-weight: bold } /* Literal.String.Interpol */
+.hl .sx { color: #008000 } /* Literal.String.Other */
+.hl .sr { color: #A45A77 } /* Literal.String.Regex */
+.hl .s1 { color: #BA2121 } /* Literal.String.Single */
+.hl .ss { color: #19177C } /* Literal.String.Symbol */
+.hl .bp { color: #008000 } /* Name.Builtin.Pseudo */
+.hl .fm { color: #00F } /* Name.Function.Magic */
+.hl .vc { color: #19177C } /* Name.Variable.Class */
+.hl .vg { color: #19177C } /* Name.Variable.Global */
+.hl .vi { color: #19177C } /* Name.Variable.Instance */
+.hl .vm { color: #19177C } /* Name.Variable.Magic */
+.hl .il { color: #666 } /* Literal.Number.Integer.Long */
+@media (prefers-color-scheme:dark){
+:root:not([data-theme="light"]) .hl span{color:revert}
+pre { line-height: 125%; }
+td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+
+
+.hl .c { color: #959077 } /* Comment */
+.hl .err { color: #ED007E; background-color: #1E0010 } /* Error */
+.hl .esc { color: #F8F8F2 } /* Escape */
+.hl .g { color: #F8F8F2 } /* Generic */
+.hl .k { color: #66D9EF } /* Keyword */
+.hl .l { color: #AE81FF } /* Literal */
+.hl .n { color: #F8F8F2 } /* Name */
+.hl .o { color: #FF4689 } /* Operator */
+.hl .x { color: #F8F8F2 } /* Other */
+.hl .p { color: #F8F8F2 } /* Punctuation */
+.hl .ch { color: #959077 } /* Comment.Hashbang */
+.hl .cm { color: #959077 } /* Comment.Multiline */
+.hl .cp { color: #959077 } /* Comment.Preproc */
+.hl .cpf { color: #959077 } /* Comment.PreprocFile */
+.hl .c1 { color: #959077 } /* Comment.Single */
+.hl .cs { color: #959077 } /* Comment.Special */
+.hl .gd { color: #FF4689 } /* Generic.Deleted */
+.hl .ge { color: #F8F8F2; font-style: italic } /* Generic.Emph */
+.hl .ges { color: #F8F8F2; font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.hl .gr { color: #F8F8F2 } /* Generic.Error */
+.hl .gh { color: #F8F8F2 } /* Generic.Heading */
+.hl .gi { color: #A6E22E } /* Generic.Inserted */
+.hl .go { color: #66D9EF } /* Generic.Output */
+.hl .gp { color: #FF4689; font-weight: bold } /* Generic.Prompt */
+.hl .gs { color: #F8F8F2; font-weight: bold } /* Generic.Strong */
+.hl .gu { color: #959077 } /* Generic.Subheading */
+.hl .gt { color: #F8F8F2 } /* Generic.Traceback */
+.hl .kc { color: #66D9EF } /* Keyword.Constant */
+.hl .kd { color: #66D9EF } /* Keyword.Declaration */
+.hl .kn { color: #FF4689 } /* Keyword.Namespace */
+.hl .kp { color: #66D9EF } /* Keyword.Pseudo */
+.hl .kr { color: #66D9EF } /* Keyword.Reserved */
+.hl .kt { color: #66D9EF } /* Keyword.Type */
+.hl .ld { color: #E6DB74 } /* Literal.Date */
+.hl .m { color: #AE81FF } /* Literal.Number */
+.hl .s { color: #E6DB74 } /* Literal.String */
+.hl .na { color: #A6E22E } /* Name.Attribute */
+.hl .nb { color: #F8F8F2 } /* Name.Builtin */
+.hl .nc { color: #A6E22E } /* Name.Class */
+.hl .no { color: #66D9EF } /* Name.Constant */
+.hl .nd { color: #A6E22E } /* Name.Decorator */
+.hl .ni { color: #F8F8F2 } /* Name.Entity */
+.hl .ne { color: #A6E22E } /* Name.Exception */
+.hl .nf { color: #A6E22E } /* Name.Function */
+.hl .nl { color: #F8F8F2 } /* Name.Label */
+.hl .nn { color: #F8F8F2 } /* Name.Namespace */
+.hl .nx { color: #A6E22E } /* Name.Other */
+.hl .py { color: #F8F8F2 } /* Name.Property */
+.hl .nt { color: #FF4689 } /* Name.Tag */
+.hl .nv { color: #F8F8F2 } /* Name.Variable */
+.hl .ow { color: #FF4689 } /* Operator.Word */
+.hl .pm { color: #F8F8F2 } /* Punctuation.Marker */
+.hl .w { color: #F8F8F2 } /* Text.Whitespace */
+.hl .mb { color: #AE81FF } /* Literal.Number.Bin */
+.hl .mf { color: #AE81FF } /* Literal.Number.Float */
+.hl .mh { color: #AE81FF } /* Literal.Number.Hex */
+.hl .mi { color: #AE81FF } /* Literal.Number.Integer */
+.hl .mo { color: #AE81FF } /* Literal.Number.Oct */
+.hl .sa { color: #E6DB74 } /* Literal.String.Affix */
+.hl .sb { color: #E6DB74 } /* Literal.String.Backtick */
+.hl .sc { color: #E6DB74 } /* Literal.String.Char */
+.hl .dl { color: #E6DB74 } /* Literal.String.Delimiter */
+.hl .sd { color: #E6DB74 } /* Literal.String.Doc */
+.hl .s2 { color: #E6DB74 } /* Literal.String.Double */
+.hl .se { color: #AE81FF } /* Literal.String.Escape */
+.hl .sh { color: #E6DB74 } /* Literal.String.Heredoc */
+.hl .si { color: #E6DB74 } /* Literal.String.Interpol */
+.hl .sx { color: #E6DB74 } /* Literal.String.Other */
+.hl .sr { color: #E6DB74 } /* Literal.String.Regex */
+.hl .s1 { color: #E6DB74 } /* Literal.String.Single */
+.hl .ss { color: #E6DB74 } /* Literal.String.Symbol */
+.hl .bp { color: #F8F8F2 } /* Name.Builtin.Pseudo */
+.hl .fm { color: #A6E22E } /* Name.Function.Magic */
+.hl .vc { color: #F8F8F2 } /* Name.Variable.Class */
+.hl .vg { color: #F8F8F2 } /* Name.Variable.Global */
+.hl .vi { color: #F8F8F2 } /* Name.Variable.Instance */
+.hl .vm { color: #F8F8F2 } /* Name.Variable.Magic */
+.hl .il { color: #AE81FF } /* Literal.Number.Integer.Long */
+}
+</style>
 </head>
 <body>
-  <header class="bar">
-    <a href="../index.html">← Tutorials</a>
-    <a href="index.html">All notes</a>
-    <a href="m5.html">← Module 5</a>
-    <a href="m7.html">Module 7 →</a>
-    <span>Module 6 · Cloud & DevOps</span>
-  </header>
-  <div class="wrap">
-    <nav id="toc"></nav>
-    <main id="content"><p>Loading notes…</p></main>
-  </div>
-<script type="text/markdown" id="md">
-# Module 6 — Cloud & DevOps
+<div id="progress"></div>
+<header class="bar">
+  <a href="m5.html">← Module 5</a>
+  <a href="m7.html">Module 7 →</a>
+  <span class="grow"></span>
+  <button id="expand" type="button">Show all answers</button>
+  <button id="theme" type="button">Theme</button>
+  <button id="print" type="button">Print / PDF</button>
+</header>
+<div class="wrap">
+  <nav id="toc" aria-label="Chapters"><h4>Contents</h4>
+<a href="#m6-intro" data-id="m6-intro"><b>•</b><span>How to use this booklet</span></a>
+<a href="#m6-fastapi" data-id="m6-fastapi"><b>6.1</b><span>FastAPI — async endpoints, SSE streaming, auth, rate limiting</span></a>
+<a href="#m6-docker" data-id="m6-docker"><b>6.2</b><span>Docker — Dockerfile, Compose, slim images</span></a>
+<a href="#m6-gha" data-id="m6-gha"><b>6.3</b><span>GitHub Actions CI/CD — test, build, push, deploy, prompt regression</span></a>
+<a href="#m6-secrets" data-id="m6-secrets"><b>6.4</b><span>Environments and secrets — staging vs production</span></a>
+<a href="#m6-k8s" data-id="m6-k8s"><b>6.5</b><span>Kubernetes — deployments, services, limits, autoscaling</span></a>
+<a href="#m6-helm" data-id="m6-helm"><b>6.6</b><span>Helm charts and ingress controllers</span></a>
+<a href="#m6-tf" data-id="m6-tf"><b>6.7</b><span>Terraform — infrastructure as code and state</span></a>
+<a href="#m6-aws" data-id="m6-aws"><b>6.8</b><span>AWS — EC2, ECS Fargate, ECR, S3, RDS PostgreSQL</span></a>
+<a href="#m6-vault" data-id="m6-vault"><b>6.9</b><span>Secrets — AWS Secrets Manager and Vault</span></a>
+<a href="#m6-spot" data-id="m6-spot"><b>6.10</b><span>Spot instances, autoscaling, and always-on inference cost</span></a>
+<a href="#m6-smith" data-id="m6-smith"><b>6.11</b><span>LangSmith — tracing, cost, latency, debugging</span></a>
+<a href="#m6-corr" data-id="m6-corr"><b>6.12</b><span>Structured logging with correlation IDs</span></a>
+<a href="#m6-locust" data-id="m6-locust"><b>6.13</b><span>Load testing with Locust, SLOs, alert thresholds</span></a>
+<a href="#m6-moderation" data-id="m6-moderation"><b>6.14</b><span>Guardrails AI and the OpenAI moderation API</span></a>
+<a href="#m6-ci-eval" data-id="m6-ci-eval"><b>6.15</b><span>DeepEval in CI and Promptfoo prompt regression</span></a>
+<a href="#m6-llmops" data-id="m6-llmops"><b>6.16</b><span>LLMOps — why non-deterministic AI needs different ops</span></a>
+<a href="#m6-boss" data-id="m6-boss"><b>•</b><span>Boss level — The Retrieval Bake-Off</span></a>
+<a href="#m6-glossary" data-id="m6-glossary"><b>•</b><span>Appendix A — Glossary</span></a>
+<a href="#m6-debug" data-id="m6-debug"><b>•</b><span>Appendix B — Debugging checklist for a failing RAG answer</span></a>
+<a href="#m6-quiz" data-id="m6-quiz"><b>•</b><span>Appendix C — Final self-assessment</span></a>
+  </nav>
+  <main id="content">
+<div class="cover">
+      <h1>Module 6 — Cloud &amp; DevOps</h1>
+      <p class="sub">Detailed study booklet · 16 chapters, code walkthroughs, source links, and appendices</p>
+      <p class="hero-note">Quest: a pilot becomes a signed contract when it runs reliably. Four weeks to take a notebook to a containerised, tested, observable service on AWS, with numbers on uptime, latency, and cost.</p>
+    </div>
+<h2 id="m6-intro" class="special">How to use this booklet</h2><p>This booklet expands the Module 6 notes. A pilot becomes a signed contract when it runs reliably, so this module takes a notebook to a <strong>containerised, tested, observable service on AWS</strong>, with numbers on uptime, latency and cost.</p>
+<table>
+<thead>
+<tr>
+<th>Part</th>
+<th>What you get</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>In one line / Analogy</td>
+<td>The idea and a mental model</td>
+</tr>
+<tr>
+<td>Core ideas</td>
+<td>How it works and when to use it</td>
+</tr>
+<tr>
+<td>Code + Reading the code</td>
+<td>Snippets and what each part does</td>
+</tr>
+<tr>
+<td>Trap</td>
+<td>The mistake most people make</td>
+</tr>
+<tr>
+<td>Read</td>
+<td>Links to the best primary sources</td>
+</tr>
+</tbody>
+</table>
+<pre class="mermaid">flowchart LR
+  DEV["Code + prompts"] --&gt; GH["GitHub"]
+  GH --&gt; CI["Actions: test, eval, build"]
+  CI --&gt; ECR["Container registry"]
+  ECR --&gt; RUN["ECS Fargate or Kubernetes"]
+  RUN --&gt; OBS["Logs, metrics, traces, LangSmith"]
+  OBS --&gt; DEV
+  TF["Terraform"] -.-&gt;|creates| RUN
+  SM["Secrets Manager"] -.-&gt;|injects| RUN</pre>
 
-<p class="hero-note">Quest: a pilot becomes a signed contract when it runs reliably. Four weeks to take a notebook to a containerised, tested, observable service on AWS — with numbers on uptime, latency, and cost.</p>
+<blockquote class="callout tip">
+<p><strong>Tip.</strong> 6.1 to 6.4 build and ship the service, 6.5 to 6.10 run it on Kubernetes or AWS, 6.11 to 6.13 make it observable and measurable, and 6.14 to 6.16 keep an AI system safe and correct over time.</p>
+</blockquote>
+<h2 id="m6-fastapi"><span class="chnum">6.1</span>FastAPI — async endpoints, SSE streaming, auth, rate limiting</h2>
+<p class="oneline"><strong>In one line:</strong> FastAPI gives you typed request/response models, async handlers, automatic docs at <code>/docs</code>, and streaming responses for token-by-token chat.</p>
 
-```mermaid
-flowchart LR
-  DEV["Code + prompts"] --> GH["GitHub"]
-  GH --> CI["Actions: test, eval, build"]
-  CI --> ECR["Container registry"]
-  ECR --> RUN["ECS Fargate or Kubernetes"]
-  RUN --> OBS["Logs, metrics, traces, LangSmith"]
-  OBS --> DEV
-  TF["Terraform"] -.->|creates| RUN
-  SM["Secrets Manager"] -.->|injects| RUN
-```
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> A restaurant front counter: the menu is the OpenAPI schema, Pydantic checks every order slip, and streaming is serving dishes as they leave the kitchen instead of waiting for the whole table’s order.</p>
+</blockquote>
+<h3 id="m6-fastapi--core-ideas">Core ideas</h3>
+<p>Pydantic models validate input before your code runs. A <code>Depends</code> function applies auth to any route. <strong>Server-sent events (SSE)</strong> stream tokens over plain HTTP, so users see text immediately and <em>time to first token</em> drops. A rate limiter protects both your wallet and your provider quota.</p>
+<h3 id="m6-fastapi--code">Code</h3>
+<div class="hl"><pre><span></span><code><span class="c1"># app.py — pip install fastapi uvicorn slowapi openai</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span><span class="o">,</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">FastAPI</span><span class="p">,</span> <span class="n">Depends</span><span class="p">,</span> <span class="n">Header</span><span class="p">,</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">Request</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi.responses</span><span class="w"> </span><span class="kn">import</span> <span class="n">StreamingResponse</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">slowapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">Limiter</span><span class="p">,</span> <span class="n">_rate_limit_exceeded_handler</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">slowapi.util</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_remote_address</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">slowapi.errors</span><span class="w"> </span><span class="kn">import</span> <span class="n">RateLimitExceeded</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">openai</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncOpenAI</span>
 
-## 6.1 FastAPI — async endpoints, SSE streaming, auth, rate limiting {#m6-fastapi}
+<span class="n">app</span> <span class="o">=</span> <span class="n">FastAPI</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">&quot;Policy Assistant&quot;</span><span class="p">)</span>
+<span class="n">limiter</span> <span class="o">=</span> <span class="n">Limiter</span><span class="p">(</span><span class="n">key_func</span><span class="o">=</span><span class="n">get_remote_address</span><span class="p">)</span>
+<span class="n">app</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">limiter</span> <span class="o">=</span> <span class="n">limiter</span>
+<span class="n">app</span><span class="o">.</span><span class="n">add_exception_handler</span><span class="p">(</span><span class="n">RateLimitExceeded</span><span class="p">,</span> <span class="n">_rate_limit_exceeded_handler</span><span class="p">)</span>
+<span class="n">llm</span> <span class="o">=</span> <span class="n">AsyncOpenAI</span><span class="p">()</span>
 
-**In one line:** FastAPI gives you typed request/response models, async handlers, automatic docs at `/docs`, and streaming responses for token-by-token chat.
+<span class="k">class</span><span class="w"> </span><span class="nc">Ask</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">question</span><span class="p">:</span> <span class="nb">str</span>
 
-> **Analogy.** A restaurant front counter: the menu is the OpenAPI schema, Pydantic checks every order slip, and streaming is serving dishes as they leave the kitchen instead of waiting for the whole table’s order.
+<span class="k">def</span><span class="w"> </span><span class="nf">require_key</span><span class="p">(</span><span class="n">x_api_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Header</span><span class="p">(</span><span class="o">...</span><span class="p">)):</span>
+    <span class="k">if</span> <span class="n">x_api_key</span> <span class="o">!=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;SERVICE_API_KEY&quot;</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="mi">401</span><span class="p">,</span> <span class="s2">&quot;invalid api key&quot;</span><span class="p">)</span>
 
-```python
-# app.py  —  pip install fastapi uvicorn slowapi openai
-import os, json
-from fastapi import FastAPI, Depends, Header, HTTPException, Request
-from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
-from slowapi import Limiter
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
-from slowapi import _rate_limit_exceeded_handler
-from openai import AsyncOpenAI
+<span class="nd">@app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/healthz&quot;</span><span class="p">)</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">health</span><span class="p">():</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;ok&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
 
-app = FastAPI(title="Policy Assistant")
-limiter = Limiter(key_func=get_remote_address)
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-llm = AsyncOpenAI()
+<span class="nd">@app</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">&quot;/ask/stream&quot;</span><span class="p">,</span> <span class="n">dependencies</span><span class="o">=</span><span class="p">[</span><span class="n">Depends</span><span class="p">(</span><span class="n">require_key</span><span class="p">)])</span>
+<span class="nd">@limiter</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="s2">&quot;20/minute&quot;</span><span class="p">)</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">ask_stream</span><span class="p">(</span><span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="n">Ask</span><span class="p">):</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">events</span><span class="p">():</span>
+        <span class="n">stream</span> <span class="o">=</span> <span class="k">await</span> <span class="n">llm</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+            <span class="n">model</span><span class="o">=</span><span class="s2">&quot;gpt-4o-mini&quot;</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">messages</span><span class="o">=</span><span class="p">[{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">body</span><span class="o">.</span><span class="n">question</span><span class="p">}])</span>
+        <span class="k">async</span> <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">stream</span><span class="p">:</span>
+            <span class="n">delta</span> <span class="o">=</span> <span class="n">chunk</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">delta</span><span class="o">.</span><span class="n">content</span> <span class="k">if</span> <span class="n">chunk</span><span class="o">.</span><span class="n">choices</span> <span class="k">else</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">delta</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="sa">f</span><span class="s2">&quot;data: </span><span class="si">{</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s1">&#39;token&#39;</span><span class="p">:</span><span class="w"> </span><span class="n">delta</span><span class="p">})</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+        <span class="k">yield</span> <span class="s2">&quot;data: [DONE]</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+    <span class="k">return</span> <span class="n">StreamingResponse</span><span class="p">(</span><span class="n">events</span><span class="p">(),</span> <span class="n">media_type</span><span class="o">=</span><span class="s2">&quot;text/event-stream&quot;</span><span class="p">)</span>
+</code></pre></div>
 
-class Ask(BaseModel):
-    question: str
+<div class="hl"><pre><span></span><code>uvicorn<span class="w"> </span>app:app<span class="w"> </span>--reload<span class="w"> </span>--port<span class="w"> </span><span class="m">8000</span>
+curl<span class="w"> </span>-N<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>localhost:8000/ask/stream<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;x-api-key: </span><span class="nv">$SERVICE_API_KEY</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">     </span>-H<span class="w"> </span><span class="s2">&quot;content-type: application/json&quot;</span><span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;question&quot;:&quot;What is RAG?&quot;}&#39;</span>
+</code></pre></div>
 
-def require_key(x_api_key: str = Header(...)):
-    if x_api_key != os.environ["SERVICE_API_KEY"]:
-        raise HTTPException(401, "invalid api key")
+<p><strong>Reading the code.</strong> Each SSE message is <code>data: ...</code> followed by a blank line. <code>/healthz</code> is the endpoint load balancers and Kubernetes probe. <code>curl -N</code> disables buffering so you can watch tokens arrive.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> <code>async def</code> handlers that call blocking libraries freeze the event loop for every user. Use async clients, or plain <code>def</code> handlers (FastAPI runs those in a thread pool).</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://fastapi.tiangolo.com/">FastAPI docs</a> · <a href="https://fastapi.tiangolo.com/async/">FastAPI: concurrency and async</a> · <a href="https://fastapi.tiangolo.com/advanced/custom-response/">FastAPI custom responses</a> · <a href="https://slowapi.readthedocs.io/en/latest/">slowapi</a> · <a href="https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events">MDN: server-sent events</a></div>
+<h2 id="m6-docker"><span class="chnum">6.2</span>Docker — Dockerfile, Compose, slim images</h2>
+<p class="oneline"><strong>In one line:</strong> a Dockerfile builds an image (your app plus its exact dependencies); Compose runs several containers together (API + Chroma + Redis) with one command.</p>
 
-@app.get("/healthz")
-async def health():
-    return {"ok": True}
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> A shipping container: whatever is inside, every crane and ship in the world knows how to move it. “Works on my machine” becomes “works on every machine”.</p>
+</blockquote>
+<h3 id="m6-docker--code">Code</h3>
+<div class="hl"><pre><span></span><code><span class="c"># Dockerfile — multi-stage, slim, non-root</span>
+<span class="k">FROM</span><span class="w"> </span><span class="s">python:3.12-slim</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="s">build</span>
+<span class="k">WORKDIR</span><span class="w"> </span><span class="s">/app</span>
+<span class="k">COPY</span><span class="w"> </span>requirements.txt<span class="w"> </span>.
+<span class="k">RUN</span><span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--no-cache-dir<span class="w"> </span>--prefix<span class="o">=</span>/install<span class="w"> </span>-r<span class="w"> </span>requirements.txt
 
-@app.post("/ask/stream", dependencies=[Depends(require_key)])
-@limiter.limit("20/minute")
-async def ask_stream(request: Request, body: Ask):
-    async def events():
-        stream = await llm.chat.completions.create(
-            model="gpt-4o-mini", stream=True,
-            messages=[{"role": "user", "content": body.question}])
-        async for chunk in stream:
-            delta = chunk.choices[0].delta.content if chunk.choices else None
-            if delta:
-                yield f"data: {json.dumps({'token': delta})}\n\n"
-        yield "data: [DONE]\n\n"
-    return StreamingResponse(events(), media_type="text/event-stream")
-```
+<span class="k">FROM</span><span class="w"> </span><span class="s">python:3.12-slim</span>
+<span class="k">WORKDIR</span><span class="w"> </span><span class="s">/app</span>
+<span class="k">COPY</span><span class="w"> </span>--from<span class="o">=</span>build<span class="w"> </span>/install<span class="w"> </span>/usr/local
+<span class="k">COPY</span><span class="w"> </span>src/<span class="w"> </span>./src/
+<span class="k">COPY</span><span class="w"> </span>prompts/<span class="w"> </span>./prompts/
+<span class="k">RUN</span><span class="w"> </span>useradd<span class="w"> </span>-m<span class="w"> </span>appuser
+<span class="k">USER</span><span class="w"> </span><span class="s">appuser</span>
+<span class="k">EXPOSE</span><span class="w"> </span><span class="s">8000</span>
+<span class="k">CMD</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;uvicorn&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;src.policy_assistant.api:app&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;--host&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;0.0.0.0&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;--port&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;8000&quot;</span><span class="p">]</span>
+</code></pre></div>
 
-```bash
-uvicorn app:app --reload --port 8000
-curl -N -X POST localhost:8000/ask/stream -H "x-api-key: $SERVICE_API_KEY" \
-     -H "content-type: application/json" -d '{"question":"What is RAG?"}'
-```
+<div class="hl"><pre><span></span><code><span class="c1"># compose.yaml</span>
+<span class="nt">services</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">api</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">build</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.</span>
+<span class="w">    </span><span class="nt">ports</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;8000:8000&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">    </span><span class="nt">env_file</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.env</span>
+<span class="w">    </span><span class="nt">depends_on</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">chroma</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">redis</span><span class="p p-Indicator">]</span>
+<span class="w">    </span><span class="nt">environment</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">CHROMA_HOST</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">chroma</span>
+<span class="w">      </span><span class="nt">REDIS_URL</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">redis://redis:6379/0</span>
+<span class="w">  </span><span class="nt">chroma</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">chromadb/chroma:latest</span>
+<span class="w">    </span><span class="nt">volumes</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;chroma-data:/data&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="nt">redis</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">redis:7-alpine</span>
+<span class="nt">volumes</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">chroma-data</span><span class="p">:</span>
+</code></pre></div>
 
-```mermaid
-sequenceDiagram
-  participant B as Browser
-  participant F as FastAPI
-  participant O as OpenAI
-  B->>F: POST /ask/stream
-  F->>O: stream=True
-  O-->>F: token
-  F-->>B: data token
-  O-->>F: token
-  F-->>B: data token
-  F-->>B: data DONE
-```
+<div class="hl"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>--build
+docker<span class="w"> </span>compose<span class="w"> </span>logs<span class="w"> </span>-f<span class="w"> </span>api
+docker<span class="w"> </span>image<span class="w"> </span>ls<span class="w">            </span><span class="c1"># check the image size</span>
+</code></pre></div>
 
-> **Trap.** `async def` handlers that call blocking libraries freeze the event loop for every user. Use async clients, or plain `def` handlers (FastAPI runs those in a thread pool).
+<p><strong>Reading the code.</strong> The first stage installs dependencies; the second copies only the result, so build tools never reach production. Running as <code>appuser</code> limits damage if the app is compromised. Inside Compose, services reach each other by name (<code>chroma</code>, <code>redis</code>).</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Copying the whole repo before <code>pip install</code> breaks layer caching: every code change reinstalls all dependencies. Copy <code>requirements.txt</code> first. Add a <code>.dockerignore</code> (<code>.venv</code>, <code>.env</code>, <code>notebooks/</code>).</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://docs.docker.com/get-started/">Docker get started</a> · <a href="https://docs.docker.com/build/building/multi-stage/">Multi-stage builds</a> · <a href="https://docs.docker.com/compose/">Docker Compose</a> · <a href="https://docs.docker.com/build/building/best-practices/">Dockerfile best practices</a></div>
+<h2 id="m6-gha"><span class="chnum">6.3</span>GitHub Actions CI/CD — test, build, push, deploy, prompt regression</h2>
+<p class="oneline"><strong>In one line:</strong> a workflow YAML runs on every push: install, lint, unit tests, LLM evals, build the image, push it, and deploy if everything is green.</p>
 
-**Read:** [FastAPI docs](https://fastapi.tiangolo.com/) · [FastAPI: concurrency and async](https://fastapi.tiangolo.com/async/) · [FastAPI custom responses](https://fastapi.tiangolo.com/advanced/custom-response/) · [slowapi](https://slowapi.readthedocs.io/en/latest/) · [MDN: server-sent events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events)
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> A factory quality line. Every product (commit) passes the same inspection stations; one failure stops it from leaving the building.</p>
+</blockquote>
+<pre class="mermaid">flowchart LR
+  PR["Pull request"] --&gt; T["Unit tests"] --&gt; E["LLM evals"] --&gt; M{"Merge to main?"}
+  M --&gt;|yes| B["Build image"] --&gt; P["Push to ECR"] --&gt; D["Deploy"]
+  E --&gt;|score drops| X["Fail the check"]</pre>
 
-## 6.2 Docker — Dockerfile, Compose, slim images {#m6-docker}
+<h3 id="m6-gha--code">Code</h3>
+<div class="hl"><pre><span></span><code><span class="c1"># .github/workflows/ci.yml</span>
+<span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ci</span>
+<span class="nt">on</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">push</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> branches</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">main</span><span class="p p-Indicator">]</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<span class="w">  </span><span class="nt">pull_request</span><span class="p">:</span>
+<span class="nt">jobs</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">test</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">runs-on</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ubuntu-latest</span>
+<span class="w">    </span><span class="nt">steps</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actions/checkout@v4</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actions/setup-python@v5</span>
+<span class="w">        </span><span class="nt">with</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> python-version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;3.12&quot;</span><span class="p p-Indicator">,</span><span class="nt"> cache</span><span class="p">:</span><span class="w"> </span><span class="nv">pip</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pip install -r requirements.txt -r requirements-dev.txt</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pytest -q</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Prompt regression</span>
+<span class="w">        </span><span class="nt">env</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> OPENAI_API_KEY</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;${{</span><span class="nv"> </span><span class="s">secrets.OPENAI_API_KEY</span><span class="nv"> </span><span class="s">}}&quot;</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<span class="w">        </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">npx promptfoo@latest eval -c promptfooconfig.yaml --fail-on-error</span>
+<span class="w">  </span><span class="nt">deploy</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">needs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">test</span>
+<span class="w">    </span><span class="nt">if</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">github.ref == &#39;refs/heads/main&#39;</span>
+<span class="w">    </span><span class="nt">runs-on</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ubuntu-latest</span>
+<span class="w">    </span><span class="nt">environment</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">production</span>
+<span class="w">    </span><span class="nt">permissions</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> id-token</span><span class="p">:</span><span class="w"> </span><span class="nv">write</span><span class="p p-Indicator">,</span><span class="nt"> contents</span><span class="p">:</span><span class="w"> </span><span class="nv">read</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<span class="w">    </span><span class="nt">steps</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actions/checkout@v4</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aws-actions/configure-aws-credentials@v4</span>
+<span class="w">        </span><span class="nt">with</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> role-to-assume</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;${{</span><span class="nv"> </span><span class="s">secrets.AWS_DEPLOY_ROLE</span><span class="nv"> </span><span class="s">}}&quot;</span><span class="p p-Indicator">,</span><span class="nt"> aws-region</span><span class="p">:</span><span class="w"> </span><span class="nv">ap-south-1</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aws-actions/amazon-ecr-login@v2</span>
+<span class="w">        </span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ecr</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<span class="w">          </span><span class="no">IMAGE=${{ steps.ecr.outputs.registry }}/policy-assistant:${{ github.sha }}</span>
+<span class="w">          </span><span class="no">docker build -t $IMAGE . &amp;&amp; docker push $IMAGE</span>
+<span class="w">          </span><span class="no">echo &quot;IMAGE=$IMAGE&quot; &gt;&gt; $GITHUB_ENV</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aws ecs update-service --cluster prod --service policy-assistant --force-new-deployment</span>
+</code></pre></div>
 
-**In one line:** a Dockerfile builds an image (your app plus its exact dependencies); Compose runs several containers together (API + Chroma + Redis) with one command.
+<p><strong>Reading the code.</strong> <code>needs: test</code> blocks deployment on a failing test job. <code>id-token: write</code> plus <code>role-to-assume</code> is <strong>OIDC</strong>: GitHub gets short-lived AWS credentials, so no long-lived keys sit in secrets. Tagging images with the commit SHA makes every deployment traceable and roll-back-able.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Running full LLM evals on every commit gets expensive. Run a small smoke set on PRs and the full suite nightly or before release.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://docs.github.com/en/actions">GitHub Actions docs</a> · <a href="https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax">Workflow syntax</a> · <a href="https://github.com/aws-actions/configure-aws-credentials">Configure AWS credentials with OIDC</a></div>
+<h2 id="m6-secrets"><span class="chnum">6.4</span>Environments and secrets — staging vs production</h2>
+<p class="oneline"><strong>In one line:</strong> the same image runs everywhere; only configuration differs, injected at runtime from environment variables and a secret store, never baked into the image.</p>
 
-> **Analogy.** A shipping container: whatever is inside, every crane and ship in the world knows how to move it. “Works on my machine” becomes “works on every machine”.
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> The same actor plays in two theatres; only the props list (config) changes per venue.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Local</th>
+<th>Staging</th>
+<th>Production</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Config source</td>
+<td><code>.env</code></td>
+<td>Secrets Manager / GitHub env</td>
+<td>Secrets Manager</td>
+</tr>
+<tr>
+<td>Model</td>
+<td>Cheap or local</td>
+<td>Same as prod</td>
+<td>Prod</td>
+</tr>
+<tr>
+<td>Data</td>
+<td>Fake</td>
+<td>Masked copy</td>
+<td>Real</td>
+</tr>
+<tr>
+<td>Who can deploy</td>
+<td>You</td>
+<td>CI on merge</td>
+<td>CI + approval</td>
+</tr>
+</tbody>
+</table>
+<div class="hl"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">pydantic_settings</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseSettings</span><span class="p">,</span> <span class="n">SettingsConfigDict</span>
 
-```dockerfile
-# Dockerfile — multi-stage, slim, non-root
-FROM python:3.12-slim AS build
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+<span class="k">class</span><span class="w"> </span><span class="nc">Settings</span><span class="p">(</span><span class="n">BaseSettings</span><span class="p">):</span>
+    <span class="n">model_config</span> <span class="o">=</span> <span class="n">SettingsConfigDict</span><span class="p">(</span><span class="n">env_file</span><span class="o">=</span><span class="s2">&quot;.env&quot;</span><span class="p">,</span> <span class="n">extra</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
+    <span class="n">env</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;local&quot;</span>
+    <span class="n">openai_api_key</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;gpt-4o-mini&quot;</span>
+    <span class="n">chroma_host</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;localhost&quot;</span>
+    <span class="n">log_level</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;INFO&quot;</span>
 
-FROM python:3.12-slim
-WORKDIR /app
-COPY --from=build /install /usr/local
-COPY src/ ./src/
-COPY prompts/ ./prompts/
-RUN useradd -m appuser
-USER appuser
-EXPOSE 8000
-CMD ["uvicorn", "src.policy_assistant.api:app", "--host", "0.0.0.0", "--port", "8000"]
-```
+<span class="n">settings</span> <span class="o">=</span> <span class="n">Settings</span><span class="p">()</span>      <span class="c1"># fails at startup if OPENAI_API_KEY is missing</span>
+</code></pre></div>
 
-```yaml
-# compose.yaml
-services:
-  api:
-    build: .
-    ports: ["8000:8000"]
-    env_file: .env
-    depends_on: [chroma, redis]
-    environment:
-      CHROMA_HOST: chroma
-      REDIS_URL: redis://redis:6379/0
-  chroma:
-    image: chromadb/chroma:latest
-    volumes: ["chroma-data:/data"]
-  redis:
-    image: redis:7-alpine
-volumes:
-  chroma-data:
-```
+<p><strong>Reading the code.</strong> A typed settings class fails <em>fast</em>: a missing key stops the container at startup instead of failing on the first user request. Staging should mirror production (same model, same image) so a staging pass means something.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Printing <code>settings</code> in logs prints your secrets. Use <code>SecretStr</code> for keys so they show as <code>**********</code>.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://12factor.net/config">The Twelve-Factor App: config</a> · <a href="https://docs.pydantic.dev/latest/concepts/pydantic_settings/">pydantic-settings</a> · <a href="https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets">GitHub: using secrets in Actions</a></div>
+<h2 id="m6-k8s"><span class="chnum">6.5</span>Kubernetes — deployments, services, limits, autoscaling</h2>
+<p class="oneline"><strong>In one line:</strong> a Deployment keeps N copies (pods) of your container running; a Service gives them one stable address; resource requests/limits keep neighbours fair; the HPA adds pods when CPU (or another metric) rises.</p>
 
-```bash
-docker compose up --build
-docker compose logs -f api
-docker image ls              # check the image size
-```
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> A franchise. The Deployment says “always keep 3 branches open”; the Service is the single phone number that routes to any branch; the HPA opens more branches during the festival rush.</p>
+</blockquote>
+<pre class="mermaid">flowchart LR
+  ING["Ingress"] --&gt; SVC["Service"]
+  SVC --&gt; P1["Pod 1"]
+  SVC --&gt; P2["Pod 2"]
+  SVC --&gt; P3["Pod 3"]
+  HPA["HPA"] -.-&gt;|scales| DEP["Deployment"]
+  DEP --&gt; P1
+  DEP --&gt; P2
+  DEP --&gt; P3</pre>
 
-```mermaid
-flowchart LR
-  subgraph Compose
-    API["api :8000"] --> CH["chroma"]
-    API --> RD["redis cache"]
-  end
-  U["Client"] --> API
-```
+<h3 id="m6-k8s--code">Code</h3>
+<div class="hl"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">apps/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Deployment</span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">policy-api</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">replicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+<span class="w">  </span><span class="nt">selector</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> matchLabels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> app</span><span class="p">:</span><span class="w"> </span><span class="nv">policy-api</span><span class="w"> </span><span class="p p-Indicator">}</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<span class="w">  </span><span class="nt">template</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">metadata</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> labels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> app</span><span class="p">:</span><span class="w"> </span><span class="nv">policy-api</span><span class="w"> </span><span class="p p-Indicator">}</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<span class="w">    </span><span class="nt">spec</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">containers</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">api</span>
+<span class="w">          </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">123456789.dkr.ecr.ap-south-1.amazonaws.com/policy-assistant:abc123</span>
+<span class="w">          </span><span class="nt">ports</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[{</span><span class="nt"> containerPort</span><span class="p">:</span><span class="w"> </span><span class="nv">8000</span><span class="w"> </span><span class="p p-Indicator">}]</span>
+<span class="w">          </span><span class="nt">envFrom</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[{</span><span class="nt"> secretRef</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">policy-api-secrets</span><span class="w"> </span><span class="p p-Indicator">}</span><span class="w"> </span><span class="p p-Indicator">}]</span>
+<span class="w">          </span><span class="nt">resources</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">requests</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> cpu</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;250m&quot;</span><span class="p p-Indicator">,</span><span class="nt"> memory</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;512Mi&quot;</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<span class="w">            </span><span class="nt">limits</span><span class="p">:</span><span class="w">   </span><span class="p p-Indicator">{</span><span class="nt"> cpu</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1&quot;</span><span class="p p-Indicator">,</span><span class="nt">    memory</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1Gi&quot;</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<span class="w">          </span><span class="nt">readinessProbe</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> httpGet</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> path</span><span class="p">:</span><span class="w"> </span><span class="nv">/healthz</span><span class="p p-Indicator">,</span><span class="nt"> port</span><span class="p">:</span><span class="w"> </span><span class="nv">8000</span><span class="w"> </span><span class="p p-Indicator">},</span><span class="nt"> periodSeconds</span><span class="p">:</span><span class="w"> </span><span class="nv">5</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Service</span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">policy-api</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">selector</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> app</span><span class="p">:</span><span class="w"> </span><span class="nv">policy-api</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<span class="w">  </span><span class="nt">ports</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[{</span><span class="nt"> port</span><span class="p">:</span><span class="w"> </span><span class="nv">80</span><span class="p p-Indicator">,</span><span class="nt"> targetPort</span><span class="p">:</span><span class="w"> </span><span class="nv">8000</span><span class="w"> </span><span class="p p-Indicator">}]</span>
+<span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">autoscaling/v2</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">HorizontalPodAutoscaler</span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">policy-api</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">scaleTargetRef</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> apiVersion</span><span class="p">:</span><span class="w"> </span><span class="nv">apps/v1</span><span class="p p-Indicator">,</span><span class="nt"> kind</span><span class="p">:</span><span class="w"> </span><span class="nv">Deployment</span><span class="p p-Indicator">,</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">policy-api</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<span class="w">  </span><span class="nt">minReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
+<span class="w">  </span><span class="nt">maxReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
+<span class="w">  </span><span class="nt">metrics</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Resource</span>
+<span class="w">      </span><span class="nt">resource</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">cpu</span><span class="p p-Indicator">,</span><span class="nt"> target</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> type</span><span class="p">:</span><span class="w"> </span><span class="nv">Utilization</span><span class="p p-Indicator">,</span><span class="nt"> averageUtilization</span><span class="p">:</span><span class="w"> </span><span class="nv">70</span><span class="w"> </span><span class="p p-Indicator">}</span><span class="w"> </span><span class="p p-Indicator">}</span>
+</code></pre></div>
 
-> **Trap.** Copying the whole repo before `pip install` breaks layer caching — every code change reinstalls all dependencies. Copy `requirements.txt` first. Add a `.dockerignore` (`.venv`, `.env`, `notebooks/`).
+<div class="hl"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>k8s/
+kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-w
+kubectl<span class="w"> </span>logs<span class="w"> </span>deploy/policy-api<span class="w"> </span>-f
+kubectl<span class="w"> </span>rollout<span class="w"> </span>undo<span class="w"> </span>deploy/policy-api<span class="w">      </span><span class="c1"># instant rollback</span>
+</code></pre></div>
 
-**Read:** [Docker get started](https://docs.docker.com/get-started/) · [Multi-stage builds](https://docs.docker.com/build/building/multi-stage/) · [Docker Compose](https://docs.docker.com/compose/) · [Dockerfile best practices](https://docs.docker.com/build/building/best-practices/)
+<p><strong>Reading the code.</strong> <em>Requests</em> are what the scheduler reserves; <em>limits</em> are the ceiling. The readiness probe keeps traffic away from a pod until <code>/healthz</code> answers. The Service finds pods by label, not by name.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> LLM-calling APIs are usually I/O-bound, so CPU stays low while requests queue. Scale on request rate or latency (custom metrics) rather than CPU alone.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://kubernetes.io/docs/concepts/">Kubernetes concepts</a> · <a href="https://kubernetes.io/docs/concepts/workloads/controllers/deployment/">Deployments</a> · <a href="https://kubernetes.io/docs/concepts/services-networking/service/">Services</a> · <a href="https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/">Horizontal Pod Autoscaling</a> · <a href="https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/">Resource management</a></div>
+<h2 id="m6-helm"><span class="chnum">6.6</span>Helm charts and ingress controllers</h2>
+<p class="oneline"><strong>In one line:</strong> Helm packages Kubernetes YAML as a templated, versioned chart with per-environment values; an ingress controller (NGINX, AWS Load Balancer Controller) turns Ingress rules into a real HTTP entry point.</p>
 
-## 6.3 GitHub Actions CI/CD — test, build, push, deploy, prompt regression {#m6-gha}
-
-**In one line:** a workflow YAML runs on every push: install, lint, unit tests, LLM evals, build the image, push it, and deploy if everything is green.
-
-> **Analogy.** A factory quality line. Every product (commit) passes the same inspection stations; one failure stops it from leaving the building.
-
-```yaml
-# .github/workflows/ci.yml
-name: ci
-on:
-  push: { branches: [main] }
-  pull_request:
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: { python-version: "3.12", cache: pip }
-      - run: pip install -r requirements.txt -r requirements-dev.txt
-      - run: pytest -q
-      - name: Prompt regression
-        env: { OPENAI_API_KEY: "${{ secrets.OPENAI_API_KEY }}" }
-        run: npx promptfoo@latest eval -c promptfooconfig.yaml --fail-on-error
-  deploy:
-    needs: test
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    environment: production
-    permissions: { id-token: write, contents: read }
-    steps:
-      - uses: actions/checkout@v4
-      - uses: aws-actions/configure-aws-credentials@v4
-        with: { role-to-assume: "${{ secrets.AWS_DEPLOY_ROLE }}", aws-region: ap-south-1 }
-      - uses: aws-actions/amazon-ecr-login@v2
-        id: ecr
-      - run: |
-          IMAGE=${{ steps.ecr.outputs.registry }}/policy-assistant:${{ github.sha }}
-          docker build -t $IMAGE . && docker push $IMAGE
-          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
-      - run: aws ecs update-service --cluster prod --service policy-assistant --force-new-deployment
-```
-
-```mermaid
-flowchart LR
-  PR["Pull request"] --> T["Unit tests"] --> E["LLM evals"] --> M{"Merge to main?"}
-  M -->|yes| B["Build image"] --> P["Push to ECR"] --> D["Deploy"]
-  E -->|score drops| X["Fail the check"]
-```
-
-> **Trap.** Running full LLM evals on every commit gets expensive. Run a small smoke set on PRs and the full suite nightly or before release.
-
-**Read:** [GitHub Actions docs](https://docs.github.com/en/actions) · [Workflow syntax](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax) · [Configure AWS credentials with OIDC](https://github.com/aws-actions/configure-aws-credentials)
-
-## 6.4 Environments and secrets — staging vs production {#m6-secrets}
-
-**In one line:** the same image runs everywhere; only configuration differs, injected at runtime from environment variables and a secret store — never baked into the image.
-
-> **Analogy.** The same actor plays in two theatres; only the props list (config) changes per venue.
-
-| | Local | Staging | Production |
-|---|---|---|---|
-| Config source | `.env` | Secrets Manager / GitHub env | Secrets Manager |
-| Model | Cheap or local | Same as prod | Prod |
-| Data | Fake | Masked copy | Real |
-| Who can deploy | You | CI on merge | CI + approval |
-
-```python
-from pydantic_settings import BaseSettings, SettingsConfigDict
-
-class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
-    env: str = "local"
-    openai_api_key: str
-    model: str = "gpt-4o-mini"
-    chroma_host: str = "localhost"
-    log_level: str = "INFO"
-
-settings = Settings()          # fails at startup if OPENAI_API_KEY is missing
-```
-
-> **Trap.** Printing `settings` in logs prints your secrets. Use `SecretStr` for keys so they show as `**********`.
-
-**Read:** [The Twelve-Factor App: config](https://12factor.net/config) · [pydantic-settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/) · [GitHub: using secrets in Actions](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets)
-
-## 6.5 Kubernetes — deployments, services, limits, autoscaling {#m6-k8s}
-
-**In one line:** a Deployment keeps N copies (pods) of your container running; a Service gives them one stable address; resource requests/limits keep neighbours fair; the HPA adds pods when CPU (or another metric) rises.
-
-> **Analogy.** A franchise. The Deployment says “always keep 3 branches open”; the Service is the single phone number that routes to any branch; the HPA opens more branches during the festival rush.
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata: { name: policy-api }
-spec:
-  replicas: 3
-  selector: { matchLabels: { app: policy-api } }
-  template:
-    metadata: { labels: { app: policy-api } }
-    spec:
-      containers:
-        - name: api
-          image: 123456789.dkr.ecr.ap-south-1.amazonaws.com/policy-assistant:abc123
-          ports: [{ containerPort: 8000 }]
-          envFrom: [{ secretRef: { name: policy-api-secrets } }]
-          resources:
-            requests: { cpu: "250m", memory: "512Mi" }
-            limits: { cpu: "1", memory: "1Gi" }
-          readinessProbe: { httpGet: { path: /healthz, port: 8000 }, periodSeconds: 5 }
----
-apiVersion: v1
-kind: Service
-metadata: { name: policy-api }
-spec:
-  selector: { app: policy-api }
-  ports: [{ port: 80, targetPort: 8000 }]
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata: { name: policy-api }
-spec:
-  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: policy-api }
-  minReplicas: 2
-  maxReplicas: 10
-  metrics:
-    - type: Resource
-      resource: { name: cpu, target: { type: Utilization, averageUtilization: 70 } }
-```
-
-```bash
-kubectl apply -f k8s/
-kubectl get pods -w
-kubectl logs deploy/policy-api -f
-kubectl rollout undo deploy/policy-api        # instant rollback
-```
-
-```mermaid
-flowchart LR
-  ING["Ingress"] --> SVC["Service"]
-  SVC --> P1["Pod 1"]
-  SVC --> P2["Pod 2"]
-  SVC --> P3["Pod 3"]
-  HPA["HPA"] -.->|scales| DEP["Deployment"]
-  DEP --> P1
-  DEP --> P2
-  DEP --> P3
-```
-
-> **Trap.** LLM-calling APIs are usually I/O-bound, so CPU stays low while requests queue. Scale on request rate or latency (custom metrics) rather than CPU alone.
-
-**Read:** [Kubernetes concepts](https://kubernetes.io/docs/concepts/) · [Deployments](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/) · [Services](https://kubernetes.io/docs/concepts/services-networking/service/) · [Horizontal Pod Autoscaling](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/) · [Resource management](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/)
-
-## 6.6 Helm charts and ingress controllers {#m6-helm}
-
-**In one line:** Helm packages Kubernetes YAML as a templated, versioned chart with per-environment values; an ingress controller (NGINX, AWS Load Balancer Controller) turns Ingress rules into a real HTTP entry point.
-
-> **Analogy.** Helm is a recipe with blanks (“add {{ salt }} grams”); `values-prod.yaml` fills the blanks for the big restaurant, `values-dev.yaml` for your home kitchen.
-
-```text
-charts/policy-api/
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> Helm is a recipe with blanks (“add {{ salt }} grams”); <code>values-prod.yaml</code> fills the blanks for the big restaurant, <code>values-dev.yaml</code> for your home kitchen.</p>
+</blockquote>
+<div class="hl"><pre><span></span><code>charts/policy-api/
 ├── Chart.yaml
 ├── values.yaml
 ├── values-prod.yaml
@@ -340,474 +684,643 @@ charts/policy-api/
     ├── deployment.yaml
     ├── service.yaml
     └── ingress.yaml
-```
-
-```yaml
-# templates/deployment.yaml (excerpt)
-spec:
-  replicas: {{ .Values.replicas }}
-  template:
-    spec:
-      containers:
-        - name: api
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-```
-
-```yaml
-# templates/ingress.yaml
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: policy-api
-spec:
-  ingressClassName: nginx
-  rules:
-    - host: {{ .Values.host }}
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend: { service: { name: policy-api, port: { number: 80 } } }
-```
-
-```bash
-helm install policy-api charts/policy-api -f charts/policy-api/values-prod.yaml --set image.tag=abc123
-helm upgrade policy-api charts/policy-api --set image.tag=def456
-helm rollback policy-api 1
-```
-
-> **Trap.** Streaming responses through an ingress often get buffered or cut by idle timeouts. Raise proxy timeouts and disable buffering for SSE routes.
-
-**Read:** [Helm docs](https://helm.sh/docs/) · [Kubernetes Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/) · [Ingress-NGINX docs](https://kubernetes.github.io/ingress-nginx/)
-
-## 6.7 Terraform — infrastructure as code and state {#m6-tf}
-
-**In one line:** you declare the infrastructure you want in `.tf` files; `terraform plan` shows the diff, `apply` makes it real, and the state file remembers what exists.
-
-> **Analogy.** An architect’s blueprint. You do not tell builders “add a brick”; you hand them the drawing, and they work out what needs changing.
-
-```hcl
-terraform {
-  required_providers { aws = { source = "hashicorp/aws", version = "~> 5.0" } }
-  backend "s3" {
-    bucket         = "acme-tf-state"
-    key            = "policy-assistant/prod.tfstate"
-    region         = "ap-south-1"
-    dynamodb_table = "tf-locks"         # state locking
-  }
-}
-
-provider "aws" { region = var.region }
-
-variable "region" { default = "ap-south-1" }
-variable "env"    { default = "prod" }
-
-resource "aws_ecr_repository" "api" {
-  name = "policy-assistant"
-  image_scanning_configuration { scan_on_push = true }
-}
-
-resource "aws_s3_bucket" "docs" {
-  bucket = "acme-policy-docs-${var.env}"
-}
-
-output "ecr_url" { value = aws_ecr_repository.api.repository_url }
-```
-
-```bash
-terraform init
-terraform plan -out plan.tfplan
-terraform apply plan.tfplan
-terraform destroy          # only in sandboxes!
-```
-
-```mermaid
-flowchart LR
-  CODE[".tf files"] --> PLAN["terraform plan: diff"]
-  STATE[("Remote state in S3 + lock")] --> PLAN
-  PLAN --> APPLY["terraform apply"]
-  APPLY --> CLOUD["AWS resources"]
-  APPLY --> STATE
-```
-
-> **Trap.** Local state files get lost or conflict between teammates. Use remote state with locking from day one, and never hand-edit resources in the console that Terraform manages.
-
-**Read:** [Terraform docs](https://developer.hashicorp.com/terraform/docs) · [Terraform state](https://developer.hashicorp.com/terraform/language/state) · [AWS provider docs](https://registry.terraform.io/providers/hashicorp/aws/latest/docs) · [Terraform tutorials](https://developer.hashicorp.com/terraform/tutorials)
-
-## 6.8 AWS — EC2, ECS Fargate, ECR, S3, RDS PostgreSQL {#m6-aws}
-
-**In one line:** ECR stores images, ECS Fargate runs containers without servers to manage, S3 holds documents, RDS runs managed Postgres (with pgvector if you want), and EC2 is the plain VM you will still meet in client accounts.
-
-> **Analogy.** ECR is the warehouse, Fargate is a delivery service that brings its own trucks, S3 is a giant filing cabinet, RDS is a managed bank vault for structured data, EC2 is renting an empty office.
-
-```mermaid
-flowchart LR
-  U["Users"] --> ALB["Application Load Balancer"]
-  ALB --> ECS["ECS Fargate service: API tasks"]
-  ECS --> RDS[("RDS Postgres + pgvector")]
-  ECS --> S3[("S3: source documents")]
-  ECS --> SM["Secrets Manager"]
-  ECR["ECR images"] --> ECS
-  ECS --> CW["CloudWatch logs and metrics"]
-```
-
-| Service | Use it for | Watch out |
-|---|---|---|
-| ECS Fargate | Stateless API containers | Cold starts on scale-out; set min tasks |
-| ECR | Private images | Lifecycle rules to delete old images |
-| S3 | Documents, eval sets, model artifacts | Block public access; enable versioning |
-| RDS Postgres | App data, pgvector, checkpoints | Multi-AZ for prod; automated backups |
-| EC2 | GPUs, special software | You patch it |
-
-```python
-import boto3
-s3 = boto3.client("s3", region_name="ap-south-1")
-s3.upload_file("refund_policy.pdf", "acme-policy-docs-prod", "policies/refund_policy.pdf")
-url = s3.generate_presigned_url("get_object", Params={"Bucket": "acme-policy-docs-prod",
-                                "Key": "policies/refund_policy.pdf"}, ExpiresIn=300)
-```
-
-```sql
--- pgvector on RDS
-CREATE EXTENSION IF NOT EXISTS vector;
-CREATE TABLE chunks (id bigserial PRIMARY KEY, source text, content text, embedding vector(1536));
-CREATE INDEX ON chunks USING hnsw (embedding vector_cosine_ops);
-SELECT source, content FROM chunks ORDER BY embedding <=> $1 LIMIT 5;
-```
-
-**Read:** [ECS on Fargate](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html) · [Amazon ECR](https://docs.aws.amazon.com/AmazonECR/latest/userguide/what-is-ecr.html) · [Amazon S3 user guide](https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html) · [RDS for PostgreSQL](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_PostgreSQL.html) · [pgvector](https://github.com/pgvector/pgvector)
-
-## 6.9 Secrets — AWS Secrets Manager and Vault {#m6-vault}
-
-**In one line:** store secrets centrally with access control, audit logs, and rotation; the app or platform fetches them at runtime using its IAM identity.
-
-> **Analogy.** A hotel safe with a log of every time it was opened, versus a key taped under the doormat (`.env` in production).
-
-```python
-import json, boto3
-from functools import lru_cache
-
-@lru_cache
-def secret(name: str) -> dict:
-    sm = boto3.client("secretsmanager", region_name="ap-south-1")
-    return json.loads(sm.get_secret_value(SecretId=name)["SecretString"])
-
-openai_key = secret("prod/policy-assistant")["OPENAI_API_KEY"]
-```
-
-ECS can inject secrets directly into environment variables via the task definition (`secrets: [{name, valueFrom: arn...}]`), so your code just reads `os.environ`.
-
-```bash
-# HashiCorp Vault
-vault kv put secret/policy-assistant OPENAI_API_KEY=sk-...
-vault kv get -field=OPENAI_API_KEY secret/policy-assistant
-```
-
-```mermaid
-flowchart LR
-  TASK["ECS task with IAM role"] -->|GetSecretValue| SM["Secrets Manager"]
-  SM --> AUDIT["CloudTrail audit log"]
-  ROT["Rotation Lambda"] -.->|rotates| SM
-```
-
-> **Trap.** Giving the task role `secretsmanager:*` on `*`. Grant read access to only the specific secret ARNs the service needs.
-
-**Read:** [AWS Secrets Manager](https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html) · [ECS: pass secrets to containers](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/specifying-sensitive-data-secrets.html) · [HashiCorp Vault docs](https://developer.hashicorp.com/vault/docs)
-
-## 6.10 Spot instances, autoscaling, and always-on inference cost {#m6-spot}
-
-**In one line:** spot capacity is 60–90% cheaper but can be reclaimed with short notice — great for batch jobs and training, risky for a single always-on model server.
-
-> **Analogy.** Standby airline tickets: cheap, but you may get bumped. Fine for a flexible trip (batch embedding), not for your wedding (production chat).
-
-```python
-def monthly(hourly, hours=730, count=1): return hourly * hours * count
-
-on_demand_gpu = monthly(1.20)                 # example: one GPU instance
-spot_gpu = monthly(0.40)
-min_two_for_ha = monthly(1.20, count=2)
-print(f"on-demand ${on_demand_gpu:,.0f}  spot ${spot_gpu:,.0f}  HA pair ${min_two_for_ha:,.0f}")
-```
-
-| Workload | Capacity choice |
-|---|---|
-| Nightly embedding / re-index | Spot, with checkpoints |
-| Fine-tuning runs | Spot, frequent checkpoints |
-| Stateless API (calls an LLM API) | Fargate on-demand base + Fargate Spot burst |
-| Self-hosted model serving | On-demand base, spot for overflow, scale-to-zero off hours if allowed |
-
-```mermaid
-flowchart LR
-  BASE["Base capacity: on-demand, always on"] --> SERVE["Serve traffic"]
-  BURST["Burst capacity: spot"] --> SERVE
-  SCALE["Autoscaler on queue depth or latency"] -.-> BURST
-  INT["Spot interruption notice"] -.->|drain and replace| BURST
-```
-
-> **Trap.** A self-hosted GPU costs the same at 3 a.m. with zero users. Always compare with API pricing at your *real* traffic curve.
-
-**Read:** [EC2 Spot Instances](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-spot-instances.html) · [ECS capacity providers with Fargate Spot](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/fargate-capacity-providers.html)
-
-## 6.11 LangSmith — tracing, cost, latency, debugging {#m6-smith}
-
-**In one line:** LangSmith records every LLM call, retrieval, and tool step as a trace tree with inputs, outputs, tokens, latency, and cost — and lets you turn bad traces into eval datasets.
-
-> **Analogy.** A flight data recorder for your AI. When the answer crashes, you replay exactly what happened.
-
-```bash
-export LANGSMITH_TRACING=true
-export LANGSMITH_API_KEY=lsv2_...
-export LANGSMITH_PROJECT=policy-assistant-prod
-```
-
-```python
-from langsmith import traceable
-from langsmith.wrappers import wrap_openai
-from openai import OpenAI
-
-client = wrap_openai(OpenAI())             # every call is traced automatically
-
-@traceable(name="retrieve")
-def retrieve(q: str) -> list[str]:
-    return ["Refunds within 30 days."]
-
-@traceable(name="answer", metadata={"prompt_version": "answer_v3"})
-def answer(q: str) -> str:
-    ctx = retrieve(q)
-    r = client.chat.completions.create(model="gpt-4o-mini",
-                                       messages=[{"role": "user", "content": f"{ctx}\n\n{q}"}])
-    return r.choices[0].message.content
-
-answer("What is the refund window?")
-```
-
-```mermaid
-flowchart TB
-  A["answer 820 ms, 0.0004 USD"] --> R["retrieve 60 ms"]
-  A --> L["ChatOpenAI 740 ms, 812 in, 64 out tokens"]
-```
-
-> **Trap.** Traces contain user prompts. Configure redaction or masking before sending production traffic, and check where the data is stored for compliance.
-
-**Read:** [LangSmith docs](https://docs.smith.langchain.com/) · [LangSmith observability quickstart](https://docs.smith.langchain.com/observability) · [Arize Phoenix (open-source alternative)](https://arize.com/docs/phoenix)
-
-## 6.12 Structured logging with correlation IDs {#m6-corr}
-
-**In one line:** generate one request id at the edge, pass it through every service and log line (and into traces), so one search shows the whole story of a request.
-
-> **Analogy.** A courier tracking number. Every depot scans the same number, so you can see exactly where the parcel got stuck.
-
-```python
-import uuid, contextvars, logging
-from fastapi import FastAPI, Request
-
-request_id = contextvars.ContextVar("request_id", default="-")
-
-class RequestIdFilter(logging.Filter):
-    def filter(self, record):
-        record.request_id = request_id.get()
-        return True
-
-logging.basicConfig(format='{"ts":"%(asctime)s","lvl":"%(levelname)s","rid":"%(request_id)s","msg":"%(message)s"}')
-log = logging.getLogger("api")
-log.addFilter(RequestIdFilter())
-log.setLevel(logging.INFO)
-
-app = FastAPI()
-
-@app.middleware("http")
-async def add_request_id(request: Request, call_next):
-    rid = request.headers.get("x-request-id") or str(uuid.uuid4())
-    request_id.set(rid)
-    response = await call_next(request)
-    response.headers["x-request-id"] = rid
-    return response
-
-@app.get("/ask")
-async def ask(q: str):
-    log.info("retrieval_start")
-    # pass rid downstream: httpx headers={"x-request-id": request_id.get()}
-    return {"ok": True}
-```
-
-```mermaid
-sequenceDiagram
-  participant U as User
-  participant G as Gateway
-  participant A as API
-  participant R as Retriever
-  U->>G: request
-  G->>A: x-request-id r-9f2
-  A->>R: x-request-id r-9f2
-  Note over G,R: every log line carries rid r-9f2
-```
-
-**Read:** [OpenTelemetry: context propagation](https://opentelemetry.io/docs/concepts/context-propagation/) · [W3C Trace Context](https://www.w3.org/TR/trace-context/) · [Python contextvars](https://docs.python.org/3/library/contextvars.html)
-
-## 6.13 Load testing with Locust, SLOs, alert thresholds {#m6-locust}
-
-**In one line:** simulate realistic users to find where latency and errors break; set SLOs (for example “p95 under 3 s, 99.5% success”) and alert on burning through the error budget.
-
-> **Analogy.** Testing a bridge with trucks before opening it to the public, then putting a sign on it saying the maximum safe load.
-
-```python
-# locustfile.py  —  locust -f locustfile.py --host http://localhost:8000
-from locust import HttpUser, task, between
-
-class Asker(HttpUser):
-    wait_time = between(1, 4)
-
-    @task(3)
-    def common_question(self):
-        self.client.post("/ask", json={"question": "What is the refund window?"},
-                         headers={"x-api-key": "test"}, name="/ask common")
-
-    @task(1)
-    def long_question(self):
-        self.client.post("/ask", json={"question": "Compare refund rules for digital and physical goods"},
-                         headers={"x-api-key": "test"}, name="/ask long")
-```
-
-| SLI | SLO | Alert when |
-|---|---|---|
-| Success rate | 99.5% over 30 days | Burn rate above 2x for 1 hour |
-| p95 latency (non-streaming) | under 3 s | p95 above 4 s for 10 min |
-| Time to first token (streaming) | under 1 s | p95 above 1.5 s for 10 min |
-| Cost per request | under $0.003 | Daily spend above budget |
-
-```mermaid
-flowchart LR
-  L["Locust ramp 10 to 500 users"] --> M["Measure p50 p95 p99, errors"]
-  M --> K["Find the knee where latency explodes"]
-  K --> S["Set capacity and SLOs below the knee"]
-  S --> AL["Alerts on SLO burn"]
-```
-
-> **Trap.** Load testing against the real LLM API burns money and hits provider rate limits. Use a mock LLM server for capacity tests, and a small real-API test for end-to-end numbers.
-
-**Read:** [Locust docs](https://docs.locust.io/en/stable/) · [Google SRE book: service level objectives](https://sre.google/sre-book/service-level-objectives/) · [Google SRE workbook: alerting on SLOs](https://sre.google/workbook/alerting-on-slos/)
-
-## 6.14 Guardrails AI and the OpenAI moderation API {#m6-moderation}
-
-**In one line:** run a cheap moderation check on inputs and outputs, and validators (PII, schema, banned topics) around the model, with a defined action on failure.
-
-> **Analogy.** A bouncer at the door (input moderation) and a manager checking what leaves the kitchen (output validation).
-
-```python
-from openai import OpenAI
-client = OpenAI()
-
-def moderate(text: str) -> bool:
-    r = client.moderations.create(model="omni-moderation-latest", input=text)
-    result = r.results[0]
-    if result.flagged:
-        flagged = [k for k, v in result.categories.model_dump().items() if v]
-        print("blocked:", flagged)
-    return not result.flagged
-
-user_text = "How do I reset my password?"
-if moderate(user_text):
-    pass   # call the main model, then moderate(output) before returning
-```
-
-```mermaid
-flowchart LR
-  I["Input"] --> MI{"Moderation ok?"}
-  MI -->|no| REF["Polite refusal + log"]
-  MI -->|yes| G["Guarded LLM call"]
-  G --> MO{"Output validators ok?"}
-  MO -->|no| FIX["Re-ask or redact"]
-  MO -->|yes| OUT["Return"]
-```
-
-> **Trap.** Moderation APIs catch harmful content, not business-policy violations (“do not promise refunds”). Those need your own validators and evals.
-
-**Read:** [OpenAI moderation guide](https://platform.openai.com/docs/guides/moderation) · [Guardrails AI docs](https://www.guardrailsai.com/docs) · [Guardrails Hub](https://hub.guardrailsai.com/)
-
-## 6.15 DeepEval in CI and Promptfoo prompt regression {#m6-ci-eval}
-
-**In one line:** treat prompts like code — every change runs an eval suite, and a score drop fails the build.
-
-> **Analogy.** Unit tests stop you breaking a function; prompt regression tests stop you breaking the *personality and accuracy* of your assistant.
-
-```bash
-# DeepEval: tests live next to unit tests
-deepeval test run tests/evals/test_answers.py
-
-# Promptfoo: compare prompt versions and fail on regression
-npx promptfoo@latest eval -c promptfooconfig.yaml
-npx promptfoo@latest view        # local web UI of results
-```
-
-```yaml
-# promptfooconfig.yaml (excerpt)
-defaultTest:
-  assert:
-    - type: latency
-      threshold: 4000
-    - type: cost
-      threshold: 0.003
-tests: file://tests/evals/golden.yaml
-```
-
-```mermaid
-flowchart LR
-  CH["Prompt or model change"] --> PR["Pull request"]
-  PR --> SMOKE["Smoke evals: 20 cases"]
-  SMOKE -->|pass| REVIEW["Human review"]
-  REVIEW --> MAIN["Merge"]
-  MAIN --> FULL["Nightly full evals: 300 cases"]
-  FULL -->|drop| ALERT["Alert + open issue"]
-```
-
-> **Trap.** Flaky LLM judges cause flaky CI. Use deterministic checks (contains, JSON schema, regex) wherever possible and reserve LLM-as-judge for nuanced criteria with thresholds that tolerate noise.
-
-**Read:** [DeepEval: CI/CD unit testing](https://deepeval.com/docs/evaluation-unit-testing-in-ci-cd) · [Promptfoo CI/CD integration](https://www.promptfoo.dev/docs/integrations/ci-cd/) · [Promptfoo assertions](https://www.promptfoo.dev/docs/configuration/expected-outputs/)
-
-## 6.16 LLMOps — why non-deterministic AI needs different ops {#m6-llmops}
-
-**In one line:** classic ops watches “is it up and fast?”; LLMOps also watches “is it still *right*?”, “what did it cost?”, and “did the provider silently change the model?”.
-
-> **Analogy.** Running a restaurant where the chef is brilliant but occasionally improvises a new dish without telling anyone. You need tasting (evals), receipts (cost tracking), and a recipe book under version control (prompts).
-
-| Classic DevOps | LLMOps adds |
-|---|---|
-| Uptime, latency, errors | Answer quality, groundedness, refusal rate |
-| Code versioning | Prompt, model, and dataset versioning |
-| Unit tests | Eval suites and LLM judges |
-| Logs | Traces of prompts, retrievals, and tool calls |
-| Infra cost | Token cost per feature, per customer |
-| Deploy rollback | Prompt/model rollback, provider fallback |
-
-```mermaid
-flowchart LR
-  DEV["Develop prompts and chains"] --> EVAL["Offline evals"]
-  EVAL --> DEPLOY["Deploy with versions"]
-  DEPLOY --> MON["Monitor quality, cost, latency"]
-  MON --> FEED["User feedback + bad traces"]
-  FEED --> DATA["Grow eval dataset"]
-  DATA --> EVAL
-```
-
-```python
-FALLBACKS = ["gpt-4o-mini", "claude-haiku-4-5", "local-llama"]
-
-def complete_with_fallback(prompt, call):
-    last = None
-    for model in FALLBACKS:
-        try:
-            return model, call(model, prompt)
-        except Exception as e:          # rate limit, outage, timeout
-            last = e
-    raise RuntimeError("all providers failed") from last
-```
-
-**Read:** [Google: MLOps continuous delivery](https://cloud.google.com/architecture/mlops-continuous-delivery-and-automation-pipelines-in-machine-learning) · [Chip Huyen: Building LLM applications for production](https://huyenchip.com/2023/04/11/llm-engineering.html) · [LiteLLM: routing and fallbacks](https://docs.litellm.ai/docs/routing)
-
-> **Boss level.** “The Service” + “The Control Room”: containerise the policy assistant, deploy it to ECS Fargate via GitHub Actions with Terraform-managed infra, trace it in LangSmith, export metrics to Prometheus/Grafana, and present a one-page reliability report with p95, success rate, and cost per 1,000 questions.
-
-[← Module 5](m5.html) · [Next: Module 7 — Forward deployed engineering →](m7.html)
+</code></pre></div>
+
+<div class="hl"><pre><span></span><code><span class="c1"># templates/deployment.yaml (excerpt)</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">replicas</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{{</span><span class="w"> </span><span class="nv">.Values.replicas</span><span class="w"> </span><span class="p p-Indicator">}}</span>
+<span class="w">  </span><span class="nt">template</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">spec</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">containers</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">api</span>
+<span class="w">          </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.Values.image.repository</span><span class="nv"> </span><span class="s">}}:{{</span><span class="nv"> </span><span class="s">.Values.image.tag</span><span class="nv"> </span><span class="s">}}&quot;</span>
+</code></pre></div>
+
+<div class="hl"><pre><span></span><code><span class="c1"># templates/ingress.yaml</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">networking.k8s.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Ingress</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">policy-api</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">ingressClassName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">nginx</span>
+<span class="w">  </span><span class="nt">rules</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{{</span><span class="w"> </span><span class="nv">.Values.host</span><span class="w"> </span><span class="p p-Indicator">}}</span>
+<span class="w">      </span><span class="nt">http</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">paths</span><span class="p">:</span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/</span>
+<span class="w">            </span><span class="nt">pathType</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Prefix</span>
+<span class="w">            </span><span class="nt">backend</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> service</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">policy-api</span><span class="p p-Indicator">,</span><span class="nt"> port</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> number</span><span class="p">:</span><span class="w"> </span><span class="nv">80</span><span class="w"> </span><span class="p p-Indicator">}</span><span class="w"> </span><span class="p p-Indicator">}</span><span class="w"> </span><span class="p p-Indicator">}</span>
+</code></pre></div>
+
+<div class="hl"><pre><span></span><code>helm<span class="w"> </span>install<span class="w"> </span>policy-api<span class="w"> </span>charts/policy-api<span class="w"> </span>-f<span class="w"> </span>charts/policy-api/values-prod.yaml<span class="w"> </span>--set<span class="w"> </span>image.tag<span class="o">=</span>abc123
+helm<span class="w"> </span>upgrade<span class="w"> </span>policy-api<span class="w"> </span>charts/policy-api<span class="w"> </span>--set<span class="w"> </span>image.tag<span class="o">=</span>def456
+helm<span class="w"> </span>rollback<span class="w"> </span>policy-api<span class="w"> </span><span class="m">1</span>
+</code></pre></div>
+
+<p><strong>Reading the code.</strong> CI can deploy by changing only <code>image.tag</code>. Helm keeps numbered releases, so <code>helm rollback</code> returns to a known-good revision.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Streaming responses through an ingress often get buffered or cut by idle timeouts. Raise proxy timeouts and disable buffering for SSE routes.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://helm.sh/docs/">Helm docs</a> · <a href="https://kubernetes.io/docs/concepts/services-networking/ingress/">Kubernetes Ingress</a> · <a href="https://kubernetes.github.io/ingress-nginx/">Ingress-NGINX docs</a></div>
+<h2 id="m6-tf"><span class="chnum">6.7</span>Terraform — infrastructure as code and state</h2>
+<p class="oneline"><strong>In one line:</strong> you declare the infrastructure you want in <code>.tf</code> files; <code>terraform plan</code> shows the diff, <code>apply</code> makes it real, and the state file remembers what exists.</p>
+
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> An architect’s blueprint. You do not tell builders “add a brick”; you hand them the drawing, and they work out what needs changing.</p>
+</blockquote>
+<div class="hl"><pre><span></span><code><span class="nb">terraform</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nb">required_providers</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nb">aws</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="na">source</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;hashicorp/aws&quot;, version = &quot;~&gt; 5.0&quot;</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="kr">backend</span><span class="w"> </span><span class="nv">&quot;s3&quot;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="na">bucket</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;acme-tf-state&quot;</span>
+<span class="w">    </span><span class="na">key</span><span class="w">            </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;policy-assistant/prod.tfstate&quot;</span>
+<span class="w">    </span><span class="na">region</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;ap-south-1&quot;</span>
+<span class="w">    </span><span class="na">dynamodb_table</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;tf-locks&quot;</span><span class="c1">          # state locking</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+<span class="kr">provider</span><span class="w"> </span><span class="nv">&quot;aws&quot;</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="na">region</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">var.region</span><span class="w"> </span><span class="p">}</span>
+<span class="kr">variable</span><span class="w"> </span><span class="nv">&quot;region&quot;</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="na">default</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;ap-south-1&quot;</span><span class="w"> </span><span class="p">}</span>
+<span class="kr">variable</span><span class="w"> </span><span class="nv">&quot;env&quot;</span><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="na">default</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;prod&quot;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="kr">resource</span><span class="w"> </span><span class="nc">&quot;aws_ecr_repository&quot;</span><span class="w"> </span><span class="nv">&quot;api&quot;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="na">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;policy-assistant&quot;</span>
+<span class="w">  </span><span class="nb">image_scanning_configuration</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="na">scan_on_push</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="no">true</span><span class="w"> </span><span class="p">}</span>
+<span class="p">}</span>
+<span class="kr">resource</span><span class="w"> </span><span class="nc">&quot;aws_s3_bucket&quot;</span><span class="w"> </span><span class="nv">&quot;docs&quot;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="na">bucket</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;acme-policy-docs-${var.env}&quot;</span>
+<span class="p">}</span>
+<span class="kr">output</span><span class="w"> </span><span class="nv">&quot;ecr_url&quot;</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="na">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">aws_ecr_repository.api.repository_url</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+
+<div class="hl"><pre><span></span><code>terraform<span class="w"> </span>init
+terraform<span class="w"> </span>plan<span class="w"> </span>-out<span class="w"> </span>plan.tfplan
+terraform<span class="w"> </span>apply<span class="w"> </span>plan.tfplan
+terraform<span class="w"> </span>destroy<span class="w">          </span><span class="c1"># only in sandboxes!</span>
+</code></pre></div>
+
+<pre class="mermaid">flowchart LR
+  CODE[".tf files"] --&gt; PLAN["terraform plan: diff"]
+  STATE[("Remote state in S3 + lock")] --&gt; PLAN
+  PLAN --&gt; APPLY["terraform apply"]
+  APPLY --&gt; CLOUD["AWS resources"]
+  APPLY --&gt; STATE</pre>
+
+<p><strong>Reading the code.</strong> The <code>s3</code> backend stores state remotely and the DynamoDB table locks it so two people cannot apply at once. Saving the plan to a file means <code>apply</code> executes exactly what you reviewed. Always read the plan for unexpected <em>destroy</em> lines.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Local state files get lost or conflict between teammates. Use remote state with locking from day one, and never hand-edit resources in the console that Terraform manages.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://developer.hashicorp.com/terraform/docs">Terraform docs</a> · <a href="https://developer.hashicorp.com/terraform/language/state">Terraform state</a> · <a href="https://registry.terraform.io/providers/hashicorp/aws/latest/docs">AWS provider docs</a> · <a href="https://developer.hashicorp.com/terraform/tutorials">Terraform tutorials</a></div>
+<h2 id="m6-aws"><span class="chnum">6.8</span>AWS — EC2, ECS Fargate, ECR, S3, RDS PostgreSQL</h2>
+<p class="oneline"><strong>In one line:</strong> ECR stores images, ECS Fargate runs containers without servers to manage, S3 holds documents, RDS runs managed Postgres (with pgvector if you want), and EC2 is the plain VM you will still meet in client accounts.</p>
+
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> ECR is the warehouse, Fargate is a delivery service that brings its own trucks, S3 is a giant filing cabinet, RDS is a managed bank vault for structured data, EC2 is renting an empty office.</p>
+</blockquote>
+<pre class="mermaid">flowchart LR
+  U["Users"] --&gt; ALB["Application Load Balancer"]
+  ALB --&gt; ECS["ECS Fargate service: API tasks"]
+  ECS --&gt; RDS[("RDS Postgres + pgvector")]
+  ECS --&gt; S3[("S3: source documents")]
+  ECS --&gt; SM["Secrets Manager"]
+  ECR["ECR images"] --&gt; ECS
+  ECS --&gt; CW["CloudWatch logs and metrics"]</pre>
+
+<table>
+<thead>
+<tr>
+<th>Service</th>
+<th>Use it for</th>
+<th>Watch out</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ECS Fargate</td>
+<td>Stateless API containers</td>
+<td>Cold starts on scale-out; set min tasks</td>
+</tr>
+<tr>
+<td>ECR</td>
+<td>Private images</td>
+<td>Lifecycle rules to delete old images</td>
+</tr>
+<tr>
+<td>S3</td>
+<td>Documents, eval sets, model artifacts</td>
+<td>Block public access; enable versioning</td>
+</tr>
+<tr>
+<td>RDS Postgres</td>
+<td>App data, pgvector, checkpoints</td>
+<td>Multi-AZ for prod; automated backups</td>
+</tr>
+<tr>
+<td>EC2</td>
+<td>GPUs, special software</td>
+<td>You patch it</td>
+</tr>
+</tbody>
+</table>
+<h3 id="m6-aws--code">Code</h3>
+<div class="hl"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">boto3</span>
+<span class="n">s3</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s2">&quot;s3&quot;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="s2">&quot;ap-south-1&quot;</span><span class="p">)</span>
+<span class="n">s3</span><span class="o">.</span><span class="n">upload_file</span><span class="p">(</span><span class="s2">&quot;refund_policy.pdf&quot;</span><span class="p">,</span> <span class="s2">&quot;acme-policy-docs-prod&quot;</span><span class="p">,</span> <span class="s2">&quot;policies/refund_policy.pdf&quot;</span><span class="p">)</span>
+<span class="n">url</span> <span class="o">=</span> <span class="n">s3</span><span class="o">.</span><span class="n">generate_presigned_url</span><span class="p">(</span><span class="s2">&quot;get_object&quot;</span><span class="p">,</span> <span class="n">Params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;Bucket&quot;</span><span class="p">:</span> <span class="s2">&quot;acme-policy-docs-prod&quot;</span><span class="p">,</span>
+                                <span class="s2">&quot;Key&quot;</span><span class="p">:</span> <span class="s2">&quot;policies/refund_policy.pdf&quot;</span><span class="p">},</span> <span class="n">ExpiresIn</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
+</code></pre></div>
+
+<div class="hl"><pre><span></span><code><span class="c1">-- pgvector on RDS</span>
+<span class="k">CREATE</span><span class="w"> </span><span class="n">EXTENSION</span><span class="w"> </span><span class="k">IF</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">EXISTS</span><span class="w"> </span><span class="n">vector</span><span class="p">;</span>
+<span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">chunks</span><span class="w"> </span><span class="p">(</span><span class="n">id</span><span class="w"> </span><span class="n">bigserial</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span><span class="w"> </span><span class="k">source</span><span class="w"> </span><span class="nb">text</span><span class="p">,</span><span class="w"> </span><span class="n">content</span><span class="w"> </span><span class="nb">text</span><span class="p">,</span><span class="w"> </span><span class="n">embedding</span><span class="w"> </span><span class="n">vector</span><span class="p">(</span><span class="mi">1536</span><span class="p">));</span>
+<span class="k">CREATE</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">chunks</span><span class="w"> </span><span class="k">USING</span><span class="w"> </span><span class="n">hnsw</span><span class="w"> </span><span class="p">(</span><span class="n">embedding</span><span class="w"> </span><span class="n">vector_cosine_ops</span><span class="p">);</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="k">source</span><span class="p">,</span><span class="w"> </span><span class="n">content</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">chunks</span><span class="w"> </span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">embedding</span><span class="w"> </span><span class="o">&lt;=&gt;</span><span class="w"> </span><span class="err">$</span><span class="mi">1</span><span class="w"> </span><span class="k">LIMIT</span><span class="w"> </span><span class="mi">5</span><span class="p">;</span>
+</code></pre></div>
+
+<p><strong>Reading the code.</strong> A <strong>presigned URL</strong> gives temporary access (here 300 seconds) to one private object without making the bucket public. In pgvector, <code>&lt;=&gt;</code> is cosine distance and the HNSW index (Module 3) makes it fast; one database can hold both app data and vectors.</p>
+<div class="read"><strong>Read:</strong> <a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html">ECS on Fargate</a> · <a href="https://docs.aws.amazon.com/AmazonECR/latest/userguide/what-is-ecr.html">Amazon ECR</a> · <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html">Amazon S3 user guide</a> · <a href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_PostgreSQL.html">RDS for PostgreSQL</a> · <a href="https://github.com/pgvector/pgvector">pgvector</a></div>
+<h2 id="m6-vault"><span class="chnum">6.9</span>Secrets — AWS Secrets Manager and Vault</h2>
+<p class="oneline"><strong>In one line:</strong> store secrets centrally with access control, audit logs, and rotation; the app or platform fetches them at runtime using its IAM identity.</p>
+
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> A hotel safe with a log of every time it was opened, versus a key taped under the doormat (<code>.env</code> in production).</p>
+</blockquote>
+<div class="hl"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">json</span><span class="o">,</span><span class="w"> </span><span class="nn">boto3</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">lru_cache</span>
+
+<span class="nd">@lru_cache</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">secret</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="n">sm</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s2">&quot;secretsmanager&quot;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="s2">&quot;ap-south-1&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">get_secret_value</span><span class="p">(</span><span class="n">SecretId</span><span class="o">=</span><span class="n">name</span><span class="p">)[</span><span class="s2">&quot;SecretString&quot;</span><span class="p">])</span>
+
+<span class="n">openai_key</span> <span class="o">=</span> <span class="n">secret</span><span class="p">(</span><span class="s2">&quot;prod/policy-assistant&quot;</span><span class="p">)[</span><span class="s2">&quot;OPENAI_API_KEY&quot;</span><span class="p">]</span>
+</code></pre></div>
+
+<p>ECS can inject secrets directly into environment variables via the task definition (<code>secrets: [{name, valueFrom: arn...}]</code>), so your code just reads <code>os.environ</code>.</p>
+<div class="hl"><pre><span></span><code><span class="c1"># HashiCorp Vault</span>
+vault<span class="w"> </span>kv<span class="w"> </span>put<span class="w"> </span>secret/policy-assistant<span class="w"> </span><span class="nv">OPENAI_API_KEY</span><span class="o">=</span>sk-...
+vault<span class="w"> </span>kv<span class="w"> </span>get<span class="w"> </span>-field<span class="o">=</span>OPENAI_API_KEY<span class="w"> </span>secret/policy-assistant
+</code></pre></div>
+
+<pre class="mermaid">flowchart LR
+  TASK["ECS task with IAM role"] --&gt;|GetSecretValue| SM["Secrets Manager"]
+  SM --&gt; AUDIT["CloudTrail audit log"]
+  ROT["Rotation Lambda"] -.-&gt;|rotates| SM</pre>
+
+<p><strong>Reading the code.</strong> <code>lru_cache</code> avoids calling Secrets Manager on every request. The task’s IAM role is its identity, so there are no keys to store. Rotation changes a secret centrally without redeploying code.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Giving the task role <code>secretsmanager:*</code> on <code>*</code>. Grant read access to only the specific secret ARNs the service needs.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html">AWS Secrets Manager</a> · <a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/specifying-sensitive-data-secrets.html">ECS: pass secrets to containers</a> · <a href="https://developer.hashicorp.com/vault/docs">HashiCorp Vault docs</a></div>
+<h2 id="m6-spot"><span class="chnum">6.10</span>Spot instances, autoscaling, and always-on inference cost</h2>
+<p class="oneline"><strong>In one line:</strong> spot capacity is 60–90% cheaper but can be reclaimed with short notice: great for batch jobs and training, risky for a single always-on model server.</p>
+
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> Standby airline tickets: cheap, but you may get bumped. Fine for a flexible trip (batch embedding), not for your wedding (production chat).</p>
+</blockquote>
+<div class="hl"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">monthly</span><span class="p">(</span><span class="n">hourly</span><span class="p">,</span> <span class="n">hours</span><span class="o">=</span><span class="mi">730</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span> <span class="k">return</span> <span class="n">hourly</span> <span class="o">*</span> <span class="n">hours</span> <span class="o">*</span> <span class="n">count</span>
+
+<span class="n">on_demand_gpu</span> <span class="o">=</span> <span class="n">monthly</span><span class="p">(</span><span class="mf">1.20</span><span class="p">)</span>            <span class="c1"># example: one GPU instance</span>
+<span class="n">spot_gpu</span> <span class="o">=</span> <span class="n">monthly</span><span class="p">(</span><span class="mf">0.40</span><span class="p">)</span>
+<span class="n">min_two_for_ha</span> <span class="o">=</span> <span class="n">monthly</span><span class="p">(</span><span class="mf">1.20</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;on-demand $</span><span class="si">{</span><span class="n">on_demand_gpu</span><span class="si">:</span><span class="s2">,.0f</span><span class="si">}</span><span class="s2">  spot $</span><span class="si">{</span><span class="n">spot_gpu</span><span class="si">:</span><span class="s2">,.0f</span><span class="si">}</span><span class="s2">  HA pair $</span><span class="si">{</span><span class="n">min_two_for_ha</span><span class="si">:</span><span class="s2">,.0f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+
+<table>
+<thead>
+<tr>
+<th>Workload</th>
+<th>Capacity choice</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Nightly embedding / re-index</td>
+<td>Spot, with checkpoints</td>
+</tr>
+<tr>
+<td>Fine-tuning runs</td>
+<td>Spot, frequent checkpoints</td>
+</tr>
+<tr>
+<td>Stateless API (calls an LLM API)</td>
+<td>Fargate on-demand base + Fargate Spot burst</td>
+</tr>
+<tr>
+<td>Self-hosted model serving</td>
+<td>On-demand base, spot for overflow, scale-to-zero off hours if allowed</td>
+</tr>
+</tbody>
+</table>
+<pre class="mermaid">flowchart LR
+  BASE["Base capacity: on-demand, always on"] --&gt; SERVE["Serve traffic"]
+  BURST["Burst capacity: spot"] --&gt; SERVE
+  SCALE["Autoscaler on queue depth or latency"] -.-&gt; BURST
+  INT["Spot interruption notice"] -.-&gt;|drain and replace| BURST</pre>
+
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> A self-hosted GPU costs the same at 3 a.m. with zero users. Always compare with API pricing at your <em>real</em> traffic curve.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-spot-instances.html">EC2 Spot Instances</a> · <a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/fargate-capacity-providers.html">ECS capacity providers with Fargate Spot</a></div>
+<h2 id="m6-smith"><span class="chnum">6.11</span>LangSmith — tracing, cost, latency, debugging</h2>
+<p class="oneline"><strong>In one line:</strong> LangSmith records every LLM call, retrieval, and tool step as a trace tree with inputs, outputs, tokens, latency, and cost, and lets you turn bad traces into eval datasets.</p>
+
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> A flight data recorder for your AI. When the answer crashes, you replay exactly what happened.</p>
+</blockquote>
+<div class="hl"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">LANGSMITH_TRACING</span><span class="o">=</span><span class="nb">true</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">LANGSMITH_API_KEY</span><span class="o">=</span>lsv2_...
+<span class="nb">export</span><span class="w"> </span><span class="nv">LANGSMITH_PROJECT</span><span class="o">=</span>policy-assistant-prod
+</code></pre></div>
+
+<div class="hl"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">langsmith</span><span class="w"> </span><span class="kn">import</span> <span class="n">traceable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langsmith.wrappers</span><span class="w"> </span><span class="kn">import</span> <span class="n">wrap_openai</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">openai</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenAI</span>
+
+<span class="n">client</span> <span class="o">=</span> <span class="n">wrap_openai</span><span class="p">(</span><span class="n">OpenAI</span><span class="p">())</span>          <span class="c1"># every call is traced automatically</span>
+
+<span class="nd">@traceable</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;retrieve&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">retrieve</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;Refunds within 30 days.&quot;</span><span class="p">]</span>
+
+<span class="nd">@traceable</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;answer&quot;</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;prompt_version&quot;</span><span class="p">:</span> <span class="s2">&quot;answer_v3&quot;</span><span class="p">})</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">answer</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="n">ctx</span> <span class="o">=</span> <span class="n">retrieve</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&quot;gpt-4o-mini&quot;</span><span class="p">,</span>
+        <span class="n">messages</span><span class="o">=</span><span class="p">[{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">ctx</span><span class="si">}</span><span class="se">\n\n</span><span class="si">{</span><span class="n">q</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">}])</span>
+    <span class="k">return</span> <span class="n">r</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span>
+
+<span class="n">answer</span><span class="p">(</span><span class="s2">&quot;What is the refund window?&quot;</span><span class="p">)</span>
+</code></pre></div>
+
+<p><strong>Reading the code.</strong> <code>@traceable</code> creates a span, and nested calls become child spans, giving a tree like <em>answer → retrieve + model call</em>. The <code>prompt_version</code> metadata lets you filter traces by prompt, which pays off during regressions.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Traces contain user prompts. Configure redaction or masking before sending production traffic, and check where the data is stored for compliance.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://docs.smith.langchain.com/">LangSmith docs</a> · <a href="https://docs.smith.langchain.com/observability">LangSmith observability quickstart</a> · <a href="https://arize.com/docs/phoenix">Arize Phoenix (open-source alternative)</a></div>
+<h2 id="m6-corr"><span class="chnum">6.12</span>Structured logging with correlation IDs</h2>
+<p class="oneline"><strong>In one line:</strong> generate one request id at the edge, pass it through every service and log line (and into traces), so one search shows the whole story of a request.</p>
+
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> A courier tracking number. Every depot scans the same number, so you can see exactly where the parcel got stuck.</p>
+</blockquote>
+<div class="hl"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span><span class="o">,</span><span class="w"> </span><span class="nn">contextvars</span><span class="o">,</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">FastAPI</span><span class="p">,</span> <span class="n">Request</span>
+
+<span class="n">request_id</span> <span class="o">=</span> <span class="n">contextvars</span><span class="o">.</span><span class="n">ContextVar</span><span class="p">(</span><span class="s2">&quot;request_id&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;-&quot;</span><span class="p">)</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">RequestIdFilter</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">Filter</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">):</span>
+        <span class="n">record</span><span class="o">.</span><span class="n">request_id</span> <span class="o">=</span> <span class="n">request_id</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+<span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="nb">format</span><span class="o">=</span><span class="s1">&#39;{&quot;ts&quot;:&quot;</span><span class="si">%(asctime)s</span><span class="s1">&quot;,&quot;lvl&quot;:&quot;</span><span class="si">%(levelname)s</span><span class="s1">&quot;,&quot;rid&quot;:&quot;</span><span class="si">%(request_id)s</span><span class="s1">&quot;,&quot;msg&quot;:&quot;</span><span class="si">%(message)s</span><span class="s1">&quot;}&#39;</span><span class="p">)</span>
+<span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;api&quot;</span><span class="p">)</span>
+<span class="n">log</span><span class="o">.</span><span class="n">addFilter</span><span class="p">(</span><span class="n">RequestIdFilter</span><span class="p">())</span>
+<span class="n">log</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+
+<span class="n">app</span> <span class="o">=</span> <span class="n">FastAPI</span><span class="p">()</span>
+
+<span class="nd">@app</span><span class="o">.</span><span class="n">middleware</span><span class="p">(</span><span class="s2">&quot;http&quot;</span><span class="p">)</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">add_request_id</span><span class="p">(</span><span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span> <span class="n">call_next</span><span class="p">):</span>
+    <span class="n">rid</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;x-request-id&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())</span>
+    <span class="n">request_id</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">rid</span><span class="p">)</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="k">await</span> <span class="n">call_next</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+    <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s2">&quot;x-request-id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rid</span>
+    <span class="k">return</span> <span class="n">response</span>
+
+<span class="nd">@app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/ask&quot;</span><span class="p">)</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">ask</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;retrieval_start&quot;</span><span class="p">)</span>
+    <span class="c1"># pass rid downstream: httpx headers={&quot;x-request-id&quot;: request_id.get()}</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;ok&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+</code></pre></div>
+
+<p><strong>Reading the code.</strong> A <code>ContextVar</code> holds the id per request, even with async code running concurrently, and the logging filter stamps it on every line. Accepting an incoming <code>x-request-id</code> keeps one id across services, and returning it in the response lets a user quote it in a bug report.</p>
+<div class="read"><strong>Read:</strong> <a href="https://opentelemetry.io/docs/concepts/context-propagation/">OpenTelemetry: context propagation</a> · <a href="https://www.w3.org/TR/trace-context/">W3C Trace Context</a> · <a href="https://docs.python.org/3/library/contextvars.html">Python contextvars</a></div>
+<h2 id="m6-locust"><span class="chnum">6.13</span>Load testing with Locust, SLOs, alert thresholds</h2>
+<p class="oneline"><strong>In one line:</strong> simulate realistic users to find where latency and errors break; set SLOs (for example “p95 under 3 s, 99.5% success”) and alert on burning through the error budget.</p>
+
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> Testing a bridge with trucks before opening it to the public, then putting a sign on it saying the maximum safe load.</p>
+</blockquote>
+<div class="hl"><pre><span></span><code><span class="c1"># locustfile.py — locust -f locustfile.py --host http://localhost:8000</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">locust</span><span class="w"> </span><span class="kn">import</span> <span class="n">HttpUser</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="n">between</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Asker</span><span class="p">(</span><span class="n">HttpUser</span><span class="p">):</span>
+    <span class="n">wait_time</span> <span class="o">=</span> <span class="n">between</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+
+    <span class="nd">@task</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">common_question</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">&quot;/ask&quot;</span><span class="p">,</span> <span class="n">json</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;question&quot;</span><span class="p">:</span> <span class="s2">&quot;What is the refund window?&quot;</span><span class="p">},</span>
+                         <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;x-api-key&quot;</span><span class="p">:</span> <span class="s2">&quot;test&quot;</span><span class="p">},</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;/ask common&quot;</span><span class="p">)</span>
+
+    <span class="nd">@task</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">long_question</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">&quot;/ask&quot;</span><span class="p">,</span> <span class="n">json</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;question&quot;</span><span class="p">:</span> <span class="s2">&quot;Compare refund rules for digital and physical goods&quot;</span><span class="p">},</span>
+                         <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;x-api-key&quot;</span><span class="p">:</span> <span class="s2">&quot;test&quot;</span><span class="p">},</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;/ask long&quot;</span><span class="p">)</span>
+</code></pre></div>
+
+<table>
+<thead>
+<tr>
+<th>SLI</th>
+<th>SLO</th>
+<th>Alert when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Success rate</td>
+<td>99.5% over 30 days</td>
+<td>Burn rate above 2x for 1 hour</td>
+</tr>
+<tr>
+<td>p95 latency (non-streaming)</td>
+<td>under 3 s</td>
+<td>p95 above 4 s for 10 min</td>
+</tr>
+<tr>
+<td>Time to first token (streaming)</td>
+<td>under 1 s</td>
+<td>p95 above 1.5 s for 10 min</td>
+</tr>
+<tr>
+<td>Cost per request</td>
+<td>under $0.003</td>
+<td>Daily spend above budget</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Reading the code.</strong> <code>@task(3)</code> makes the common question three times as likely as the long one, mimicking real traffic. Look for the <strong>knee</strong>: the user count where latency suddenly explodes. Set capacity and SLOs below it. An SLO of 99.5% gives an <em>error budget</em> of 0.5%, and alerts fire when you burn it too fast.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Load testing against the real LLM API burns money and hits provider rate limits. Use a mock LLM server for capacity tests, and a small real-API test for end-to-end numbers.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://docs.locust.io/en/stable/">Locust docs</a> · <a href="https://sre.google/sre-book/service-level-objectives/">Google SRE book: service level objectives</a> · <a href="https://sre.google/workbook/alerting-on-slos/">Google SRE workbook: alerting on SLOs</a></div>
+<h2 id="m6-moderation"><span class="chnum">6.14</span>Guardrails AI and the OpenAI moderation API</h2>
+<p class="oneline"><strong>In one line:</strong> run a cheap moderation check on inputs and outputs, and validators (PII, schema, banned topics) around the model, with a defined action on failure.</p>
+
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> A bouncer at the door (input moderation) and a manager checking what leaves the kitchen (output validation).</p>
+</blockquote>
+<div class="hl"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">openai</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenAI</span>
+<span class="n">client</span> <span class="o">=</span> <span class="n">OpenAI</span><span class="p">()</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">moderate</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">moderations</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&quot;omni-moderation-latest&quot;</span><span class="p">,</span> <span class="nb">input</span><span class="o">=</span><span class="n">text</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">flagged</span><span class="p">:</span>
+        <span class="n">flagged</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">categories</span><span class="o">.</span><span class="n">model_dump</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span><span class="p">]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;blocked:&quot;</span><span class="p">,</span> <span class="n">flagged</span><span class="p">)</span>
+    <span class="k">return</span> <span class="ow">not</span> <span class="n">result</span><span class="o">.</span><span class="n">flagged</span>
+
+<span class="n">user_text</span> <span class="o">=</span> <span class="s2">&quot;How do I reset my password?&quot;</span>
+<span class="k">if</span> <span class="n">moderate</span><span class="p">(</span><span class="n">user_text</span><span class="p">):</span>
+    <span class="k">pass</span>     <span class="c1"># call the main model, then moderate(output) before returning</span>
+</code></pre></div>
+
+<pre class="mermaid">flowchart LR
+  I["Input"] --&gt; MI{"Moderation ok?"}
+  MI --&gt;|no| REF["Polite refusal + log"]
+  MI --&gt;|yes| G["Guarded LLM call"]
+  G --&gt; MO{"Output validators ok?"}
+  MO --&gt;|no| FIX["Re-ask or redact"]
+  MO --&gt;|yes| OUT["Return"]</pre>
+
+<p><strong>Reading the code.</strong> The function returns a simple boolean so the calling code decides the action (refuse, log, escalate). Moderate the <em>output</em> too, since a safe prompt can still produce an unsafe answer. See Module 5 (5.12) for PII masking and injection defence.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Moderation APIs catch harmful content, not business-policy violations (“do not promise refunds”). Those need your own validators and evals.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://platform.openai.com/docs/guides/moderation">OpenAI moderation guide</a> · <a href="https://www.guardrailsai.com/docs">Guardrails AI docs</a> · <a href="https://hub.guardrailsai.com/">Guardrails Hub</a></div>
+<h2 id="m6-ci-eval"><span class="chnum">6.15</span>DeepEval in CI and Promptfoo prompt regression</h2>
+<p class="oneline"><strong>In one line:</strong> treat prompts like code: every change runs an eval suite, and a score drop fails the build.</p>
+
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> Unit tests stop you breaking a function; prompt regression tests stop you breaking the <em>personality and accuracy</em> of your assistant.</p>
+</blockquote>
+<div class="hl"><pre><span></span><code><span class="c1"># DeepEval: tests live next to unit tests</span>
+deepeval<span class="w"> </span><span class="nb">test</span><span class="w"> </span>run<span class="w"> </span>tests/evals/test_answers.py
+
+<span class="c1"># Promptfoo: compare prompt versions and fail on regression</span>
+npx<span class="w"> </span>promptfoo@latest<span class="w"> </span><span class="nb">eval</span><span class="w"> </span>-c<span class="w"> </span>promptfooconfig.yaml
+npx<span class="w"> </span>promptfoo@latest<span class="w"> </span>view<span class="w">          </span><span class="c1"># local web UI of results</span>
+</code></pre></div>
+
+<div class="hl"><pre><span></span><code><span class="c1"># promptfooconfig.yaml (excerpt)</span>
+<span class="nt">defaultTest</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">assert</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">latency</span>
+<span class="w">      </span><span class="nt">threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4000</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cost</span>
+<span class="w">      </span><span class="nt">threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.003</span>
+<span class="nt">tests</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">file://tests/evals/golden.yaml</span>
+</code></pre></div>
+
+<pre class="mermaid">flowchart LR
+  CH["Prompt or model change"] --&gt; PR["Pull request"]
+  PR --&gt; SMOKE["Smoke evals: 20 cases"]
+  SMOKE --&gt;|pass| REVIEW["Human review"]
+  REVIEW --&gt; MAIN["Merge"]
+  MAIN --&gt; FULL["Nightly full evals: 300 cases"]
+  FULL --&gt;|drop| ALERT["Alert + open issue"]</pre>
+
+<p><strong>Reading the code.</strong> Latency and cost assertions make performance regressions fail builds just like wrong answers. The golden file is a version-controlled set of questions and expectations; grow it from real bad traces (6.11).</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Flaky LLM judges cause flaky CI. Use deterministic checks (contains, JSON schema, regex) wherever possible and reserve LLM-as-judge for nuanced criteria with thresholds that tolerate noise.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://deepeval.com/docs/evaluation-unit-testing-in-ci-cd">DeepEval: CI/CD unit testing</a> · <a href="https://www.promptfoo.dev/docs/integrations/ci-cd/">Promptfoo CI/CD integration</a> · <a href="https://www.promptfoo.dev/docs/configuration/expected-outputs/">Promptfoo assertions</a></div>
+<h2 id="m6-llmops"><span class="chnum">6.16</span>LLMOps — why non-deterministic AI needs different ops</h2>
+<p class="oneline"><strong>In one line:</strong> classic ops watches “is it up and fast?”; LLMOps also watches “is it still <em>right</em>?”, “what did it cost?”, and “did the provider silently change the model?”.</p>
+
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> Running a restaurant where the chef is brilliant but occasionally improvises a new dish without telling anyone. You need tasting (evals), receipts (cost tracking), and a recipe book under version control (prompts).</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Classic DevOps</th>
+<th>LLMOps adds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Uptime, latency, errors</td>
+<td>Answer quality, groundedness, refusal rate</td>
+</tr>
+<tr>
+<td>Code versioning</td>
+<td>Prompt, model, and dataset versioning</td>
+</tr>
+<tr>
+<td>Unit tests</td>
+<td>Eval suites and LLM judges</td>
+</tr>
+<tr>
+<td>Logs</td>
+<td>Traces of prompts, retrievals, and tool calls</td>
+</tr>
+<tr>
+<td>Infra cost</td>
+<td>Token cost per feature, per customer</td>
+</tr>
+<tr>
+<td>Deploy rollback</td>
+<td>Prompt/model rollback, provider fallback</td>
+</tr>
+</tbody>
+</table>
+<pre class="mermaid">flowchart LR
+  DEV["Develop prompts and chains"] --&gt; EVAL["Offline evals"]
+  EVAL --&gt; DEPLOY["Deploy with versions"]
+  DEPLOY --&gt; MON["Monitor quality, cost, latency"]
+  MON --&gt; FEED["User feedback + bad traces"]
+  FEED --&gt; DATA["Grow eval dataset"]
+  DATA --&gt; EVAL</pre>
+
+<div class="hl"><pre><span></span><code><span class="n">FALLBACKS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;gpt-4o-mini&quot;</span><span class="p">,</span> <span class="s2">&quot;claude-haiku-4-5&quot;</span><span class="p">,</span> <span class="s2">&quot;local-llama&quot;</span><span class="p">]</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">complete_with_fallback</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">call</span><span class="p">):</span>
+    <span class="n">last</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">for</span> <span class="n">model</span> <span class="ow">in</span> <span class="n">FALLBACKS</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">model</span><span class="p">,</span> <span class="n">call</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">prompt</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>          <span class="c1"># rate limit, outage, timeout</span>
+            <span class="n">last</span> <span class="o">=</span> <span class="n">e</span>
+    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;all providers failed&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">last</span>
+</code></pre></div>
+
+<p><strong>Reading the code.</strong> The loop tries providers in order and returns <em>which</em> model answered, which you should log. Pin exact model versions where the provider allows, and re-run evals whenever a provider announces a change.</p>
+<div class="read"><strong>Read:</strong> <a href="https://cloud.google.com/architecture/mlops-continuous-delivery-and-automation-pipelines-in-machine-learning">Google: MLOps continuous delivery</a> · <a href="https://huyenchip.com/2023/04/11/llm-engineering.html">Chip Huyen: Building LLM applications for production</a> · <a href="https://docs.litellm.ai/docs/routing">LiteLLM: routing and fallbacks</a></div>
+<h2 id="m6-boss" class="special">Boss level — The Retrieval Bake-Off</h2>
+<blockquote class="callout boss">
+<p><strong>Boss level.</strong> “The Service” + “The Control Room”: containerise the policy assistant, deploy it to ECS Fargate via GitHub Actions with Terraform-managed infra, trace it in LangSmith, export metrics to Prometheus/Grafana, and present a one-page reliability report with p95, success rate, and cost per 1,000 questions.</p>
+</blockquote>
+<p><strong>Suggested steps.</strong></p>
+<ol>
+<li>Wrap the assistant in FastAPI with auth, rate limiting and <code>/healthz</code> (6.1).</li>
+<li>Write the Dockerfile and Compose file; keep the image slim and non-root (6.2).</li>
+<li>Define ECR, S3 and the ECS service in Terraform with remote state (6.7, 6.8).</li>
+<li>Build the Actions pipeline with tests, prompt regression and OIDC deploy (6.3, 6.15).</li>
+<li>Load secrets from Secrets Manager with a narrowly scoped role (6.9).</li>
+<li>Add correlation ids and LangSmith tracing (6.11, 6.12).</li>
+<li>Load test with Locust, set SLOs, and write the one-page report (6.13).</li>
+</ol>
+<h2 id="m6-glossary" class="special">Appendix A — Glossary</h2>
+<div class="tblwrap"><table><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody><tr><td><strong>SSE</strong></td><td>Server-sent events: a one-way stream of messages over HTTP.</td></tr><tr><td><strong>Image / container</strong></td><td>An image is the packaged app; a container is a running instance of it.</td></tr><tr><td><strong>CI/CD</strong></td><td>Automatically testing, building and deploying every change.</td></tr><tr><td><strong>OIDC</strong></td><td>Short-lived cloud credentials issued to CI without stored keys.</td></tr><tr><td><strong>Pod</strong></td><td>The smallest running unit in Kubernetes, one or more containers.</td></tr><tr><td><strong>HPA</strong></td><td>Horizontal Pod Autoscaler: adds or removes pods based on a metric.</td></tr><tr><td><strong>Helm chart</strong></td><td>A templated, versioned package of Kubernetes manifests.</td></tr><tr><td><strong>Ingress</strong></td><td>Rules that route external HTTP traffic to cluster services.</td></tr><tr><td><strong>Terraform state</strong></td><td>The record of which real resources Terraform manages.</td></tr><tr><td><strong>Fargate</strong></td><td>AWS serverless compute for containers.</td></tr><tr><td><strong>Spot instance</strong></td><td>Discounted spare capacity that can be reclaimed at short notice.</td></tr><tr><td><strong>Trace</strong></td><td>A tree of timed steps showing how one request was handled.</td></tr><tr><td><strong>Correlation id</strong></td><td>A unique id carried through all services for one request.</td></tr><tr><td><strong>SLI / SLO</strong></td><td>A measured indicator and the target you promise for it.</td></tr><tr><td><strong>Error budget</strong></td><td>The amount of failure your SLO allows.</td></tr><tr><td><strong>LLMOps</strong></td><td>Operating LLM systems: quality, cost, prompt and model versions.</td></tr></tbody></table></div>
+<h2 id="m6-debug" class="special">Appendix B — Debugging checklist for a failing RAG answer</h2>
+<p>Work down the list in order; most problems are in the first four items.</p><ol><li><strong>Does it run in the container the same way?</strong> Run the exact image locally with the same env vars (6.2).</li><li><strong>Did CI fail on evals?</strong> Open the failing case; check for judge flakiness before blaming the prompt (6.15).</li><li><strong>Is a pod crash-looping?</strong> kubectl logs and describe; check readiness probe and memory limit (6.5).</li><li><strong>Is streaming cut off or buffered?</strong> Raise ingress timeouts and disable buffering for SSE (6.6).</li><li><strong>Did Terraform plan show a destroy?</strong> Stop and read it; check for manual console changes (6.7).</li><li><strong>Is the secret missing at startup?</strong> Check the task role, secret ARN and settings class (6.4, 6.9).</li><li><strong>Is latency high but CPU low?</strong> The service is I/O-bound; scale on latency or request rate (6.5).</li><li><strong>Cannot trace one request?</strong> Confirm the correlation id is logged and propagated (6.12).</li><li><strong>Is cost above plan?</strong> Compare cost per request to the SLO and check always-on GPUs (6.10, 6.13).</li><li><strong>Did quality drop after a provider change?</strong> Re-run the full eval suite and compare traces (6.11, 6.16).</li></ol>
+<h2 id="m6-quiz" class="special">Appendix C — Final self-assessment</h2>
+<p>Answer without looking. Anything you cannot explain in two sentences is a chapter to revisit.</p>
+<details>
+<summary>1. Why does a blocking call in an async handler hurt?</summary>
+<p>It freezes the event loop for all users. (6.1)</p>
+</details>
+<details>
+<summary>2. Why copy requirements.txt before the code?</summary>
+<p>So dependency layers stay cached when only code changes. (6.2)</p>
+</details>
+<details>
+<summary>3. What does OIDC avoid in CI?</summary>
+<p>Long-lived cloud keys stored as secrets. (6.3)</p>
+</details>
+<details>
+<summary>4. Why use a typed settings class?</summary>
+<p>It fails fast at startup if config is missing. (6.4)</p>
+</details>
+<details>
+<summary>5. Requests vs limits?</summary>
+<p>Requests are reserved by the scheduler; limits are the ceiling. (6.5)</p>
+</details>
+<details>
+<summary>6. Why scale an LLM API on latency, not CPU?</summary>
+<p>It is I/O-bound, so CPU stays low while requests queue. (6.5)</p>
+</details>
+<details>
+<summary>7. What does helm rollback do?</summary>
+<p>Returns to a previous numbered release. (6.6)</p>
+</details>
+<details>
+<summary>8. Why use remote state with locking?</summary>
+<p>Prevents lost state and concurrent applies. (6.7)</p>
+</details>
+<details>
+<summary>9. What is a presigned URL?</summary>
+<p>A temporary link to a private S3 object. (6.8)</p>
+</details>
+<details>
+<summary>10. Why scope secret access to specific ARNs?</summary>
+<p>Least privilege limits damage if a role is compromised. (6.9)</p>
+</details>
+<details>
+<summary>11. Which workloads suit spot capacity?</summary>
+<p>Batch embedding and training with checkpoints. (6.10)</p>
+</details>
+<details>
+<summary>12. What does a trace show?</summary>
+<p>The timed tree of calls, tokens and cost for one request. (6.11)</p>
+</details>
+<details>
+<summary>13. Why return the request id in the response?</summary>
+<p>Users can quote it to find the exact logs. (6.12)</p>
+</details>
+<details>
+<summary>14. What is the “knee” in a load test?</summary>
+<p>The load where latency suddenly explodes. (6.13)</p>
+</details>
+<details>
+<summary>15. What do moderation APIs not catch?</summary>
+<p>Your business-policy violations. (6.14)</p>
+</details>
+<details>
+<summary>16. Why track provider and prompt versions?</summary>
+<p>Non-deterministic systems can change behaviour silently. (6.16)</p>
+</details>
+<p><a href="m5.html">← Module 5</a> · <a href="m7.html">Next: Module 7 — Forward deployed engineering →</a></p>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+(function(){
+  // mermaid (needs internet; falls back to showing the diagram source)
+  try{
+    var dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    if(window.mermaid){ mermaid.initialize({startOnLoad:true, theme: dark ? "dark" : "default", securityLevel:"strict"}); }
+  }catch(e){}
+
+  // wrap tables for horizontal scroll
+  document.querySelectorAll("main table").forEach(function(t){
+    var w=document.createElement("div"); w.className="tblwrap"; t.parentNode.insertBefore(w,t); w.appendChild(t);
+  });
+
+  // reading progress
+  var bar=document.getElementById("progress");
+  function prog(){var h=document.documentElement; var p=h.scrollTop/(h.scrollHeight-h.clientHeight||1); bar.style.width=(p*100)+"%";}
+  window.addEventListener("scroll",prog,{passive:true}); prog();
+
+  // scroll-spy
+  var links={}; document.querySelectorAll("#toc a").forEach(function(a){links[a.dataset.id]=a;});
+  var obs=new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if(e.isIntersecting){
+        Object.values(links).forEach(function(l){l.classList.remove("active");});
+        var a=links[e.target.id]; if(a){a.classList.add("active"); a.scrollIntoView({block:"nearest"});}
+      }
+    });
+  },{rootMargin:"-10% 0px -80% 0px"});
+  document.querySelectorAll("main h2[id]").forEach(function(h){obs.observe(h);});
+
+  // buttons
+  var all=false, ex=document.getElementById("expand");
+  ex.addEventListener("click",function(){
+    all=!all; document.querySelectorAll("main details").forEach(function(d){d.open=all;});
+    ex.textContent= all ? "Hide all answers" : "Show all answers";
+  });
+  document.getElementById("theme").addEventListener("click",function(){
+    var r=document.documentElement, cur=r.getAttribute("data-theme");
+    var isDark = cur ? cur==="dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    r.setAttribute("data-theme", isDark ? "light" : "dark");
+  });
+  document.getElementById("print").addEventListener("click",function(){window.print();});
+  window.addEventListener("beforeprint",function(){document.querySelectorAll("main details").forEach(function(d){d.open=true;});});
+})();
 </script>
-<script src="notes.js"></script>
 </body>
 </html>

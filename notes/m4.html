@@ -1,521 +1,1097 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Module 4 notes — Advanced RAG & LLM Fine-Tuning</title>
-  <link rel="stylesheet" href="notes.css" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Module 4 booklet — Advanced RAG &amp; LLM Fine-Tuning</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f3f5f8; --paper:#ffffff; --ink:#16202e; --muted:#5b6778; --line:#dde3ea;
+  --accent:#0a6c8f; --accent-soft:#e3f1f6;
+  --trap:#a4440b; --trap-soft:#fdf0e6;
+  --why:#4b3fa0; --why-soft:#eeecfa;
+  --tip:#12724a; --tip-soft:#e6f5ee;
+  --boss:#8a1c3a; --boss-soft:#fbe9ee;
+  --code-bg:#f6f8fa; --code-ink:#1f2933; --inline-bg:#e9eef3;
+  --head:"Space Grotesk","Segoe UI",system-ui,sans-serif;
+  --body:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e141c; --paper:#151d28; --ink:#e4e9f0; --muted:#97a3b4; --line:#27323f;
+    --accent:#52b8da; --accent-soft:#12303c;
+    --trap:#f2a066; --trap-soft:#2c1e14;
+    --why:#b3a8ff; --why-soft:#211e3a;
+    --tip:#6fd3a0; --tip-soft:#14291f;
+    --boss:#ff8fab; --boss-soft:#341822;
+    --code-bg:#0b1118; --code-ink:#e6edf3; --inline-bg:#202b38;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e141c; --paper:#151d28; --ink:#e4e9f0; --muted:#97a3b4; --line:#27323f;
+  --accent:#52b8da; --accent-soft:#12303c;
+  --trap:#f2a066; --trap-soft:#2c1e14;
+  --why:#b3a8ff; --why-soft:#211e3a;
+  --tip:#6fd3a0; --tip-soft:#14291f;
+  --boss:#ff8fab; --boss-soft:#341822;
+  --code-bg:#0b1118; --code-ink:#e6edf3; --inline-bg:#202b38;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:18px;line-height:1.7}
+.bar{position:sticky;top:0;z-index:20;display:flex;gap:16px;align-items:center;flex-wrap:wrap;
+  padding:10px 20px;background:var(--paper);border-bottom:1px solid var(--line);font-family:var(--head);font-size:14px}
+.bar a{color:var(--accent);text-decoration:none}
+.bar a:hover{text-decoration:underline}
+.bar .grow{flex:1}
+.bar button{font:inherit;background:none;border:1px solid var(--line);color:var(--ink);padding:4px 10px;border-radius:6px;cursor:pointer}
+.bar button:hover{border-color:var(--accent)}
+#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:30}
+.wrap{display:grid;grid-template-columns:290px minmax(0,1fr);gap:0;max-width:1280px;margin:0 auto}
+nav#toc{position:sticky;top:52px;align-self:start;height:calc(100vh - 52px);overflow:auto;
+  padding:24px 12px 40px 20px;font-family:var(--head);font-size:14px;border-right:1px solid var(--line)}
+nav#toc h4{margin:0 0 10px;font-size:13px;color:var(--muted);font-weight:600}
+nav#toc a{display:flex;gap:10px;padding:6px 8px;border-radius:6px;color:var(--ink);text-decoration:none;line-height:1.35}
+nav#toc a b{min-width:30px;color:var(--muted);font-weight:600}
+nav#toc a:hover{background:var(--accent-soft)}
+nav#toc a.active{background:var(--accent-soft);color:var(--accent)}
+nav#toc a.active b{color:var(--accent)}
+main#content{padding:36px clamp(18px,4vw,56px) 80px;max-width:860px}
+.cover{padding:8px 0 28px;border-bottom:2px solid var(--ink);margin-bottom:28px}
+.cover h1{font-family:var(--head);font-size:clamp(30px,4.4vw,46px);line-height:1.1;margin:0 0 14px;letter-spacing:-.02em}
+.cover .sub{font-family:var(--head);font-size:15px;color:var(--muted);margin:0}
+.hero-note{margin:18px 0 0;padding:14px 18px;background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:0 8px 8px 0;font-size:19px}
+h2{font-family:var(--head);font-size:clamp(25px,3vw,32px);line-height:1.2;margin:68px 0 14px;padding-top:26px;border-top:1px solid var(--line);letter-spacing:-.01em;display:flex;gap:14px;align-items:baseline}
+h2 .chnum{flex:none;font-size:.62em;font-weight:600;color:var(--paper);background:var(--accent);padding:3px 10px;border-radius:6px;position:relative;top:-3px}
+h3{font-family:var(--head);font-size:20px;margin:36px 0 8px;color:var(--accent)}
+p{margin:0 0 14px}
+a{color:var(--accent)}
+.oneline{font-size:20px;line-height:1.55;padding:12px 0;border-top:1px dashed var(--line);border-bottom:1px dashed var(--line)}
+.read{font-family:var(--head);font-size:15px;padding:12px 14px;background:var(--paper);border:1px solid var(--line);border-radius:8px;margin-top:22px}
+blockquote.callout{margin:18px 0;padding:12px 18px;border-radius:8px;border-left:4px solid var(--accent);background:var(--accent-soft)}
+blockquote.callout p{margin:0}
+blockquote.callout.trap{border-color:var(--trap);background:var(--trap-soft)}
+blockquote.callout.trap strong:first-child{color:var(--trap)}
+blockquote.callout.why{border-color:var(--why);background:var(--why-soft)}
+blockquote.callout.why strong:first-child{color:var(--why)}
+blockquote.callout.tip{border-color:var(--tip);background:var(--tip-soft)}
+blockquote.callout.tip strong:first-child{color:var(--tip)}
+blockquote.callout.boss{border-color:var(--boss);background:var(--boss-soft)}
+blockquote.callout.boss strong:first-child{color:var(--boss)}
+blockquote.callout.analogy strong:first-child{color:var(--accent)}
+code{font-family:var(--mono);font-size:.84em;background:var(--inline-bg);padding:1px 6px;border-radius:4px}
+.hl{margin:16px 0;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;overflow-x:auto}
+.hl pre{margin:0;padding:14px 16px;line-height:1.55;font-size:14px;color:var(--code-ink)}
+.hl pre{font-family:var(--mono)}
+.hl code{font-family:var(--mono);background:none;padding:0;font-size:inherit}
+.hl pre{font-size:14px}
+pre.mermaid{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:16px;text-align:center;overflow-x:auto;font-family:var(--mono);font-size:13px;white-space:pre}
+.tblwrap{overflow-x:auto;margin:16px 0}
+table{border-collapse:collapse;width:100%;font-family:var(--head);font-size:15px;background:var(--paper)}
+th,td{border:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top;line-height:1.45}
+th{background:var(--accent-soft);font-weight:600}
+td code,th code{font-size:.9em}
+details{margin:12px 0;border:1px solid var(--line);border-radius:8px;background:var(--paper)}
+summary{cursor:pointer;padding:10px 14px;font-family:var(--head);font-size:15px;font-weight:600;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:700}
+details[open] summary::before{content:"−"}
+details[open] summary{border-bottom:1px solid var(--line)}
+details > :not(summary){margin-left:16px;margin-right:16px}
+details > :nth-child(2){margin-top:12px}
+details > :last-child{margin-bottom:14px}
+ol,ul{padding-left:26px}
+li{margin:4px 0}
+li>p{margin:0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:900px){
+  .wrap{grid-template-columns:1fr}
+  nav#toc{position:static;height:auto;max-height:260px;border-right:0;border-bottom:1px solid var(--line)}
+  body{font-size:17px}
+}
+@media print{
+  :root{--bg:#fff;--paper:#fff}
+  .bar,nav#toc,#progress{display:none}
+  .wrap{display:block}
+  body{font-size:11.5pt}
+  main#content{max-width:none;padding:0}
+  h2{break-before:page;margin-top:0;border-top:0}
+  .cover+*+h2,h2:first-of-type{break-before:auto}
+  pre,table,blockquote,details{break-inside:avoid}
+  .hl{overflow:visible}.hl pre{white-space:pre-wrap}
+  @page{margin:18mm 16mm}
+}
+
+/* code colours */
+.hl .hll{background:none}
+pre { line-height: 125%; }
+td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+
+
+.hl .c { color: #3D7B7B; font-style: italic } /* Comment */
+.hl .err { border: 1px solid #F00 } /* Error */
+.hl .k { color: #008000; font-weight: bold } /* Keyword */
+.hl .o { color: #666 } /* Operator */
+.hl .ch { color: #3D7B7B; font-style: italic } /* Comment.Hashbang */
+.hl .cm { color: #3D7B7B; font-style: italic } /* Comment.Multiline */
+.hl .cp { color: #9C6500 } /* Comment.Preproc */
+.hl .cpf { color: #3D7B7B; font-style: italic } /* Comment.PreprocFile */
+.hl .c1 { color: #3D7B7B; font-style: italic } /* Comment.Single */
+.hl .cs { color: #3D7B7B; font-style: italic } /* Comment.Special */
+.hl .gd { color: #A00000 } /* Generic.Deleted */
+.hl .ge { font-style: italic } /* Generic.Emph */
+.hl .ges { font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.hl .gr { color: #E40000 } /* Generic.Error */
+.hl .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+.hl .gi { color: #008400 } /* Generic.Inserted */
+.hl .go { color: #717171 } /* Generic.Output */
+.hl .gp { color: #000080; font-weight: bold } /* Generic.Prompt */
+.hl .gs { font-weight: bold } /* Generic.Strong */
+.hl .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+.hl .gt { color: #04D } /* Generic.Traceback */
+.hl .kc { color: #008000; font-weight: bold } /* Keyword.Constant */
+.hl .kd { color: #008000; font-weight: bold } /* Keyword.Declaration */
+.hl .kn { color: #008000; font-weight: bold } /* Keyword.Namespace */
+.hl .kp { color: #008000 } /* Keyword.Pseudo */
+.hl .kr { color: #008000; font-weight: bold } /* Keyword.Reserved */
+.hl .kt { color: #B00040 } /* Keyword.Type */
+.hl .m { color: #666 } /* Literal.Number */
+.hl .s { color: #BA2121 } /* Literal.String */
+.hl .na { color: #687822 } /* Name.Attribute */
+.hl .nb { color: #008000 } /* Name.Builtin */
+.hl .nc { color: #00F; font-weight: bold } /* Name.Class */
+.hl .no { color: #800 } /* Name.Constant */
+.hl .nd { color: #A2F } /* Name.Decorator */
+.hl .ni { color: #717171; font-weight: bold } /* Name.Entity */
+.hl .ne { color: #CB3F38; font-weight: bold } /* Name.Exception */
+.hl .nf { color: #00F } /* Name.Function */
+.hl .nl { color: #767600 } /* Name.Label */
+.hl .nn { color: #00F; font-weight: bold } /* Name.Namespace */
+.hl .nt { color: #008000; font-weight: bold } /* Name.Tag */
+.hl .nv { color: #19177C } /* Name.Variable */
+.hl .ow { color: #A2F; font-weight: bold } /* Operator.Word */
+.hl .w { color: #BBB } /* Text.Whitespace */
+.hl .mb { color: #666 } /* Literal.Number.Bin */
+.hl .mf { color: #666 } /* Literal.Number.Float */
+.hl .mh { color: #666 } /* Literal.Number.Hex */
+.hl .mi { color: #666 } /* Literal.Number.Integer */
+.hl .mo { color: #666 } /* Literal.Number.Oct */
+.hl .sa { color: #BA2121 } /* Literal.String.Affix */
+.hl .sb { color: #BA2121 } /* Literal.String.Backtick */
+.hl .sc { color: #BA2121 } /* Literal.String.Char */
+.hl .dl { color: #BA2121 } /* Literal.String.Delimiter */
+.hl .sd { color: #BA2121; font-style: italic } /* Literal.String.Doc */
+.hl .s2 { color: #BA2121 } /* Literal.String.Double */
+.hl .se { color: #AA5D1F; font-weight: bold } /* Literal.String.Escape */
+.hl .sh { color: #BA2121 } /* Literal.String.Heredoc */
+.hl .si { color: #A45A77; font-weight: bold } /* Literal.String.Interpol */
+.hl .sx { color: #008000 } /* Literal.String.Other */
+.hl .sr { color: #A45A77 } /* Literal.String.Regex */
+.hl .s1 { color: #BA2121 } /* Literal.String.Single */
+.hl .ss { color: #19177C } /* Literal.String.Symbol */
+.hl .bp { color: #008000 } /* Name.Builtin.Pseudo */
+.hl .fm { color: #00F } /* Name.Function.Magic */
+.hl .vc { color: #19177C } /* Name.Variable.Class */
+.hl .vg { color: #19177C } /* Name.Variable.Global */
+.hl .vi { color: #19177C } /* Name.Variable.Instance */
+.hl .vm { color: #19177C } /* Name.Variable.Magic */
+.hl .il { color: #666 } /* Literal.Number.Integer.Long */
+@media (prefers-color-scheme:dark){
+:root:not([data-theme="light"]) .hl span{color:revert}
+pre { line-height: 125%; }
+td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+
+
+.hl .c { color: #959077 } /* Comment */
+.hl .err { color: #ED007E; background-color: #1E0010 } /* Error */
+.hl .esc { color: #F8F8F2 } /* Escape */
+.hl .g { color: #F8F8F2 } /* Generic */
+.hl .k { color: #66D9EF } /* Keyword */
+.hl .l { color: #AE81FF } /* Literal */
+.hl .n { color: #F8F8F2 } /* Name */
+.hl .o { color: #FF4689 } /* Operator */
+.hl .x { color: #F8F8F2 } /* Other */
+.hl .p { color: #F8F8F2 } /* Punctuation */
+.hl .ch { color: #959077 } /* Comment.Hashbang */
+.hl .cm { color: #959077 } /* Comment.Multiline */
+.hl .cp { color: #959077 } /* Comment.Preproc */
+.hl .cpf { color: #959077 } /* Comment.PreprocFile */
+.hl .c1 { color: #959077 } /* Comment.Single */
+.hl .cs { color: #959077 } /* Comment.Special */
+.hl .gd { color: #FF4689 } /* Generic.Deleted */
+.hl .ge { color: #F8F8F2; font-style: italic } /* Generic.Emph */
+.hl .ges { color: #F8F8F2; font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.hl .gr { color: #F8F8F2 } /* Generic.Error */
+.hl .gh { color: #F8F8F2 } /* Generic.Heading */
+.hl .gi { color: #A6E22E } /* Generic.Inserted */
+.hl .go { color: #66D9EF } /* Generic.Output */
+.hl .gp { color: #FF4689; font-weight: bold } /* Generic.Prompt */
+.hl .gs { color: #F8F8F2; font-weight: bold } /* Generic.Strong */
+.hl .gu { color: #959077 } /* Generic.Subheading */
+.hl .gt { color: #F8F8F2 } /* Generic.Traceback */
+.hl .kc { color: #66D9EF } /* Keyword.Constant */
+.hl .kd { color: #66D9EF } /* Keyword.Declaration */
+.hl .kn { color: #FF4689 } /* Keyword.Namespace */
+.hl .kp { color: #66D9EF } /* Keyword.Pseudo */
+.hl .kr { color: #66D9EF } /* Keyword.Reserved */
+.hl .kt { color: #66D9EF } /* Keyword.Type */
+.hl .ld { color: #E6DB74 } /* Literal.Date */
+.hl .m { color: #AE81FF } /* Literal.Number */
+.hl .s { color: #E6DB74 } /* Literal.String */
+.hl .na { color: #A6E22E } /* Name.Attribute */
+.hl .nb { color: #F8F8F2 } /* Name.Builtin */
+.hl .nc { color: #A6E22E } /* Name.Class */
+.hl .no { color: #66D9EF } /* Name.Constant */
+.hl .nd { color: #A6E22E } /* Name.Decorator */
+.hl .ni { color: #F8F8F2 } /* Name.Entity */
+.hl .ne { color: #A6E22E } /* Name.Exception */
+.hl .nf { color: #A6E22E } /* Name.Function */
+.hl .nl { color: #F8F8F2 } /* Name.Label */
+.hl .nn { color: #F8F8F2 } /* Name.Namespace */
+.hl .nx { color: #A6E22E } /* Name.Other */
+.hl .py { color: #F8F8F2 } /* Name.Property */
+.hl .nt { color: #FF4689 } /* Name.Tag */
+.hl .nv { color: #F8F8F2 } /* Name.Variable */
+.hl .ow { color: #FF4689 } /* Operator.Word */
+.hl .pm { color: #F8F8F2 } /* Punctuation.Marker */
+.hl .w { color: #F8F8F2 } /* Text.Whitespace */
+.hl .mb { color: #AE81FF } /* Literal.Number.Bin */
+.hl .mf { color: #AE81FF } /* Literal.Number.Float */
+.hl .mh { color: #AE81FF } /* Literal.Number.Hex */
+.hl .mi { color: #AE81FF } /* Literal.Number.Integer */
+.hl .mo { color: #AE81FF } /* Literal.Number.Oct */
+.hl .sa { color: #E6DB74 } /* Literal.String.Affix */
+.hl .sb { color: #E6DB74 } /* Literal.String.Backtick */
+.hl .sc { color: #E6DB74 } /* Literal.String.Char */
+.hl .dl { color: #E6DB74 } /* Literal.String.Delimiter */
+.hl .sd { color: #E6DB74 } /* Literal.String.Doc */
+.hl .s2 { color: #E6DB74 } /* Literal.String.Double */
+.hl .se { color: #AE81FF } /* Literal.String.Escape */
+.hl .sh { color: #E6DB74 } /* Literal.String.Heredoc */
+.hl .si { color: #E6DB74 } /* Literal.String.Interpol */
+.hl .sx { color: #E6DB74 } /* Literal.String.Other */
+.hl .sr { color: #E6DB74 } /* Literal.String.Regex */
+.hl .s1 { color: #E6DB74 } /* Literal.String.Single */
+.hl .ss { color: #E6DB74 } /* Literal.String.Symbol */
+.hl .bp { color: #F8F8F2 } /* Name.Builtin.Pseudo */
+.hl .fm { color: #A6E22E } /* Name.Function.Magic */
+.hl .vc { color: #F8F8F2 } /* Name.Variable.Class */
+.hl .vg { color: #F8F8F2 } /* Name.Variable.Global */
+.hl .vi { color: #F8F8F2 } /* Name.Variable.Instance */
+.hl .vm { color: #F8F8F2 } /* Name.Variable.Magic */
+.hl .il { color: #AE81FF } /* Literal.Number.Integer.Long */
+}
+</style>
 </head>
 <body>
-  <header class="bar">
-    <a href="../index.html">← Tutorials</a>
-    <a href="index.html">All notes</a>
-    <a href="m3.html">← Module 3</a>
-    <a href="m5.html">Module 5 →</a>
-    <span>Module 4 · Advanced RAG & tuning</span>
-  </header>
-  <div class="wrap">
-    <nav id="toc"></nav>
-    <main id="content"><p>Loading notes…</p></main>
-  </div>
-<script type="text/markdown" id="md">
-# Module 4 — Advanced RAG & LLM Fine-Tuning
+<div id="progress"></div>
+<header class="bar">
+  <a href="m3.html">← Module 3</a>
+  <a href="m5.html">Module 5 →</a>
+  <span class="grow"></span>
+  <button id="expand" type="button">Show all answers</button>
+  <button id="theme" type="button">Theme</button>
+  <button id="print" type="button">Print / PDF</button>
+</header>
+<div class="wrap">
+  <nav id="toc" aria-label="Chapters"><h4>Contents</h4>
+<a href="#m4-intro" data-id="m4-intro"><b>•</b><span>How to use this booklet</span></a>
+<a href="#m4-multihop" data-id="m4-multihop"><b>4.1</b><span>Query rewriting and multi-hop retrieval</span></a>
+<a href="#m4-rerank" data-id="m4-rerank"><b>4.2</b><span>Cross-encoder reranking as a pipeline stage</span></a>
+<a href="#m4-crag" data-id="m4-crag"><b>4.3</b><span>Self-correcting RAG — CRAG, Self-RAG, agentic RAG</span></a>
+<a href="#m4-qlora" data-id="m4-qlora"><b>4.4</b><span>LoRA and QLoRA (bitsandbytes 4-bit)</span></a>
+<a href="#m4-peft" data-id="m4-peft"><b>4.5</b><span>Adapters, prefix tuning — transformers, PEFT, datasets</span></a>
+<a href="#m4-axolotl" data-id="m4-axolotl"><b>4.6</b><span>Fine-tuning with Axolotl (YAML)</span></a>
+<a href="#m4-gpu" data-id="m4-gpu"><b>4.7</b><span>GPU rental — RunPod and vast.ai</span></a>
+<a href="#m4-align" data-id="m4-align"><b>4.8</b><span>Distillation, RLHF, and DPO with TRL</span></a>
+<a href="#m4-wandb" data-id="m4-wandb"><b>4.9</b><span>Training monitoring with Weights &amp; Biases</span></a>
+<a href="#m4-ollama" data-id="m4-ollama"><b>4.10</b><span>Ollama for local inference</span></a>
+<a href="#m4-gguf" data-id="m4-gguf"><b>4.11</b><span>GGUF quantisation — Q4_K_M and Q8_0</span></a>
+<a href="#m4-models" data-id="m4-models"><b>4.12</b><span>Llama 3, Phi-3, Mistral</span></a>
+<a href="#m4-tradeoff" data-id="m4-tradeoff"><b>4.13</b><span>Model selection and cost–performance trade-offs</span></a>
+<a href="#m4-boss" data-id="m4-boss"><b>•</b><span>Boss level — The Retrieval Bake-Off</span></a>
+<a href="#m4-glossary" data-id="m4-glossary"><b>•</b><span>Appendix A — Glossary</span></a>
+<a href="#m4-debug" data-id="m4-debug"><b>•</b><span>Appendix B — Debugging checklist for a failing RAG answer</span></a>
+<a href="#m4-quiz" data-id="m4-quiz"><b>•</b><span>Appendix C — Final self-assessment</span></a>
+  </nav>
+  <main id="content">
+<div class="cover">
+      <h1>Module 4 — Advanced RAG &amp; LLM Fine-Tuning</h1>
+      <p class="sub">Detailed study booklet · 13 chapters, code walkthroughs, source links, and appendices</p>
+      <p class="hero-note">Quest: the client asks, “Should we fine-tune, use RAG, or run our own model?” By the end of these three weeks you answer with a cost-and-quality table, not a vibe.</p>
+    </div>
+<h2 id="m4-intro" class="special">How to use this booklet</h2><p>This booklet expands the Module 4 notes. Module 3 built a baseline RAG system; here you make retrieval smarter (rewriting, reranking, self-correction), then learn when and how to <strong>fine-tune</strong> or <strong>self-host</strong> a model, and how to justify the choice with a cost-and-quality table.</p>
+<table>
+<thead>
+<tr>
+<th>Part</th>
+<th>What you get</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>In one line / Analogy</td>
+<td>The idea and a mental model</td>
+</tr>
+<tr>
+<td>Core ideas</td>
+<td>How it works and when to use it</td>
+</tr>
+<tr>
+<td>Code + Reading the code</td>
+<td>Snippets and what each part does</td>
+</tr>
+<tr>
+<td>Trap</td>
+<td>The mistake most people make</td>
+</tr>
+<tr>
+<td>Read</td>
+<td>Links to the best primary sources</td>
+</tr>
+</tbody>
+</table>
+<pre class="mermaid">flowchart TD
+  Q["What is wrong today?"] --&gt; K{"Missing or changing knowledge?"}
+  K --&gt;|yes| RAG["RAG: fix retrieval first"]
+  K --&gt;|no| B{"Wrong format, tone, or narrow skill?"}
+  B --&gt;|yes| FT["Fine-tune a small model: LoRA or QLoRA"]
+  B --&gt;|no| C{"Data cannot leave the building or cost too high?"}
+  C --&gt;|yes| LOCAL["Local or self-hosted model"]
+  C --&gt;|no| PROMPT["Better prompting and a bigger model"]</pre>
 
-<p class="hero-note">Quest: the client asks, “Should we fine-tune, use RAG, or run our own model?” By the end of these three weeks you answer with a cost-and-quality table, not a vibe.</p>
+<blockquote class="callout tip">
+<p><strong>Tip.</strong> Chapters 4.1 to 4.3 are advanced RAG, 4.4 to 4.9 are fine-tuning, 4.10 to 4.12 are running models locally, and 4.13 turns it all into a decision. Always try prompting and RAG before fine-tuning.</p>
+</blockquote>
+<h2 id="m4-multihop"><span class="chnum">4.1</span>Query rewriting and multi-hop retrieval</h2>
+<p class="oneline"><strong>In one line:</strong> rewrite vague questions into good search queries, and for questions that need several facts, decompose them and retrieve once per hop.</p>
 
-```mermaid
-flowchart TD
-  Q["What is wrong today?"] --> K{"Missing or changing knowledge?"}
-  K -->|yes| RAG["RAG: fix retrieval first"]
-  K -->|no| B{"Wrong format, tone, or narrow skill?"}
-  B -->|yes| FT["Fine-tune a small model: LoRA or QLoRA"]
-  B -->|no| C{"Data cannot leave the building or cost too high?"}
-  C -->|yes| LOCAL["Local or self-hosted model"]
-  C -->|no| PROMPT["Better prompting and a bigger model"]
-```
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> “Who approved the vendor that caused last month’s outage?” is two questions wearing a trench coat: (1) which vendor caused the outage, (2) who approved that vendor.</p>
+</blockquote>
+<h3 id="m4-multihop--core-ideas">Core ideas</h3>
+<p>Users type short, ambiguous questions; documents use different words. A rewriting step fixes the query <em>before</em> retrieval. For multi-part questions, the answer to hop 1 becomes input to hop 2, so a single search can never find both facts.</p>
+<pre class="mermaid">flowchart LR
+  Q["Complex question"] --&gt; D["Decompose into sub-questions"]
+  D --&gt; H1["Hop 1: retrieve + answer"]
+  H1 --&gt; H2["Hop 2: query uses hop 1 answer"]
+  H2 --&gt; S["Synthesise with citations from each hop"]</pre>
 
-## 4.1 Query rewriting and multi-hop retrieval {#m4-multihop}
+<h3 id="m4-multihop--code">Code</h3>
+<div class="hl"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">langchain_openai</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChatOpenAI</span>
+<span class="n">llm</span> <span class="o">=</span> <span class="n">ChatOpenAI</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&quot;gpt-4o-mini&quot;</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
-**In one line:** rewrite vague questions into good search queries, and for questions that need several facts, decompose them and retrieve once per hop.
+<span class="k">def</span><span class="w"> </span><span class="nf">decompose</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">llm</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Break this into the minimal ordered sub-questions, one per line:</span><span class="se">\n</span><span class="si">{</span><span class="n">q</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">content</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;- &quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">text</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()</span> <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()]</span>
 
-> **Analogy.** “Who approved the vendor that caused last month’s outage?” is two questions wearing a trench coat: (1) which vendor caused the outage, (2) who approved that vendor.
+<span class="k">def</span><span class="w"> </span><span class="nf">multi_hop</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">retriever</span><span class="p">):</span>
+    <span class="n">notes</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">sub</span> <span class="ow">in</span> <span class="n">decompose</span><span class="p">(</span><span class="n">q</span><span class="p">):</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">llm</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Known so far: </span><span class="si">{</span><span class="n">notes</span><span class="si">}</span><span class="se">\n</span><span class="s2">Rewrite as a search query: </span><span class="si">{</span><span class="n">sub</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">content</span>
+        <span class="n">docs</span> <span class="o">=</span> <span class="n">retriever</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+        <span class="n">ans</span> <span class="o">=</span> <span class="n">llm</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Answer briefly from context only.</span><span class="se">\n</span><span class="s2">Context: </span><span class="si">{</span><span class="n">docs</span><span class="si">}</span><span class="se">\n</span><span class="s2">Q: </span><span class="si">{</span><span class="n">sub</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">content</span>
+        <span class="n">notes</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;q&quot;</span><span class="p">:</span> <span class="n">sub</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">:</span> <span class="n">ans</span><span class="p">,</span> <span class="s2">&quot;sources&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">d</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;source&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">docs</span><span class="p">]})</span>
+    <span class="k">return</span> <span class="n">llm</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Answer &#39;</span><span class="si">{</span><span class="n">q</span><span class="si">}</span><span class="s2">&#39; using these findings and cite sources:</span><span class="se">\n</span><span class="si">{</span><span class="n">notes</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">content</span>
+</code></pre></div>
 
-```mermaid
-flowchart LR
-  Q["Complex question"] --> D["Decompose into sub-questions"]
-  D --> H1["Hop 1: retrieve + answer"]
-  H1 --> H2["Hop 2: query uses hop 1 answer"]
-  H2 --> S["Synthesise with citations from each hop"]
-```
+<p><strong>Reading the code.</strong> <code>notes</code> carries earlier answers into later rewrites, which is what makes it multi-hop. Sources are kept per hop so the final answer can cite each fact.</p>
+<p>Other tricks: <strong>multi-query</strong> (generate 3 to 5 paraphrases and union the results), <strong>step-back</strong> (ask a more general question first), and extracting <strong>filters</strong> (dates, product names) from the question.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Every hop multiplies latency and cost and can drift. Cap the hops (2 to 3), and stop early when a hop finds nothing.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://python.langchain.com/docs/how_to/MultiQueryRetriever/">LangChain MultiQueryRetriever</a> · <a href="https://arxiv.org/abs/2310.06117">Step-back prompting paper</a> · <a href="https://arxiv.org/abs/2205.10625">Least-to-most prompting paper</a></div>
+<h2 id="m4-rerank"><span class="chnum">4.2</span>Cross-encoder reranking as a pipeline stage</h2>
+<p class="oneline"><strong>In one line:</strong> in advanced RAG, reranking is not optional: retrieve wide (top 30–50), rerank, then keep a small, high-precision context.</p>
 
-```python
-from langchain_openai import ChatOpenAI
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> Casting: open auditions pull in 40 people; the director’s callback picks five; if nobody is good enough, you do not cast someone anyway.</p>
+</blockquote>
+<h3 id="m4-rerank--core-ideas">Core ideas</h3>
+<p>Wide retrieval protects <em>recall</em>; reranking restores <em>precision</em> so the prompt holds only strong passages. The reranker score also enables a <strong>threshold</strong>: if even the best passage scores low, answer “I don’t know” or ask a clarifying question instead of guessing.</p>
+<div class="hl"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">cohere</span>
+<span class="n">co</span> <span class="o">=</span> <span class="n">cohere</span><span class="o">.</span><span class="n">ClientV2</span><span class="p">()</span>   <span class="c1"># reads CO_API_KEY</span>
 
-def decompose(q: str) -> list[str]:
-    text = llm.invoke(f"Break this into the minimal ordered sub-questions, one per line:\n{q}").content
-    return [line.strip("- ").strip() for line in text.splitlines() if line.strip()]
+<span class="k">def</span><span class="w"> </span><span class="nf">rerank</span><span class="p">(</span><span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">docs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">top_n</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">co</span><span class="o">.</span><span class="n">rerank</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&quot;rerank-v3.5&quot;</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">documents</span><span class="o">=</span><span class="n">docs</span><span class="p">,</span> <span class="n">top_n</span><span class="o">=</span><span class="n">top_n</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">[(</span><span class="n">docs</span><span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">index</span><span class="p">],</span> <span class="n">x</span><span class="o">.</span><span class="n">relevance_score</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">results</span><span class="p">]</span>
+</code></pre></div>
 
-def multi_hop(q: str, retriever):
-    notes = []
-    for sub in decompose(q):
-        query = llm.invoke(f"Known so far: {notes}\nRewrite as a search query: {sub}").content
-        docs = retriever.invoke(query)
-        ans = llm.invoke(f"Answer briefly from context only.\nContext: {docs}\nQ: {sub}").content
-        notes.append({"q": sub, "a": ans, "sources": [d.metadata.get("source") for d in docs]})
-    return llm.invoke(f"Answer '{q}' using these findings and cite sources:\n{notes}").content
-```
+<pre class="mermaid">flowchart LR
+  R["Hybrid retrieve 40"] --&gt; RR["Rerank"] --&gt; T["Top 5"] --&gt; TH{"Best score above threshold?"}
+  TH --&gt;|yes| GEN["Generate"]
+  TH --&gt;|no| IDK["Say I don't know or ask a clarifying question"]</pre>
 
-Other rewriting tricks: **multi-query** (generate 3–5 paraphrases and union the results), **step-back** (ask a more general question first), and adding filters extracted from the question (dates, product names).
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> A reranker threshold tuned on one domain will not transfer to another. Re-tune on each client’s golden set.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://docs.cohere.com/docs/rerank-overview">Cohere Rerank docs</a> · <a href="https://sbert.net/docs/cross_encoder/usage/usage.html">Sentence Transformers cross-encoders</a></div>
+<h2 id="m4-crag"><span class="chnum">4.3</span>Self-correcting RAG — CRAG, Self-RAG, agentic RAG</h2>
+<p class="oneline"><strong>In one line:</strong> grade the retrieved documents; if they are weak, rewrite the query or search elsewhere; grade the answer for grounding before returning it.</p>
 
-> **Trap.** Every hop multiplies latency and cost and can drift. Cap the hops (2–3), and stop early when a hop finds nothing.
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> A student who checks the textbook, realises it is the wrong chapter, goes back, and finally checks their answer against the page before handing it in.</p>
+</blockquote>
+<pre class="mermaid">flowchart TD
+  Q["Question"] --&gt; RET["Retrieve"]
+  RET --&gt; G{"Docs relevant?"}
+  G --&gt;|yes| GEN["Generate"]
+  G --&gt;|no| RW["Rewrite query or web search"]
+  RW --&gt; RET
+  GEN --&gt; H{"Answer grounded in docs?"}
+  H --&gt;|yes| OUT["Return"]
+  H --&gt;|no| GEN</pre>
 
-**Read:** [LangChain MultiQueryRetriever](https://python.langchain.com/docs/how_to/MultiQueryRetriever/) · [Step-back prompting paper](https://arxiv.org/abs/2310.06117) · [Least-to-most prompting paper](https://arxiv.org/abs/2205.10625)
+<h3 id="m4-crag--code">Code</h3>
+<div class="hl"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TypedDict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langgraph.graph</span><span class="w"> </span><span class="kn">import</span> <span class="n">StateGraph</span><span class="p">,</span> <span class="n">START</span><span class="p">,</span> <span class="n">END</span>
 
-## 4.2 Cross-encoder reranking as a pipeline stage {#m4-rerank}
+<span class="k">class</span><span class="w"> </span><span class="nc">S</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+    <span class="n">question</span><span class="p">:</span> <span class="nb">str</span><span class="p">;</span> <span class="n">docs</span><span class="p">:</span> <span class="nb">list</span><span class="p">;</span> <span class="n">answer</span><span class="p">:</span> <span class="nb">str</span><span class="p">;</span> <span class="n">tries</span><span class="p">:</span> <span class="nb">int</span>
 
-**In one line:** in advanced RAG, reranking is not optional — retrieve wide (top 30–50), rerank, then keep a small, high-precision context.
+<span class="k">def</span><span class="w"> </span><span class="nf">retrieve</span><span class="p">(</span><span class="n">s</span><span class="p">):</span> <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;docs&quot;</span><span class="p">:</span> <span class="n">retriever</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s2">&quot;question&quot;</span><span class="p">])}</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">grade</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="n">verdict</span> <span class="o">=</span> <span class="n">llm</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Are these docs relevant to &#39;</span><span class="si">{</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;question&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39;? yes/no</span><span class="se">\n</span><span class="si">{</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;docs&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">content</span>
+    <span class="k">return</span> <span class="s2">&quot;generate&quot;</span> <span class="k">if</span> <span class="s2">&quot;yes&quot;</span> <span class="ow">in</span> <span class="n">verdict</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">or</span> <span class="n">s</span><span class="p">[</span><span class="s2">&quot;tries&quot;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">2</span> <span class="k">else</span> <span class="s2">&quot;rewrite&quot;</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">rewrite</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;question&quot;</span><span class="p">:</span> <span class="n">llm</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Rewrite for better search: </span><span class="si">{</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;question&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">content</span><span class="p">,</span>
+            <span class="s2">&quot;tries&quot;</span><span class="p">:</span> <span class="n">s</span><span class="p">[</span><span class="s2">&quot;tries&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">}</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">generate</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;answer&quot;</span><span class="p">:</span> <span class="n">llm</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Answer from context only.</span><span class="se">\n</span><span class="si">{</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;docs&#39;</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">Q: </span><span class="si">{</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;question&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">content</span><span class="p">}</span>
 
-```python
-import cohere
-co = cohere.ClientV2()                         # reads CO_API_KEY
+<span class="n">g</span> <span class="o">=</span> <span class="n">StateGraph</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+<span class="n">g</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="s2">&quot;retrieve&quot;</span><span class="p">,</span> <span class="n">retrieve</span><span class="p">);</span> <span class="n">g</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="s2">&quot;rewrite&quot;</span><span class="p">,</span> <span class="n">rewrite</span><span class="p">);</span> <span class="n">g</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="s2">&quot;generate&quot;</span><span class="p">,</span> <span class="n">generate</span><span class="p">)</span>
+<span class="n">g</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">START</span><span class="p">,</span> <span class="s2">&quot;retrieve&quot;</span><span class="p">)</span>
+<span class="n">g</span><span class="o">.</span><span class="n">add_conditional_edges</span><span class="p">(</span><span class="s2">&quot;retrieve&quot;</span><span class="p">,</span> <span class="n">grade</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;generate&quot;</span><span class="p">:</span> <span class="s2">&quot;generate&quot;</span><span class="p">,</span> <span class="s2">&quot;rewrite&quot;</span><span class="p">:</span> <span class="s2">&quot;rewrite&quot;</span><span class="p">})</span>
+<span class="n">g</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="s2">&quot;rewrite&quot;</span><span class="p">,</span> <span class="s2">&quot;retrieve&quot;</span><span class="p">);</span> <span class="n">g</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="s2">&quot;generate&quot;</span><span class="p">,</span> <span class="n">END</span><span class="p">)</span>
+<span class="n">app</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">compile</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">invoke</span><span class="p">({</span><span class="s2">&quot;question&quot;</span><span class="p">:</span> <span class="s2">&quot;refund for damaged item?&quot;</span><span class="p">,</span> <span class="s2">&quot;tries&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">})[</span><span class="s2">&quot;answer&quot;</span><span class="p">])</span>
+</code></pre></div>
 
-def rerank(query: str, docs: list[str], top_n=5):
-    r = co.rerank(model="rerank-v3.5", query=query, documents=docs, top_n=top_n)
-    return [(docs[x.index], x.relevance_score) for x in r.results]
-```
+<p><strong>Reading the code.</strong> The graph is a state machine: nodes update shared state, and <code>grade</code> is a <em>conditional edge</em> choosing the next node. The <code>tries</code> counter guarantees the loop ends.</p>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Key idea</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CRAG</td>
+<td>A lightweight grader decides: use docs, discard, or fall back to web search</td>
+</tr>
+<tr>
+<td>Self-RAG</td>
+<td>Model emits reflection tokens deciding when to retrieve and whether output is supported</td>
+</tr>
+<tr>
+<td>Agentic RAG</td>
+<td>An agent decides which tool or index to search, possibly several times</td>
+</tr>
+</tbody>
+</table>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Loops without a counter become infinite loops with a credit card attached. Always cap retries.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://arxiv.org/abs/2401.15884">CRAG paper</a> · <a href="https://arxiv.org/abs/2310.11511">Self-RAG paper</a> · <a href="https://langchain-ai.github.io/langgraph/tutorials/rag/langgraph_agentic_rag/">LangGraph agentic RAG tutorial</a></div>
+<h2 id="m4-qlora"><span class="chnum">4.4</span>LoRA and QLoRA (bitsandbytes 4-bit)</h2>
+<p class="oneline"><strong>In one line:</strong> LoRA freezes the base model and trains two tiny matrices per layer; QLoRA does that on top of a 4-bit quantised base, so a 7–8B model fine-tunes on one consumer GPU.</p>
 
-```mermaid
-flowchart LR
-  R["Hybrid retrieve 40"] --> RR["Rerank"] --> T["Top 5"] --> TH{"Best score above threshold?"}
-  TH -->|yes| GEN["Generate"]
-  TH -->|no| IDK["Say I don't know or ask a clarifying question"]
-```
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> Instead of repainting the whole house (full fine-tune), you add removable wallpaper to a few walls (LoRA). QLoRA also shrinks the house to a dollhouse so it fits in your garage (4-bit) while you wallpaper it.</p>
+</blockquote>
+<!-- -->
 
-> **Analogy.** Casting: open auditions pull in 40 people; the director’s callback picks five; if nobody is good enough, you do not cast someone anyway.
-
-> **Trap.** A reranker threshold tuned on one domain will not transfer to another. Re-tune on each client’s golden set.
-
-**Read:** [Cohere Rerank docs](https://docs.cohere.com/docs/rerank-overview) · [Sentence Transformers cross-encoders](https://sbert.net/docs/cross_encoder/usage/usage.html)
-
-## 4.3 Self-correcting RAG — CRAG, Self-RAG, agentic RAG {#m4-crag}
-
-**In one line:** grade the retrieved documents; if they are weak, rewrite the query or search elsewhere; grade the answer for grounding before returning it.
-
-> **Analogy.** A student who checks the textbook, realises it is the wrong chapter, goes back, and finally checks their answer against the page before handing it in.
-
-```mermaid
-flowchart TD
-  Q["Question"] --> RET["Retrieve"]
-  RET --> G{"Docs relevant?"}
-  G -->|yes| GEN["Generate"]
-  G -->|no| RW["Rewrite query or web search"]
-  RW --> RET
-  GEN --> H{"Answer grounded in docs?"}
-  H -->|yes| OUT["Return"]
-  H -->|no| GEN
-```
-
-```python
-from typing import TypedDict
-from langgraph.graph import StateGraph, START, END
-
-class S(TypedDict):
-    question: str
-    docs: list
-    answer: str
-    tries: int
-
-def retrieve(s): return {"docs": retriever.invoke(s["question"])}
-def grade(s):
-    verdict = llm.invoke(f"Are these docs relevant to '{s['question']}'? yes/no\n{s['docs']}").content
-    return "generate" if "yes" in verdict.lower() or s["tries"] >= 2 else "rewrite"
-def rewrite(s):
-    return {"question": llm.invoke(f"Rewrite for better search: {s['question']}").content,
-            "tries": s["tries"] + 1}
-def generate(s):
-    return {"answer": llm.invoke(f"Answer from context only.\n{s['docs']}\nQ: {s['question']}").content}
-
-g = StateGraph(S)
-g.add_node("retrieve", retrieve); g.add_node("rewrite", rewrite); g.add_node("generate", generate)
-g.add_edge(START, "retrieve")
-g.add_conditional_edges("retrieve", grade, {"generate": "generate", "rewrite": "rewrite"})
-g.add_edge("rewrite", "retrieve")
-g.add_edge("generate", END)
-app = g.compile()
-print(app.invoke({"question": "refund for damaged item?", "tries": 0})["answer"])
-```
-
-| Pattern | Key idea |
-|---|---|
-| CRAG | A lightweight grader decides: use docs, discard, or fall back to web search |
-| Self-RAG | Model emits reflection tokens deciding when to retrieve and whether output is supported |
-| Agentic RAG | An agent decides which tool or index to search, possibly several times |
-
-> **Trap.** Loops without a counter become infinite loops with a credit card attached. Always cap retries.
-
-**Read:** [CRAG paper](https://arxiv.org/abs/2401.15884) · [Self-RAG paper](https://arxiv.org/abs/2310.11511) · [LangGraph agentic RAG tutorial](https://langchain-ai.github.io/langgraph/tutorials/rag/langgraph_agentic_rag/)
-
-## 4.4 LoRA and QLoRA (bitsandbytes 4-bit) {#m4-qlora}
-
-**In one line:** LoRA freezes the base model and trains two tiny matrices per layer; QLoRA does that on top of a 4-bit quantised base, so a 7–8B model fine-tunes on one consumer GPU.
-
-> **Analogy.** Instead of repainting the whole house (full fine-tune), you add removable wallpaper to a few walls (LoRA). QLoRA also shrinks the house to a dollhouse so it fits in your garage (4-bit) while you wallpaper it.
-
-```text
-Full update:   W' = W + ΔW              (ΔW is d × d, millions of params)
-LoRA:          W' = W + B·A             (B is d × r, A is r × d, r ≈ 8–64)
+<blockquote class="callout why">
+<p><strong>Why it matters for AI work.</strong> Full fine-tuning an 8B model needs far more GPU memory than most teams have. LoRA makes specialised models affordable, and the adapter is only a few MB to ship.</p>
+</blockquote>
+<h3 id="m4-qlora--core-ideas">Core ideas</h3>
+<div class="hl"><pre><span></span><code>Full update: W&#39; = W + ΔW      (ΔW is d × d, millions of params)
+LoRA:        W&#39; = W + B·A     (B is d × r, A is r × d, r ≈ 8–64)
 Trainable params drop by 100–1000×.
-```
+</code></pre></div>
 
-```mermaid
-flowchart LR
-  X["Input"] --> W["Frozen W, 4-bit in QLoRA"]
-  X --> A["A: r x d, trainable"]
-  A --> B["B: d x r, trainable"]
-  W --> SUM["Add"]
-  B --> SUM
-  SUM --> Y["Output"]
-```
+<pre class="mermaid">flowchart LR
+  X["Input"] --&gt; W["Frozen W, 4-bit in QLoRA"]
+  X --&gt; A["A: r x d, trainable"]
+  A --&gt; B["B: d x r, trainable"]
+  W --&gt; SUM["Add"]
+  B --&gt; SUM
+  SUM --&gt; Y["Output"]</pre>
 
-```python
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
-from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+<p><strong>Key knobs.</strong> <code>r</code> (rank) sets adapter capacity; <code>lora_alpha</code> scales its effect (often 2×r); <code>target_modules</code> chooses which layers get adapters. QLoRA adds NF4 4-bit weights, double quantisation, and bf16 compute.</p>
+<h3 id="m4-qlora--code">Code</h3>
+<div class="hl"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">transformers</span><span class="w"> </span><span class="kn">import</span> <span class="n">AutoModelForCausalLM</span><span class="p">,</span> <span class="n">AutoTokenizer</span><span class="p">,</span> <span class="n">BitsAndBytesConfig</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">peft</span><span class="w"> </span><span class="kn">import</span> <span class="n">LoraConfig</span><span class="p">,</span> <span class="n">get_peft_model</span><span class="p">,</span> <span class="n">prepare_model_for_kbit_training</span>
 
-base = "meta-llama/Llama-3.1-8B-Instruct"
-bnb = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4",
-                         bnb_4bit_compute_dtype=torch.bfloat16, bnb_4bit_use_double_quant=True)
-model = AutoModelForCausalLM.from_pretrained(base, quantization_config=bnb, device_map="auto")
-tok = AutoTokenizer.from_pretrained(base)
+<span class="n">base</span> <span class="o">=</span> <span class="s2">&quot;meta-llama/Llama-3.1-8B-Instruct&quot;</span>
+<span class="n">bnb</span> <span class="o">=</span> <span class="n">BitsAndBytesConfig</span><span class="p">(</span><span class="n">load_in_4bit</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">bnb_4bit_quant_type</span><span class="o">=</span><span class="s2">&quot;nf4&quot;</span><span class="p">,</span>
+                         <span class="n">bnb_4bit_compute_dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">,</span> <span class="n">bnb_4bit_use_double_quant</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">AutoModelForCausalLM</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">quantization_config</span><span class="o">=</span><span class="n">bnb</span><span class="p">,</span> <span class="n">device_map</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">)</span>
+<span class="n">tok</span> <span class="o">=</span> <span class="n">AutoTokenizer</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">prepare_model_for_kbit_training</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+<span class="n">lora</span> <span class="o">=</span> <span class="n">LoraConfig</span><span class="p">(</span><span class="n">r</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">lora_alpha</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">lora_dropout</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">task_type</span><span class="o">=</span><span class="s2">&quot;CAUSAL_LM&quot;</span><span class="p">,</span>
+                  <span class="n">target_modules</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;q_proj&quot;</span><span class="p">,</span> <span class="s2">&quot;k_proj&quot;</span><span class="p">,</span> <span class="s2">&quot;v_proj&quot;</span><span class="p">,</span> <span class="s2">&quot;o_proj&quot;</span><span class="p">])</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">get_peft_model</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">lora</span><span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">print_trainable_parameters</span><span class="p">()</span>   <span class="c1"># e.g. trainable params: 13.6M || all params: 8.0B || 0.17%</span>
+</code></pre></div>
 
-model = prepare_model_for_kbit_training(model)
-lora = LoraConfig(r=16, lora_alpha=32, lora_dropout=0.05, task_type="CAUSAL_LM",
-                  target_modules=["q_proj", "k_proj", "v_proj", "o_proj"])
-model = get_peft_model(model, lora)
-model.print_trainable_parameters()   # e.g. trainable params: 13.6M || all params: 8.0B || 0.17%
-```
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Fine-tuning does not reliably teach <em>new facts</em>; it teaches <em>behaviour</em> (format, style, a narrow skill). For facts, use RAG.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://arxiv.org/abs/2106.09685">LoRA paper</a> · <a href="https://arxiv.org/abs/2305.14314">QLoRA paper</a> · <a href="https://huggingface.co/blog/4bit-transformers-bitsandbytes">Hugging Face: 4-bit with bitsandbytes</a></div>
+<h2 id="m4-peft"><span class="chnum">4.5</span>Adapters, prefix tuning — transformers, PEFT, datasets</h2>
+<p class="oneline"><strong>In one line:</strong> PEFT is a library of parameter-efficient methods (LoRA, prefix tuning, prompt tuning, IA3); <code>datasets</code> loads and formats training data; <code>transformers</code> + TRL run the training.</p>
 
-> **Trap.** Fine-tuning does not reliably teach *new facts*; it teaches *behaviour* (format, style, a narrow skill). For facts, use RAG.
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> The base model is a camera body. Adapters are lenses: swap a macro lens (legal summaries) for a zoom lens (SQL generation) without buying a new camera.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>What is trained</th>
+<th>Typical use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LoRA</td>
+<td>Low-rank matrices in attention/MLP</td>
+<td>Default choice</td>
+</tr>
+<tr>
+<td>Prefix tuning</td>
+<td>Learned key/value vectors prepended per layer</td>
+<td>Generation tasks, very small budgets</td>
+</tr>
+<tr>
+<td>Prompt tuning</td>
+<td>Soft prompt embeddings only</td>
+<td>Huge models, many tasks</td>
+</tr>
+<tr>
+<td>IA3</td>
+<td>Learned scaling vectors</td>
+<td>Even fewer params than LoRA</td>
+</tr>
+</tbody>
+</table>
+<h3 id="m4-peft--code">Code</h3>
+<div class="hl"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">trl</span><span class="w"> </span><span class="kn">import</span> <span class="n">SFTTrainer</span><span class="p">,</span> <span class="n">SFTConfig</span>
 
-**Read:** [LoRA paper](https://arxiv.org/abs/2106.09685) · [QLoRA paper](https://arxiv.org/abs/2305.14314) · [Hugging Face: 4-bit with bitsandbytes](https://huggingface.co/blog/4bit-transformers-bitsandbytes)
+<span class="n">ds</span> <span class="o">=</span> <span class="n">load_dataset</span><span class="p">(</span><span class="s2">&quot;json&quot;</span><span class="p">,</span> <span class="n">data_files</span><span class="o">=</span><span class="s2">&quot;train.jsonl&quot;</span><span class="p">,</span> <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">)</span>   <span class="c1"># {&quot;messages&quot;: [...]} rows</span>
+<span class="n">trainer</span> <span class="o">=</span> <span class="n">SFTTrainer</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>                      <span class="c1"># the PEFT-wrapped model from 4.4</span>
+    <span class="n">train_dataset</span><span class="o">=</span><span class="n">ds</span><span class="p">,</span>
+    <span class="n">processing_class</span><span class="o">=</span><span class="n">tok</span><span class="p">,</span>
+    <span class="n">args</span><span class="o">=</span><span class="n">SFTConfig</span><span class="p">(</span><span class="n">output_dir</span><span class="o">=</span><span class="s2">&quot;out/lora&quot;</span><span class="p">,</span> <span class="n">per_device_train_batch_size</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">gradient_accumulation_steps</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+                   <span class="n">num_train_epochs</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">learning_rate</span><span class="o">=</span><span class="mf">2e-4</span><span class="p">,</span> <span class="n">logging_steps</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">bf16</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">report_to</span><span class="o">=</span><span class="s2">&quot;wandb&quot;</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+<span class="n">model</span><span class="o">.</span><span class="n">save_pretrained</span><span class="p">(</span><span class="s2">&quot;out/lora-adapter&quot;</span><span class="p">)</span>   <span class="c1"># only a few MB</span>
+</code></pre></div>
 
-## 4.5 Adapters, prefix tuning — transformers, PEFT, datasets {#m4-peft}
+<p>Each training row is one conversation:</p>
+<div class="hl"><pre><span></span><code><span class="p">{</span><span class="nt">&quot;messages&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span><span class="nt">&quot;role&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;system&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;content&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Return SQL only.&quot;</span><span class="p">},</span>
+<span class="w">              </span><span class="p">{</span><span class="nt">&quot;role&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;content&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Total refunds last week by city&quot;</span><span class="p">},</span>
+<span class="w">              </span><span class="p">{</span><span class="nt">&quot;role&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;assistant&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;content&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;SELECT city, SUM(amount) FROM refunds WHERE ... GROUP BY city;&quot;</span><span class="p">}]}</span>
+</code></pre></div>
 
-**In one line:** PEFT is a library of parameter-efficient methods (LoRA, prefix tuning, prompt tuning, IA3); `datasets` loads and formats training data; `transformers` + TRL run the training.
+<p><strong>Reading the code.</strong> Batch size 2 with 8 accumulation steps behaves like an effective batch of 16 while using little memory. Saving only the adapter keeps the artefact small, and you can load several adapters on one base model.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Data quality beats data quantity. 500 clean, consistent examples outperform 20,000 noisy ones.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://huggingface.co/docs/peft/index">PEFT docs</a> · <a href="https://huggingface.co/docs/transformers/index">Transformers docs</a> · <a href="https://huggingface.co/docs/datasets/index">Datasets docs</a> · <a href="https://arxiv.org/abs/2101.00190">Prefix-tuning paper</a></div>
+<h2 id="m4-axolotl"><span class="chnum">4.6</span>Fine-tuning with Axolotl (YAML)</h2>
+<p class="oneline"><strong>In one line:</strong> Axolotl wraps the whole fine-tuning pipeline in one YAML file: model, dataset format, adapter, and hyperparameters.</p>
 
-> **Analogy.** The base model is a camera body. Adapters are lenses: swap a macro lens (legal summaries) for a zoom lens (SQL generation) without buying a new camera.
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> A meal kit. The recipe card (YAML) lists everything; you do not have to write the cooking script yourself.</p>
+</blockquote>
+<div class="hl"><pre><span></span><code><span class="c1"># qlora.yml</span>
+<span class="nt">base_model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">meta-llama/Llama-3.1-8B-Instruct</span>
+<span class="nt">load_in_4bit</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="nt">adapter</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">qlora</span>
+<span class="nt">lora_r</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">16</span>
+<span class="nt">lora_alpha</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">32</span>
+<span class="nt">lora_dropout</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.05</span>
+<span class="nt">lora_target_linear</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="nt">datasets</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data/train.jsonl</span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">chat_template</span>
+<span class="nt">val_set_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.05</span>
+<span class="nt">sequence_len</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2048</span>
+<span class="nt">sample_packing</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="nt">micro_batch_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
+<span class="nt">gradient_accumulation_steps</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8</span>
+<span class="nt">num_epochs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
+<span class="nt">learning_rate</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0002</span>
+<span class="nt">optimizer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">adamw_bnb_8bit</span>
+<span class="nt">lr_scheduler</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cosine</span>
+<span class="nt">bf16</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">auto</span>
+<span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./outputs/qlora-sql</span>
+<span class="nt">wandb_project</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">specialist</span>
+</code></pre></div>
 
-| Method | What is trained | Typical use |
-|---|---|---|
-| LoRA | Low-rank matrices in attention/MLP | Default choice |
-| Prefix tuning | Learned key/value vectors prepended per layer | Generation tasks, very small budgets |
-| Prompt tuning | Soft prompt embeddings only | Huge models, many tasks |
-| IA3 | Learned scaling vectors | Even fewer params than LoRA |
+<div class="hl"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>axolotl
+axolotl<span class="w"> </span>preprocess<span class="w"> </span>qlora.yml<span class="w">          </span><span class="c1"># tokenise and check the data</span>
+axolotl<span class="w"> </span>train<span class="w"> </span>qlora.yml
+axolotl<span class="w"> </span>inference<span class="w"> </span>qlora.yml<span class="w"> </span>--lora-model-dir<span class="w"> </span>./outputs/qlora-sql
+axolotl<span class="w"> </span>merge-lora<span class="w"> </span>qlora.yml<span class="w">          </span><span class="c1"># optional: merge adapter into base weights</span>
+</code></pre></div>
 
-```python
-from datasets import load_dataset
-from trl import SFTTrainer, SFTConfig
+<p><strong>Reading the config.</strong> <code>val_set_size</code> holds out 5% for eval loss, <code>sample_packing</code> fills each sequence with several short examples for speed, and <code>merge-lora</code> bakes the adapter into the weights for simpler deployment.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Always run <code>preprocess</code> and inspect a few tokenised samples. A wrong chat template silently trains the model on garbage.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://docs.axolotl.ai/">Axolotl docs</a> · <a href="https://github.com/axolotl-ai-cloud/axolotl">Axolotl GitHub</a></div>
+<h2 id="m4-gpu"><span class="chnum">4.7</span>GPU rental — RunPod and vast.ai</h2>
+<p class="oneline"><strong>In one line:</strong> rent a GPU by the hour, train, download the adapter, and shut it down; never leave a pod running overnight by accident.</p>
 
-ds = load_dataset("json", data_files="train.jsonl", split="train")   # {"messages": [...]} rows
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> Renting a moving truck. You do not buy a truck to move house once.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>VRAM</th>
+<th>Roughly fits (QLoRA training)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>16–24 GB (RTX 4090, A10)</td>
+<td>7–8B models</td>
+</tr>
+<tr>
+<td>40–48 GB (A6000, L40S)</td>
+<td>13–14B, longer context</td>
+</tr>
+<tr>
+<td>80 GB (A100, H100)</td>
+<td>30–70B with care</td>
+</tr>
+</tbody>
+</table>
+<div class="hl"><pre><span></span><code><span class="c1"># On the rented box</span>
+nvidia-smi<span class="w">                                   </span><span class="c1"># check GPU and VRAM</span>
+git<span class="w"> </span>clone<span class="w"> </span>https://github.com/you/specialist<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>specialist
+pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements.txt
+<span class="nb">export</span><span class="w"> </span><span class="nv">HF_TOKEN</span><span class="o">=</span>...<span class="w"> </span><span class="nv">WANDB_API_KEY</span><span class="o">=</span>...
+nohup<span class="w"> </span>axolotl<span class="w"> </span>train<span class="w"> </span>qlora.yml<span class="w"> </span>&gt;<span class="w"> </span>train.log<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">&amp;</span>
+tail<span class="w"> </span>-f<span class="w"> </span>train.log
+<span class="c1"># Afterwards: push the adapter to the Hugging Face Hub or copy it to S3, then STOP the pod.</span>
+</code></pre></div>
 
-trainer = SFTTrainer(
-    model=model,                      # the PEFT-wrapped model from 4.4
-    train_dataset=ds,
-    processing_class=tok,
-    args=SFTConfig(output_dir="out/lora", per_device_train_batch_size=2, gradient_accumulation_steps=8,
-                   num_train_epochs=2, learning_rate=2e-4, logging_steps=10, bf16=True,
-                   report_to="wandb"),
-)
-trainer.train()
-model.save_pretrained("out/lora-adapter")      # only a few MB
-```
+<pre class="mermaid">flowchart LR
+  P["Pick GPU by VRAM"] --&gt; V["Attach persistent volume"]
+  V --&gt; T["Train"]
+  T --&gt; S["Save adapter to Hub or S3"]
+  S --&gt; X["Stop the pod"]</pre>
 
-```json
-{"messages": [{"role": "system", "content": "Return SQL only."},
-              {"role": "user", "content": "Total refunds last week by city"},
-              {"role": "assistant", "content": "SELECT city, SUM(amount) FROM refunds WHERE ... GROUP BY city;"}]}
-```
+<p><strong>Reading the code.</strong> <code>nohup ... &amp;</code> keeps training alive if your SSH session drops. Secrets go in environment variables, never in the repo.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Spot/interruptible instances are cheap but can vanish mid-training. Save checkpoints often to persistent storage.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://docs.runpod.io/">RunPod docs</a> · <a href="https://docs.vast.ai/">vast.ai docs</a> · <a href="https://huggingface.co/docs/accelerate/usage_guides/model_size_estimator">Hugging Face: model memory estimator (Accelerate)</a></div>
+<h2 id="m4-align"><span class="chnum">4.8</span>Distillation, RLHF, and DPO with TRL</h2>
+<p class="oneline"><strong>In one line:</strong> distillation trains a small model to imitate a big one; RLHF trains a reward model on human preferences and optimises against it; DPO skips the reward model and learns directly from chosen-vs-rejected pairs.</p>
 
-> **Trap.** Data quality beats data quantity. 500 clean, consistent examples outperform 20,000 noisy ones.
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> Distillation is an apprentice copying a master chef. RLHF is a food critic scoring dishes and the chef chasing higher scores. DPO is simply showing the chef “this plate, not that one” many times.</p>
+</blockquote>
+<pre class="mermaid">flowchart LR
+  SFT["SFT model"] --&gt; RM["Reward model from human rankings"]
+  RM --&gt; PPO["PPO optimise against reward"]
+  SFT --&gt; DPO["DPO on chosen vs rejected pairs"]
+  PPO --&gt; A["Aligned model"]
+  DPO --&gt; A</pre>
 
-**Read:** [PEFT docs](https://huggingface.co/docs/peft/index) · [Transformers docs](https://huggingface.co/docs/transformers/index) · [Datasets docs](https://huggingface.co/docs/datasets/index) · [Prefix-tuning paper](https://arxiv.org/abs/2101.00190)
+<h3 id="m4-align--code">Code</h3>
+<div class="hl"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">trl</span><span class="w"> </span><span class="kn">import</span> <span class="n">DPOTrainer</span><span class="p">,</span> <span class="n">DPOConfig</span>
 
-## 4.6 Fine-tuning with Axolotl (YAML) {#m4-axolotl}
+<span class="c1"># rows: {&quot;prompt&quot;: &quot;...&quot;, &quot;chosen&quot;: &quot;...&quot;, &quot;rejected&quot;: &quot;...&quot;}</span>
+<span class="n">pairs</span> <span class="o">=</span> <span class="n">load_dataset</span><span class="p">(</span><span class="s2">&quot;json&quot;</span><span class="p">,</span> <span class="n">data_files</span><span class="o">=</span><span class="s2">&quot;prefs.jsonl&quot;</span><span class="p">,</span> <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">)</span>
+<span class="n">trainer</span> <span class="o">=</span> <span class="n">DPOTrainer</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span> <span class="n">ref_model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">train_dataset</span><span class="o">=</span><span class="n">pairs</span><span class="p">,</span> <span class="n">processing_class</span><span class="o">=</span><span class="n">tok</span><span class="p">,</span>
+                     <span class="n">args</span><span class="o">=</span><span class="n">DPOConfig</span><span class="p">(</span><span class="n">output_dir</span><span class="o">=</span><span class="s2">&quot;out/dpo&quot;</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">per_device_train_batch_size</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                                    <span class="n">learning_rate</span><span class="o">=</span><span class="mf">5e-6</span><span class="p">,</span> <span class="n">num_train_epochs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bf16</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+<span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+</code></pre></div>
 
-**In one line:** Axolotl wraps the whole fine-tuning pipeline in one YAML file: model, dataset format, adapter, and hyperparameters.
+<p><strong>Distillation recipe.</strong> Generate high-quality answers with a large model on your task prompts, filter them with evals, then SFT a small model on that data. (Check provider terms of service before training on another model’s outputs.) In DPO, <code>beta</code> controls how far the model may drift from the reference.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> DPO with a high learning rate destroys general ability fast. Use small learning rates and evaluate on a general benchmark too, not only your task.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://huggingface.co/docs/trl/index">TRL docs</a> · <a href="https://arxiv.org/abs/2305.18290">DPO paper</a> · <a href="https://huggingface.co/blog/rlhf">Illustrating RLHF (Hugging Face)</a> · <a href="https://arxiv.org/abs/1503.02531">Knowledge distillation paper (Hinton et al.)</a></div>
+<h2 id="m4-wandb"><span class="chnum">4.9</span>Training monitoring with Weights &amp; Biases</h2>
+<p class="oneline"><strong>In one line:</strong> log loss, learning rate, eval scores, and sample generations live, so you can kill a bad run in minutes instead of hours.</p>
 
-> **Analogy.** A meal kit. The recipe card (YAML) lists everything; you do not have to write the cooking script yourself.
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> The dashboard in your car. You would not drive across the country with the dashboard taped over.</p>
+</blockquote>
+<div class="hl"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">wandb</span>
+<span class="n">wandb</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">project</span><span class="o">=</span><span class="s2">&quot;specialist&quot;</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;r&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span> <span class="s2">&quot;lr&quot;</span><span class="p">:</span> <span class="mf">2e-4</span><span class="p">,</span> <span class="s2">&quot;base&quot;</span><span class="p">:</span> <span class="s2">&quot;llama-3.1-8b&quot;</span><span class="p">})</span>
+<span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">):</span>
+    <span class="n">wandb</span><span class="o">.</span><span class="n">log</span><span class="p">({</span><span class="s2">&quot;train/loss&quot;</span><span class="p">:</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="mf">0.97</span> <span class="o">**</span> <span class="n">step</span><span class="p">,</span> <span class="s2">&quot;lr&quot;</span><span class="p">:</span> <span class="mf">2e-4</span><span class="p">})</span>
+<span class="n">table</span> <span class="o">=</span> <span class="n">wandb</span><span class="o">.</span><span class="n">Table</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;prompt&quot;</span><span class="p">,</span> <span class="s2">&quot;output&quot;</span><span class="p">])</span>
+<span class="n">table</span><span class="o">.</span><span class="n">add_data</span><span class="p">(</span><span class="s2">&quot;Total refunds by city&quot;</span><span class="p">,</span> <span class="s2">&quot;SELECT city, SUM(amount) ...&quot;</span><span class="p">)</span>
+<span class="n">wandb</span><span class="o">.</span><span class="n">log</span><span class="p">({</span><span class="s2">&quot;samples&quot;</span><span class="p">:</span> <span class="n">table</span><span class="p">})</span>
+<span class="n">wandb</span><span class="o">.</span><span class="n">finish</span><span class="p">()</span>
+</code></pre></div>
 
-```yaml
-# qlora.yml
-base_model: meta-llama/Llama-3.1-8B-Instruct
-load_in_4bit: true
-adapter: qlora
-lora_r: 16
-lora_alpha: 32
-lora_dropout: 0.05
-lora_target_linear: true
+<p><strong>What to watch.</strong> Training loss falling smoothly; <strong>eval loss</strong> rising while training loss falls (overfitting); gradient-norm spikes (instability); GPU memory and utilisation (waste). Logging sample generations catches problems loss curves hide, such as the model rambling past the answer.</p>
+<pre class="mermaid">flowchart LR
+  TL["Train loss falling"] --&gt; OK{"Eval loss also falling?"}
+  OK --&gt;|yes| GOOD["Keep training"]
+  OK --&gt;|no, rising| STOP["Overfitting: stop or add data"]</pre>
 
-datasets:
-  - path: data/train.jsonl
-    type: chat_template
-val_set_size: 0.05
-sequence_len: 2048
-sample_packing: true
+<div class="read"><strong>Read:</strong> <a href="https://docs.wandb.ai/">Weights &amp; Biases docs</a> · <a href="https://docs.wandb.ai/guides/integrations/huggingface/">W&amp;B Hugging Face integration</a></div>
+<h2 id="m4-ollama"><span class="chnum">4.10</span>Ollama for local inference</h2>
+<p class="oneline"><strong>In one line:</strong> Ollama downloads and runs quantised open models on your laptop or server with one command and exposes an HTTP API (including an OpenAI-compatible one).</p>
 
-micro_batch_size: 2
-gradient_accumulation_steps: 8
-num_epochs: 2
-learning_rate: 0.0002
-optimizer: adamw_bnb_8bit
-lr_scheduler: cosine
-bf16: auto
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> Docker, but for LLMs: <code>ollama pull</code>, <code>ollama run</code>.</p>
+</blockquote>
+<div class="hl"><pre><span></span><code>ollama<span class="w"> </span>pull<span class="w"> </span>llama3.1:8b
+ollama<span class="w"> </span>run<span class="w"> </span>llama3.1:8b<span class="w"> </span><span class="s2">&quot;Explain RAG in one line&quot;</span>
+ollama<span class="w"> </span>list
+curl<span class="w"> </span>http://localhost:11434/api/chat<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;model&quot;:&quot;llama3.1:8b&quot;,&quot;messages&quot;:[{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:&quot;hi&quot;}],&quot;stream&quot;:false}&#39;</span>
+</code></pre></div>
 
-output_dir: ./outputs/qlora-sql
-wandb_project: specialist
-```
+<div class="hl"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">ollama</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">ollama</span><span class="o">.</span><span class="n">chat</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&quot;llama3.1:8b&quot;</span><span class="p">,</span> <span class="n">messages</span><span class="o">=</span><span class="p">[{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;hi&quot;</span><span class="p">}])[</span><span class="s2">&quot;message&quot;</span><span class="p">][</span><span class="s2">&quot;content&quot;</span><span class="p">])</span>
 
-```bash
-pip install axolotl
-axolotl preprocess qlora.yml      # tokenise and check the data
-axolotl train qlora.yml
-axolotl inference qlora.yml --lora-model-dir ./outputs/qlora-sql
-axolotl merge-lora qlora.yml       # optional: merge adapter into base weights
-```
+<span class="kn">from</span><span class="w"> </span><span class="nn">openai</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenAI</span>          <span class="c1"># same code you use for OpenAI</span>
+<span class="n">local</span> <span class="o">=</span> <span class="n">OpenAI</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;http://localhost:11434/v1&quot;</span><span class="p">,</span> <span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;ollama&quot;</span><span class="p">)</span>
+</code></pre></div>
 
-> **Trap.** Always run `preprocess` and inspect a few tokenised samples. A wrong chat template silently trains the model on garbage.
-
-**Read:** [Axolotl docs](https://docs.axolotl.ai/) · [Axolotl GitHub](https://github.com/axolotl-ai-cloud/axolotl)
-
-## 4.7 GPU rental — RunPod and vast.ai {#m4-gpu}
-
-**In one line:** rent a GPU by the hour, train, download the adapter, and shut it down — never leave a pod running overnight by accident.
-
-> **Analogy.** Renting a moving truck. You do not buy a truck to move house once.
-
-| VRAM | Roughly fits (QLoRA training) |
-|---|---|
-| 16–24 GB (RTX 4090, A10) | 7–8B models |
-| 40–48 GB (A6000, L40S) | 13–14B, longer context |
-| 80 GB (A100, H100) | 30–70B with care |
-
-```bash
-# On the rented box
-nvidia-smi                         # check GPU and VRAM
-git clone https://github.com/you/specialist && cd specialist
-pip install -r requirements.txt
-export HF_TOKEN=... WANDB_API_KEY=...
-nohup axolotl train qlora.yml > train.log 2>&1 &
-tail -f train.log
-# Afterwards: push the adapter to the Hugging Face Hub or copy it to S3, then STOP the pod.
-```
-
-```mermaid
-flowchart LR
-  P["Pick GPU by VRAM"] --> V["Attach persistent volume"]
-  V --> T["Train"]
-  T --> S["Save adapter to Hub or S3"]
-  S --> X["Stop the pod"]
-```
-
-> **Trap.** Spot/interruptible instances are cheap but can vanish mid-training. Save checkpoints often to persistent storage.
-
-**Read:** [RunPod docs](https://docs.runpod.io/) · [vast.ai docs](https://docs.vast.ai/) · [Hugging Face: model memory estimator (Accelerate)](https://huggingface.co/docs/accelerate/usage_guides/model_size_estimator)
-
-## 4.8 Distillation, RLHF, and DPO with TRL {#m4-align}
-
-**In one line:** distillation trains a small model to imitate a big one; RLHF trains a reward model on human preferences and optimises against it; DPO skips the reward model and learns directly from chosen-vs-rejected pairs.
-
-> **Analogy.** Distillation is an apprentice copying a master chef. RLHF is a food critic scoring dishes and the chef chasing higher scores. DPO is simply showing the chef “this plate, not that one” many times.
-
-```mermaid
-flowchart LR
-  SFT["SFT model"] --> RM["Reward model from human rankings"]
-  RM --> PPO["PPO optimise against reward"]
-  SFT --> DPO["DPO on chosen vs rejected pairs"]
-  PPO --> A["Aligned model"]
-  DPO --> A
-```
-
-```python
-from datasets import load_dataset
-from trl import DPOTrainer, DPOConfig
-
-# rows: {"prompt": "...", "chosen": "...", "rejected": "..."}
-pairs = load_dataset("json", data_files="prefs.jsonl", split="train")
-trainer = DPOTrainer(model=model, ref_model=None, train_dataset=pairs, processing_class=tok,
-                     args=DPOConfig(output_dir="out/dpo", beta=0.1, per_device_train_batch_size=2,
-                                    learning_rate=5e-6, num_train_epochs=1, bf16=True))
-trainer.train()
-```
-
-Distillation recipe: generate high-quality answers with a large model on your task prompts → filter them with evals → SFT a small model on that data. (Check provider terms of service before training on another model’s outputs.)
-
-> **Trap.** DPO with a high learning rate destroys general ability fast. Use small learning rates and evaluate on a general benchmark too, not only your task.
-
-**Read:** [TRL docs](https://huggingface.co/docs/trl/index) · [DPO paper](https://arxiv.org/abs/2305.18290) · [Illustrating RLHF (Hugging Face)](https://huggingface.co/blog/rlhf) · [Knowledge distillation paper (Hinton et al.)](https://arxiv.org/abs/1503.02531)
-
-## 4.9 Training monitoring with Weights & Biases {#m4-wandb}
-
-**In one line:** log loss, learning rate, eval scores, and sample generations live, so you can kill a bad run in minutes instead of hours.
-
-> **Analogy.** The dashboard in your car. You would not drive across the country with the dashboard taped over.
-
-```python
-import wandb
-wandb.init(project="specialist", config={"r": 16, "lr": 2e-4, "base": "llama-3.1-8b"})
-for step in range(100):
-    wandb.log({"train/loss": 2.0 * 0.97 ** step, "lr": 2e-4})
-table = wandb.Table(columns=["prompt", "output"])
-table.add_data("Total refunds by city", "SELECT city, SUM(amount) ...")
-wandb.log({"samples": table})
-wandb.finish()
-```
-
-What to watch: training loss going down smoothly; **eval loss** going up while training loss falls (overfitting); gradient norm spikes (instability); GPU memory and utilisation (waste).
-
-```mermaid
-flowchart LR
-  TL["Train loss falling"] --> OK{"Eval loss also falling?"}
-  OK -->|yes| GOOD["Keep training"]
-  OK -->|no, rising| STOP["Overfitting: stop or add data"]
-```
-
-**Read:** [Weights & Biases docs](https://docs.wandb.ai/) · [W&B Hugging Face integration](https://docs.wandb.ai/guides/integrations/huggingface/)
-
-## 4.10 Ollama for local inference {#m4-ollama}
-
-**In one line:** Ollama downloads and runs quantised open models on your laptop or server with one command and exposes an HTTP API (including an OpenAI-compatible one).
-
-> **Analogy.** Docker, but for LLMs: `ollama pull`, `ollama run`.
-
-```bash
-ollama pull llama3.1:8b
-ollama run llama3.1:8b "Explain RAG in one line"
-ollama list
-curl http://localhost:11434/api/chat -d '{"model":"llama3.1:8b","messages":[{"role":"user","content":"hi"}],"stream":false}'
-```
-
-```python
-import ollama
-print(ollama.chat(model="llama3.1:8b", messages=[{"role": "user", "content": "hi"}])["message"]["content"])
-
-from openai import OpenAI          # same code you use for OpenAI
-local = OpenAI(base_url="http://localhost:11434/v1", api_key="ollama")
-```
-
-A `Modelfile` packages a model with its system prompt and parameters:
-
-```text
-FROM llama3.1:8b
+<p>A <code>Modelfile</code> packages a model with its system prompt and parameters:</p>
+<div class="hl"><pre><span></span><code>FROM llama3.1:8b
 PARAMETER temperature 0.2
 SYSTEM You are a concise compliance assistant.
-```
+</code></pre></div>
 
-```bash
-ollama create compliance-bot -f Modelfile && ollama run compliance-bot
-```
+<div class="hl"><pre><span></span><code>ollama<span class="w"> </span>create<span class="w"> </span>compliance-bot<span class="w"> </span>-f<span class="w"> </span>Modelfile<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>ollama<span class="w"> </span>run<span class="w"> </span>compliance-bot
+</code></pre></div>
 
-> **Trap.** Laptop speed is not server speed. For multi-user production serving, look at vLLM or TGI; Ollama shines for local dev and single-tenant boxes.
+<p><strong>Reading the code.</strong> The OpenAI-compatible endpoint means you can switch an existing app between cloud and local by changing <code>base_url</code>; the <code>api_key</code> is a placeholder.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Laptop speed is not server speed. For multi-user production serving, look at vLLM or TGI; Ollama shines for local dev and single-tenant boxes.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://github.com/ollama/ollama">Ollama GitHub</a> · <a href="https://docs.ollama.com/">Ollama docs</a> · <a href="https://github.com/ollama/ollama-python">Ollama Python library</a></div>
+<h2 id="m4-gguf"><span class="chnum">4.11</span>GGUF quantisation — Q4_K_M and Q8_0</h2>
+<p class="oneline"><strong>In one line:</strong> GGUF is the llama.cpp file format for quantised models; the suffix says how many bits each weight uses and which scheme.</p>
 
-**Read:** [Ollama GitHub](https://github.com/ollama/ollama) · [Ollama docs](https://docs.ollama.com/) · [Ollama Python library](https://github.com/ollama/ollama-python)
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> Photo compression. Q8 is a high-quality JPEG (barely different), Q4 is a smaller JPEG (fine for most uses), Q2 is a meme screenshot of a screenshot.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Quant</th>
+<th>Bits per weight (approx.)</th>
+<th>8B model size (approx.)</th>
+<th>Quality</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F16</td>
+<td>16</td>
+<td>16 GB</td>
+<td>Reference</td>
+</tr>
+<tr>
+<td>Q8_0</td>
+<td>8.5</td>
+<td>8.5 GB</td>
+<td>Near-lossless</td>
+</tr>
+<tr>
+<td>Q5_K_M</td>
+<td>5.7</td>
+<td>5.7 GB</td>
+<td>Very good</td>
+</tr>
+<tr>
+<td>Q4_K_M</td>
+<td>4.8</td>
+<td>4.9 GB</td>
+<td>Popular default</td>
+</tr>
+<tr>
+<td>Q2_K</td>
+<td>2.6</td>
+<td>3.2 GB</td>
+<td>Noticeably worse</td>
+</tr>
+</tbody>
+</table>
+<p>Rule of thumb: model memory ≈ parameters × bits ÷ 8, plus KV cache for your context length.</p>
+<div class="hl"><pre><span></span><code>ollama<span class="w"> </span>pull<span class="w"> </span>llama3.1:8b-instruct-q4_K_M
+ollama<span class="w"> </span>pull<span class="w"> </span>llama3.1:8b-instruct-q8_0
+<span class="c1"># llama.cpp directly:</span>
+llama-cli<span class="w"> </span>-m<span class="w"> </span>Llama-3.1-8B-Instruct-Q4_K_M.gguf<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;Hello&quot;</span><span class="w"> </span>-n<span class="w"> </span><span class="m">64</span>
+</code></pre></div>
 
-## 4.11 GGUF quantisation — Q4_K_M and Q8_0 {#m4-gguf}
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Quality loss shows up first on reasoning, maths, and non-English text. Run your own eval set on each quant before choosing.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://huggingface.co/docs/hub/gguf">Hugging Face: GGUF</a> · <a href="https://github.com/ggml-org/llama.cpp">llama.cpp</a> · <a href="https://huggingface.co/docs/transformers/main/en/quantization/overview">Hugging Face: quantization overview</a></div>
+<h2 id="m4-models"><span class="chnum">4.12</span>Llama 3, Phi-3, Mistral</h2>
+<p class="oneline"><strong>In one line:</strong> open-weight families with different sizes, licences, and strengths; pick by size budget, licence, language needs, and your eval results.</p>
 
-**In one line:** GGUF is the llama.cpp file format for quantised models; the suffix says how many bits each weight uses and which scheme.
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> Car models. A city hatchback (Phi-3 mini) is cheap and nimble; a sedan (Llama 3.1 8B, Mistral 7B) is the everyday workhorse; an SUV (Llama 70B) carries more but guzzles fuel.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Family</th>
+<th>Sizes (examples)</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Llama 3.x</td>
+<td>1B, 3B, 8B, 70B, 405B</td>
+<td>Strong general models; Llama community licence</td>
+</tr>
+<tr>
+<td>Phi-3 / Phi-4</td>
+<td>~3.8B to 14B</td>
+<td>Small, good reasoning per parameter; MIT licence</td>
+</tr>
+<tr>
+<td>Mistral / Mixtral</td>
+<td>7B, 8x7B MoE, larger</td>
+<td>Apache 2.0 for several releases; efficient</td>
+</tr>
+</tbody>
+</table>
+<div class="hl"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">time</span><span class="o">,</span><span class="w"> </span><span class="nn">ollama</span>
+<span class="n">prompt</span> <span class="o">=</span> <span class="s2">&quot;Classify: &#39;charged twice for my order&#39; -&gt; refund, fraud, kyc, other. Reply with one word.&quot;</span>
+<span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;llama3.1:8b&quot;</span><span class="p">,</span> <span class="s2">&quot;phi3:mini&quot;</span><span class="p">,</span> <span class="s2">&quot;mistral:7b&quot;</span><span class="p">]:</span>
+    <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">ollama</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">m</span><span class="p">,</span> <span class="n">prompt</span><span class="o">=</span><span class="n">prompt</span><span class="p">)[</span><span class="s2">&quot;response&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">m</span><span class="si">:</span><span class="s2">15s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">t0</span><span class="si">:</span><span class="s2">5.2f</span><span class="si">}</span><span class="s2">s  </span><span class="si">{</span><span class="n">out</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
 
-> **Analogy.** Photo compression. Q8 is a high-quality JPEG (barely different), Q4 is a smaller JPEG (fine for most uses), Q2 is a meme screenshot of a screenshot.
+<p><strong>Reading the code.</strong> This is a mini bake-off: same prompt, three models, time and answer side by side. Scale it to your golden set before deciding.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Read the licence before a client deployment. “Open weights” does not always mean “any commercial use”.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://www.llama.com/">Meta Llama</a> · <a href="https://huggingface.co/microsoft/Phi-3-mini-4k-instruct">Phi-3 model card</a> · <a href="https://docs.mistral.ai/">Mistral docs</a> · <a href="https://ollama.com/library">Ollama model library</a></div>
+<h2 id="m4-tradeoff"><span class="chnum">4.13</span>Model selection and cost–performance trade-offs</h2>
+<p class="oneline"><strong>In one line:</strong> choose the cheapest model that passes your eval bar at your latency target, and compare API cost per call with the all-in cost of hosting.</p>
 
-| Quant | Bits per weight (approx.) | 8B model size (approx.) | Quality |
-|---|---|---|---|
-| F16 | 16 | 16 GB | Reference |
-| Q8_0 | 8.5 | 8.5 GB | Near-lossless |
-| Q5_K_M | 5.7 | 5.7 GB | Very good |
-| Q4_K_M | 4.8 | 4.9 GB | Popular default |
-| Q2_K | 2.6 | 3.2 GB | Noticeably worse |
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> Taxi vs owning a car. Few trips: taxi (API). Driving all day every day: owning (self-hosting) can win, if you also count insurance, parking, and maintenance (ops time).</p>
+</blockquote>
+<div class="hl"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">api_monthly</span><span class="p">(</span><span class="n">calls_per_day</span><span class="p">,</span> <span class="n">tok_in</span><span class="p">,</span> <span class="n">tok_out</span><span class="p">,</span> <span class="n">price_in</span><span class="p">,</span> <span class="n">price_out</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">calls_per_day</span> <span class="o">*</span> <span class="mi">30</span> <span class="o">*</span> <span class="p">(</span><span class="n">tok_in</span> <span class="o">*</span> <span class="n">price_in</span> <span class="o">+</span> <span class="n">tok_out</span> <span class="o">*</span> <span class="n">price_out</span><span class="p">)</span> <span class="o">/</span> <span class="mf">1e6</span>
 
-Rule of thumb: model memory ≈ parameters × bits ÷ 8, plus KV cache for your context length.
+<span class="k">def</span><span class="w"> </span><span class="nf">selfhost_monthly</span><span class="p">(</span><span class="n">gpu_hourly</span><span class="p">,</span> <span class="n">gpus</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">hours</span><span class="o">=</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">30</span><span class="p">,</span> <span class="n">ops_overhead</span><span class="o">=</span><span class="mf">1.3</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">gpu_hourly</span> <span class="o">*</span> <span class="n">gpus</span> <span class="o">*</span> <span class="n">hours</span> <span class="o">*</span> <span class="n">ops_overhead</span>
 
-```bash
-ollama pull llama3.1:8b-instruct-q4_K_M
-ollama pull llama3.1:8b-instruct-q8_0
-# llama.cpp directly:
-llama-cli -m Llama-3.1-8B-Instruct-Q4_K_M.gguf -p "Hello" -n 64
-```
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;API:       $</span><span class="si">{</span><span class="n">api_monthly</span><span class="p">(</span><span class="mi">50_000</span><span class="p">,</span><span class="w"> </span><span class="mi">1200</span><span class="p">,</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span><span class="w"> </span><span class="mf">0.15</span><span class="p">,</span><span class="w"> </span><span class="mf">0.60</span><span class="p">)</span><span class="si">:</span><span class="s2">,.0f</span><span class="si">}</span><span class="s2">/month&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Self-host: $</span><span class="si">{</span><span class="n">selfhost_monthly</span><span class="p">(</span><span class="mf">1.2</span><span class="p">)</span><span class="si">:</span><span class="s2">,.0f</span><span class="si">}</span><span class="s2">/month&quot;</span><span class="p">)</span>
+</code></pre></div>
 
-> **Trap.** Quality loss shows up first on reasoning, maths, and non-English text. Run your own eval set on each quant before choosing.
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Quality</th>
+<th>Latency</th>
+<th>Monthly cost</th>
+<th>Data leaves VPC?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Large API model</td>
+<td>★★★★★</td>
+<td>Medium</td>
+<td>$$$</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Small API model</td>
+<td>★★★★</td>
+<td>Fast</td>
+<td>$</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Fine-tuned 8B, self-hosted</td>
+<td>★★★★ on task</td>
+<td>Fast</td>
+<td>$$ fixed</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Local 8B Q4, no tuning</td>
+<td>★★★</td>
+<td>Fast</td>
+<td>$ fixed</td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<p><em>(Fill this table with your numbers; that table is what wins the client conversation.)</em> Self-hosting wins when volume is high and steady; APIs win when traffic is low or spiky. Remember to include engineering time, monitoring and GPU idle cost.</p>
+<pre class="mermaid">flowchart LR
+  E["Eval set"] --&gt; M1["Model A"]
+  E --&gt; M2["Model B"]
+  E --&gt; M3["Model C"]
+  M1 --&gt; T["Table: accuracy, p95 latency, cost per 1k calls"]
+  M2 --&gt; T
+  M3 --&gt; T
+  T --&gt; D["Cheapest model above the bar"]</pre>
 
-**Read:** [Hugging Face: GGUF](https://huggingface.co/docs/hub/gguf) · [llama.cpp](https://github.com/ggml-org/llama.cpp) · [Hugging Face: quantization overview](https://huggingface.co/docs/transformers/main/en/quantization/overview)
+<div class="read"><strong>Read:</strong> <a href="https://artificialanalysis.ai/">Artificial Analysis: model comparisons</a> · <a href="https://lmarena.ai/">LMArena leaderboard</a> · <a href="https://openai.com/api/pricing/">OpenAI pricing</a> · <a href="https://www.anthropic.com/pricing">Anthropic pricing</a></div>
+<h2 id="m4-boss" class="special">Boss level — The Retrieval Bake-Off</h2>
+<blockquote class="callout boss">
+<p><strong>Boss level.</strong> “The Specialist”: QLoRA-tune an 8B model on 1,000 text-to-SQL examples for one client schema, then show it beats a much larger general model on accuracy <em>and</em> cost on a held-out set.</p>
+</blockquote>
+<p><strong>Suggested steps.</strong></p>
+<ol>
+<li>Write 1,000 clean examples in chat format (4.5) and hold out 100 for testing.</li>
+<li>Train with QLoRA via Axolotl on a rented GPU (4.4, 4.6, 4.7); watch eval loss in W&amp;B (4.9).</li>
+<li>Merge or load the adapter and serve it locally (4.10, 4.11).</li>
+<li>Run the held-out set through your model and a large API model; record exact-match or execution accuracy.</li>
+<li>Build the cost-per-1,000-queries table (4.13) and recommend one option.</li>
+</ol>
+<h2 id="m4-glossary" class="special">Appendix A — Glossary</h2>
+<div class="tblwrap"><table><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody><tr><td><strong>Multi-hop retrieval</strong></td><td>Retrieving in several steps because later questions depend on earlier answers.</td></tr><tr><td><strong>CRAG / Self-RAG</strong></td><td>Patterns where the system grades its own retrieval or answers and corrects course.</td></tr><tr><td><strong>LoRA</strong></td><td>Fine-tuning by training small low-rank matrices while the base model stays frozen.</td></tr><tr><td><strong>QLoRA</strong></td><td>LoRA on top of a 4-bit quantised base model.</td></tr><tr><td><strong>Adapter</strong></td><td>The small set of trained weights that sits on a base model.</td></tr><tr><td><strong>PEFT</strong></td><td>Parameter-efficient fine-tuning: methods that train a tiny fraction of parameters.</td></tr><tr><td><strong>SFT</strong></td><td>Supervised fine-tuning on input and desired-output examples.</td></tr><tr><td><strong>DPO</strong></td><td>Direct preference optimisation from chosen-vs-rejected pairs.</td></tr><tr><td><strong>RLHF</strong></td><td>Reinforcement learning from human feedback using a reward model.</td></tr><tr><td><strong>Distillation</strong></td><td>Training a small model to imitate a larger one.</td></tr><tr><td><strong>Quantisation</strong></td><td>Storing weights with fewer bits to save memory.</td></tr><tr><td><strong>GGUF</strong></td><td>File format for quantised models used by llama.cpp and Ollama.</td></tr><tr><td><strong>VRAM</strong></td><td>GPU memory; the main limit on model size.</td></tr><tr><td><strong>Overfitting</strong></td><td>Training loss falls while eval loss rises.</td></tr></tbody></table></div>
+<h2 id="m4-debug" class="special">Appendix B — Debugging checklist for a failing RAG answer</h2>
+<p>Work down the list in order; most problems are in the first four items.</p><ol><li><strong>Is prompting enough?</strong> Try a stronger prompt and examples before any training (intro flowchart).</li><li><strong>Is the problem knowledge or behaviour?</strong> Knowledge: RAG. Behaviour or format: fine-tune (4.4).</li><li><strong>Is the data clean and consistent?</strong> Read 50 random rows; fix contradictions first (4.5).</li><li><strong>Does the chat template match the model?</strong> Run preprocess and inspect tokenised samples (4.6).</li><li><strong>Is eval loss rising?</strong> You are overfitting: fewer epochs, more data, lower rank (4.9).</li><li><strong>Did general ability collapse?</strong> Lower the learning rate, check a general benchmark (4.8).</li><li><strong>Did quantisation hurt quality?</strong> Compare Q4 and Q8 on your own eval set (4.11).</li><li><strong>Is the licence compatible with the client?</strong> Read it before deployment (4.12).</li><li><strong>Does the cost table still favour your choice?</strong> Recompute with real volume and ops time (4.13).</li></ol>
+<h2 id="m4-quiz" class="special">Appendix C — Final self-assessment</h2>
+<p>Answer without looking. Anything you cannot explain in two sentences is a chapter to revisit.</p>
+<details>
+<summary>1. Why can one search not answer a multi-hop question?</summary>
+<p>The second fact depends on the first answer, so you must retrieve in sequence. (4.1)</p>
+</details>
+<details>
+<summary>2. Why retrieve 40 and keep 5?</summary>
+<p>Wide retrieval protects recall; reranking restores precision. (4.2)</p>
+</details>
+<details>
+<summary>3. What stops a self-correcting RAG loop?</summary>
+<p>A retry counter. (4.3)</p>
+</details>
+<details>
+<summary>4. Why is LoRA cheap?</summary>
+<p>It trains tiny low-rank matrices, 100 to 1000 times fewer parameters. (4.4)</p>
+</details>
+<details>
+<summary>5. What does QLoRA add to LoRA?</summary>
+<p>A 4-bit quantised frozen base model. (4.4)</p>
+</details>
+<details>
+<summary>6. Fine-tune for facts or behaviour?</summary>
+<p>Behaviour. Use RAG for facts. (4.4)</p>
+</details>
+<details>
+<summary>7. What is the benefit of saving only the adapter?</summary>
+<p>It is a few MB and can be swapped on one base model. (4.5)</p>
+</details>
+<details>
+<summary>8. Why run axolotl preprocess?</summary>
+<p>To catch a wrong chat template before it trains on garbage. (4.6)</p>
+</details>
+<details>
+<summary>9. Why are spot GPU instances risky?</summary>
+<p>They can be reclaimed mid-run, so checkpoint often. (4.7)</p>
+</details>
+<details>
+<summary>10. How does DPO differ from RLHF?</summary>
+<p>It learns directly from preference pairs, with no reward model. (4.8)</p>
+</details>
+<details>
+<summary>11. What does rising eval loss with falling train loss mean?</summary>
+<p>Overfitting. (4.9)</p>
+</details>
+<details>
+<summary>12. Why use Ollama’s OpenAI-compatible endpoint?</summary>
+<p>Switch between cloud and local by changing base_url. (4.10)</p>
+</details>
+<details>
+<summary>13. Rough memory for an 8B model at Q4_K_M?</summary>
+<p>About 5 GB plus KV cache. (4.11)</p>
+</details>
+<details>
+<summary>14. Why check a model’s licence?</summary>
+<p>Open weights do not always allow any commercial use. (4.12)</p>
+</details>
+<details>
+<summary>15. When does self-hosting beat an API?</summary>
+<p>High, steady volume once ops time is counted. (4.13)</p>
+</details>
+<p><a href="m3.html">← Module 3</a> · <a href="m5.html">Next: Module 5 — Agents →</a></p>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+(function(){
+  // mermaid (needs internet; falls back to showing the diagram source)
+  try{
+    var dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    if(window.mermaid){ mermaid.initialize({startOnLoad:true, theme: dark ? "dark" : "default", securityLevel:"strict"}); }
+  }catch(e){}
 
-## 4.12 Llama 3, Phi-3, Mistral {#m4-models}
+  // wrap tables for horizontal scroll
+  document.querySelectorAll("main table").forEach(function(t){
+    var w=document.createElement("div"); w.className="tblwrap"; t.parentNode.insertBefore(w,t); w.appendChild(t);
+  });
 
-**In one line:** open-weight families with different sizes, licences, and strengths — pick by size budget, licence, language needs, and your eval results.
+  // reading progress
+  var bar=document.getElementById("progress");
+  function prog(){var h=document.documentElement; var p=h.scrollTop/(h.scrollHeight-h.clientHeight||1); bar.style.width=(p*100)+"%";}
+  window.addEventListener("scroll",prog,{passive:true}); prog();
 
-> **Analogy.** Car models. A city hatchback (Phi-3 mini) is cheap and nimble; a sedan (Llama 3.1 8B, Mistral 7B) is the everyday workhorse; an SUV (Llama 70B) carries more but guzzles fuel.
+  // scroll-spy
+  var links={}; document.querySelectorAll("#toc a").forEach(function(a){links[a.dataset.id]=a;});
+  var obs=new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if(e.isIntersecting){
+        Object.values(links).forEach(function(l){l.classList.remove("active");});
+        var a=links[e.target.id]; if(a){a.classList.add("active"); a.scrollIntoView({block:"nearest"});}
+      }
+    });
+  },{rootMargin:"-10% 0px -80% 0px"});
+  document.querySelectorAll("main h2[id]").forEach(function(h){obs.observe(h);});
 
-| Family | Sizes (examples) | Notes |
-|---|---|---|
-| Llama 3.x | 1B, 3B, 8B, 70B, 405B | Strong general models; Llama community licence |
-| Phi-3 / Phi-4 | ~3.8B to 14B | Small, good reasoning per parameter; MIT licence |
-| Mistral / Mixtral | 7B, 8x7B MoE, larger | Apache 2.0 for several releases; efficient |
-
-```python
-import time, ollama
-prompt = "Classify: 'charged twice for my order' -> refund, fraud, kyc, other. Reply with one word."
-for m in ["llama3.1:8b", "phi3:mini", "mistral:7b"]:
-    t0 = time.time()
-    out = ollama.generate(model=m, prompt=prompt)["response"].strip()
-    print(f"{m:15s} {time.time() - t0:5.2f}s  {out}")
-```
-
-> **Trap.** Read the licence before a client deployment. “Open weights” does not always mean “any commercial use”.
-
-**Read:** [Meta Llama](https://www.llama.com/) · [Phi-3 model card](https://huggingface.co/microsoft/Phi-3-mini-4k-instruct) · [Mistral docs](https://docs.mistral.ai/) · [Ollama model library](https://ollama.com/library)
-
-## 4.13 Model selection and cost–performance trade-offs {#m4-tradeoff}
-
-**In one line:** choose the cheapest model that passes your eval bar at your latency target, and compare API cost per call with the all-in cost of hosting.
-
-> **Analogy.** Taxi vs owning a car. Few trips: taxi (API). Driving all day every day: owning (self-hosting) can win — if you also count insurance, parking, and maintenance (ops time).
-
-```python
-def api_monthly(calls_per_day, tok_in, tok_out, price_in, price_out):
-    return calls_per_day * 30 * (tok_in * price_in + tok_out * price_out) / 1e6
-
-def selfhost_monthly(gpu_hourly, gpus=1, hours=24 * 30, ops_overhead=1.3):
-    return gpu_hourly * gpus * hours * ops_overhead
-
-print(f"API:       ${api_monthly(50_000, 1200, 200, 0.15, 0.60):,.0f}/month")
-print(f"Self-host: ${selfhost_monthly(1.2):,.0f}/month")
-```
-
-| Option | Quality | Latency | Monthly cost | Data leaves VPC? |
-|---|---|---|---|---|
-| Large API model | ★★★★★ | Medium | $$$ | Yes |
-| Small API model | ★★★★ | Fast | $ | Yes |
-| Fine-tuned 8B, self-hosted | ★★★★ on task | Fast | $$ fixed | No |
-| Local 8B Q4, no tuning | ★★★ | Fast | $ fixed | No |
-
-*(Fill this table with your numbers — that table is what wins the client conversation.)*
-
-```mermaid
-flowchart LR
-  E["Eval set"] --> M1["Model A"]
-  E --> M2["Model B"]
-  E --> M3["Model C"]
-  M1 --> T["Table: accuracy, p95 latency, cost per 1k calls"]
-  M2 --> T
-  M3 --> T
-  T --> D["Cheapest model above the bar"]
-```
-
-**Read:** [Artificial Analysis: model comparisons](https://artificialanalysis.ai/) · [LMArena leaderboard](https://lmarena.ai/) · [OpenAI pricing](https://openai.com/api/pricing/) · [Anthropic pricing](https://www.anthropic.com/pricing)
-
-> **Boss level.** “The Specialist”: QLoRA-tune an 8B model on 1,000 text-to-SQL examples for one client schema, then show it beats a much larger general model on accuracy *and* cost on a held-out set.
-
-[← Module 3](m3.html) · [Next: Module 5 — Agents →](m5.html)
+  // buttons
+  var all=false, ex=document.getElementById("expand");
+  ex.addEventListener("click",function(){
+    all=!all; document.querySelectorAll("main details").forEach(function(d){d.open=all;});
+    ex.textContent= all ? "Hide all answers" : "Show all answers";
+  });
+  document.getElementById("theme").addEventListener("click",function(){
+    var r=document.documentElement, cur=r.getAttribute("data-theme");
+    var isDark = cur ? cur==="dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    r.setAttribute("data-theme", isDark ? "light" : "dark");
+  });
+  document.getElementById("print").addEventListener("click",function(){window.print();});
+  window.addEventListener("beforeprint",function(){document.querySelectorAll("main details").forEach(function(d){d.open=true;});});
+})();
 </script>
-<script src="notes.js"></script>
 </body>
 </html>

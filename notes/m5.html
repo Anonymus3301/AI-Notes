@@ -1,592 +1,1099 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Module 5 notes — Agentic AI Systems</title>
-  <link rel="stylesheet" href="notes.css" />
-</head>
-<body>
-  <header class="bar">
-    <a href="../index.html">← Tutorials</a>
-    <a href="index.html">All notes</a>
-    <a href="m4.html">← Module 4</a>
-    <a href="m6.html">Module 6 →</a>
-    <span>Module 5 · Agentic systems</span>
-  </header>
-  <div class="wrap">
-    <nav id="toc"></nav>
-    <main id="content"><p>Loading notes…</p></main>
-  </div>
-<script type="text/markdown" id="md">
-# Module 5 — Agentic AI Systems
-
-<p class="hero-note">Quest: build software that decides its own next step — and knows when to stop and ask a human. Four weeks. Rule zero: use the simplest thing that works. A fixed workflow beats an autonomous agent whenever the steps are known in advance.</p>
-
-```mermaid
-flowchart LR
-  W["Workflow: fixed steps you design"] --> H["Hybrid: workflow with agent nodes"]
-  H --> A["Agent: model picks the steps"]
-  W -.->|more predictable, cheaper| P["Pick the leftmost that solves the task"]
-  A -.->|more flexible, riskier| P
-```
-
-Setup: `pip install langgraph langchain-openai crewai mcp tavily-python deepeval guardrails-ai presidio-analyzer presidio-anonymizer`.
-
-## 5.1 ReAct loop and planner–executor {#m5-react}
-
-**In one line:** ReAct = think, act, observe, repeat. Planner–executor = write the whole plan first, then execute steps, re-planning only when something breaks.
-
-> **Analogy.** ReAct is improv theatre — react to each moment. Planner–executor is a heist movie — the plan on the whiteboard, then the crew executes, and someone yells “new plan!” when the alarm goes off.
-
-```mermaid
-flowchart TB
-  subgraph ReAct
-    T1["Think"] --> A1["Act"] --> O1["Observe"] --> T1
-  end
-  subgraph PlanExecute
-    PL["Planner writes steps 1..n"] --> EX["Executor runs step i"]
-    EX --> CK{"Step ok?"}
-    CK -->|yes, more steps| EX
-    CK -->|failed| RP["Re-plan"] --> EX
-    CK -->|all done| FIN["Final answer"]
-  end
-```
-
-```python
-from langchain_openai import ChatOpenAI
-from langchain_core.tools import tool
-from langgraph.prebuilt import create_react_agent
-
-@tool
-def get_order(order_id: str) -> dict:
-    """Look up an order by id."""
-    return {"id": order_id, "status": "delivered", "amount": 1299}
-
-@tool
-def create_refund(order_id: str, amount: int) -> str:
-    """Create a refund for an order."""
-    return f"refund created for {order_id}: {amount}"
-
-agent = create_react_agent(ChatOpenAI(model="gpt-4o-mini"), tools=[get_order, create_refund])
-result = agent.invoke({"messages": [("user", "Order A-17 arrived broken, please refund it")]})
-for m in result["messages"]:
-    print(m.type, getattr(m, "content", "")[:120])
-```
-
-> **Trap.** Agents love to loop. Set a `recursion_limit`, a step budget, and a cost budget.
-
-**Read:** [Anthropic: Building effective agents](https://www.anthropic.com/engineering/building-effective-agents) · [Lilian Weng: LLM-powered autonomous agents](https://lilianweng.github.io/posts/2023-06-23-agent/) · [LangGraph prebuilt agents](https://langchain-ai.github.io/langgraph/agents/agents/)
-
-## 5.2 The tool arbiter pattern {#m5-arbiter}
-
-**In one line:** put a deterministic gate between “the model wants to call a tool” and “the tool runs”: it checks permissions, arguments, limits, and risk, and can require human approval.
-
-> **Analogy.** The model is an enthusiastic intern with ideas. The arbiter is the manager who signs off on purchases above ₹10,000 and refuses anything not on the approved vendor list.
-
-```mermaid
-flowchart LR
-  LLM["LLM proposes tool call"] --> ARB{"Arbiter"}
-  ARB -->|allowed and low risk| RUN["Execute tool"]
-  ARB -->|high risk| HUM["Human approval queue"]
-  ARB -->|forbidden or invalid| REJ["Reject with reason back to LLM"]
-  RUN --> LOG["Audit log"]
-  HUM --> RUN
-```
-
-```python
-from dataclasses import dataclass
-from pydantic import BaseModel, ValidationError
-
-class RefundArgs(BaseModel):
-    order_id: str
-    amount: int
-
-POLICY = {
-    "get_order": {"risk": "low", "schema": None},
-    "create_refund": {"risk": "high", "schema": RefundArgs, "max_amount": 5000},
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Module 5 booklet — Agentic AI Systems</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f3f5f8; --paper:#ffffff; --ink:#16202e; --muted:#5b6778; --line:#dde3ea;
+  --accent:#0a6c8f; --accent-soft:#e3f1f6;
+  --trap:#a4440b; --trap-soft:#fdf0e6;
+  --why:#4b3fa0; --why-soft:#eeecfa;
+  --tip:#12724a; --tip-soft:#e6f5ee;
+  --boss:#8a1c3a; --boss-soft:#fbe9ee;
+  --code-bg:#f6f8fa; --code-ink:#1f2933; --inline-bg:#e9eef3;
+  --head:"Space Grotesk","Segoe UI",system-ui,sans-serif;
+  --body:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e141c; --paper:#151d28; --ink:#e4e9f0; --muted:#97a3b4; --line:#27323f;
+    --accent:#52b8da; --accent-soft:#12303c;
+    --trap:#f2a066; --trap-soft:#2c1e14;
+    --why:#b3a8ff; --why-soft:#211e3a;
+    --tip:#6fd3a0; --tip-soft:#14291f;
+    --boss:#ff8fab; --boss-soft:#341822;
+    --code-bg:#0b1118; --code-ink:#e6edf3; --inline-bg:#202b38;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e141c; --paper:#151d28; --ink:#e4e9f0; --muted:#97a3b4; --line:#27323f;
+  --accent:#52b8da; --accent-soft:#12303c;
+  --trap:#f2a066; --trap-soft:#2c1e14;
+  --why:#b3a8ff; --why-soft:#211e3a;
+  --tip:#6fd3a0; --tip-soft:#14291f;
+  --boss:#ff8fab; --boss-soft:#341822;
+  --code-bg:#0b1118; --code-ink:#e6edf3; --inline-bg:#202b38;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:18px;line-height:1.7}
+.bar{position:sticky;top:0;z-index:20;display:flex;gap:16px;align-items:center;flex-wrap:wrap;
+  padding:10px 20px;background:var(--paper);border-bottom:1px solid var(--line);font-family:var(--head);font-size:14px}
+.bar a{color:var(--accent);text-decoration:none}
+.bar a:hover{text-decoration:underline}
+.bar .grow{flex:1}
+.bar button{font:inherit;background:none;border:1px solid var(--line);color:var(--ink);padding:4px 10px;border-radius:6px;cursor:pointer}
+.bar button:hover{border-color:var(--accent)}
+#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:30}
+.wrap{display:grid;grid-template-columns:290px minmax(0,1fr);gap:0;max-width:1280px;margin:0 auto}
+nav#toc{position:sticky;top:52px;align-self:start;height:calc(100vh - 52px);overflow:auto;
+  padding:24px 12px 40px 20px;font-family:var(--head);font-size:14px;border-right:1px solid var(--line)}
+nav#toc h4{margin:0 0 10px;font-size:13px;color:var(--muted);font-weight:600}
+nav#toc a{display:flex;gap:10px;padding:6px 8px;border-radius:6px;color:var(--ink);text-decoration:none;line-height:1.35}
+nav#toc a b{min-width:30px;color:var(--muted);font-weight:600}
+nav#toc a:hover{background:var(--accent-soft)}
+nav#toc a.active{background:var(--accent-soft);color:var(--accent)}
+nav#toc a.active b{color:var(--accent)}
+main#content{padding:36px clamp(18px,4vw,56px) 80px;max-width:860px}
+.cover{padding:8px 0 28px;border-bottom:2px solid var(--ink);margin-bottom:28px}
+.cover h1{font-family:var(--head);font-size:clamp(30px,4.4vw,46px);line-height:1.1;margin:0 0 14px;letter-spacing:-.02em}
+.cover .sub{font-family:var(--head);font-size:15px;color:var(--muted);margin:0}
+.hero-note{margin:18px 0 0;padding:14px 18px;background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:0 8px 8px 0;font-size:19px}
+h2{font-family:var(--head);font-size:clamp(25px,3vw,32px);line-height:1.2;margin:68px 0 14px;padding-top:26px;border-top:1px solid var(--line);letter-spacing:-.01em;display:flex;gap:14px;align-items:baseline}
+h2 .chnum{flex:none;font-size:.62em;font-weight:600;color:var(--paper);background:var(--accent);padding:3px 10px;border-radius:6px;position:relative;top:-3px}
+h3{font-family:var(--head);font-size:20px;margin:36px 0 8px;color:var(--accent)}
+p{margin:0 0 14px}
+a{color:var(--accent)}
+.oneline{font-size:20px;line-height:1.55;padding:12px 0;border-top:1px dashed var(--line);border-bottom:1px dashed var(--line)}
+.read{font-family:var(--head);font-size:15px;padding:12px 14px;background:var(--paper);border:1px solid var(--line);border-radius:8px;margin-top:22px}
+blockquote.callout{margin:18px 0;padding:12px 18px;border-radius:8px;border-left:4px solid var(--accent);background:var(--accent-soft)}
+blockquote.callout p{margin:0}
+blockquote.callout.trap{border-color:var(--trap);background:var(--trap-soft)}
+blockquote.callout.trap strong:first-child{color:var(--trap)}
+blockquote.callout.why{border-color:var(--why);background:var(--why-soft)}
+blockquote.callout.why strong:first-child{color:var(--why)}
+blockquote.callout.tip{border-color:var(--tip);background:var(--tip-soft)}
+blockquote.callout.tip strong:first-child{color:var(--tip)}
+blockquote.callout.boss{border-color:var(--boss);background:var(--boss-soft)}
+blockquote.callout.boss strong:first-child{color:var(--boss)}
+blockquote.callout.analogy strong:first-child{color:var(--accent)}
+code{font-family:var(--mono);font-size:.84em;background:var(--inline-bg);padding:1px 6px;border-radius:4px}
+.hl{margin:16px 0;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;overflow-x:auto}
+.hl pre{margin:0;padding:14px 16px;line-height:1.55;font-size:14px;color:var(--code-ink)}
+.hl pre{font-family:var(--mono)}
+.hl code{font-family:var(--mono);background:none;padding:0;font-size:inherit}
+.hl pre{font-size:14px}
+pre.mermaid{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:16px;text-align:center;overflow-x:auto;font-family:var(--mono);font-size:13px;white-space:pre}
+.tblwrap{overflow-x:auto;margin:16px 0}
+table{border-collapse:collapse;width:100%;font-family:var(--head);font-size:15px;background:var(--paper)}
+th,td{border:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top;line-height:1.45}
+th{background:var(--accent-soft);font-weight:600}
+td code,th code{font-size:.9em}
+details{margin:12px 0;border:1px solid var(--line);border-radius:8px;background:var(--paper)}
+summary{cursor:pointer;padding:10px 14px;font-family:var(--head);font-size:15px;font-weight:600;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:700}
+details[open] summary::before{content:"−"}
+details[open] summary{border-bottom:1px solid var(--line)}
+details > :not(summary){margin-left:16px;margin-right:16px}
+details > :nth-child(2){margin-top:12px}
+details > :last-child{margin-bottom:14px}
+ol,ul{padding-left:26px}
+li{margin:4px 0}
+li>p{margin:0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:900px){
+  .wrap{grid-template-columns:1fr}
+  nav#toc{position:static;height:auto;max-height:260px;border-right:0;border-bottom:1px solid var(--line)}
+  body{font-size:17px}
+}
+@media print{
+  :root{--bg:#fff;--paper:#fff}
+  .bar,nav#toc,#progress{display:none}
+  .wrap{display:block}
+  body{font-size:11.5pt}
+  main#content{max-width:none;padding:0}
+  h2{break-before:page;margin-top:0;border-top:0}
+  .cover+*+h2,h2:first-of-type{break-before:auto}
+  pre,table,blockquote,details{break-inside:avoid}
+  .hl{overflow:visible}.hl pre{white-space:pre-wrap}
+  @page{margin:18mm 16mm}
 }
 
-@dataclass
-class Decision:
-    action: str          # "run", "approve", "reject"
-    reason: str = ""
+/* code colours */
+.hl .hll{background:none}
+pre { line-height: 125%; }
+td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
 
-def arbitrate(tool: str, args: dict, user_roles: set[str]) -> Decision:
-    rule = POLICY.get(tool)
-    if rule is None:
-        return Decision("reject", f"unknown tool {tool}")
-    if rule["schema"]:
-        try:
-            parsed = rule["schema"](**args)
-        except ValidationError as e:
-            return Decision("reject", f"bad args: {e.errors()[0]['msg']}")
-        if tool == "create_refund" and parsed.amount > rule["max_amount"]:
-            return Decision("approve", "amount above auto-approve limit")
-    if rule["risk"] == "high" and "support_lead" not in user_roles:
-        return Decision("approve", "high-risk tool requires a lead")
-    return Decision("run")
 
-print(arbitrate("create_refund", {"order_id": "A-17", "amount": 9000}, {"agent"}))
-```
+.hl .c { color: #3D7B7B; font-style: italic } /* Comment */
+.hl .err { border: 1px solid #F00 } /* Error */
+.hl .k { color: #008000; font-weight: bold } /* Keyword */
+.hl .o { color: #666 } /* Operator */
+.hl .ch { color: #3D7B7B; font-style: italic } /* Comment.Hashbang */
+.hl .cm { color: #3D7B7B; font-style: italic } /* Comment.Multiline */
+.hl .cp { color: #9C6500 } /* Comment.Preproc */
+.hl .cpf { color: #3D7B7B; font-style: italic } /* Comment.PreprocFile */
+.hl .c1 { color: #3D7B7B; font-style: italic } /* Comment.Single */
+.hl .cs { color: #3D7B7B; font-style: italic } /* Comment.Special */
+.hl .gd { color: #A00000 } /* Generic.Deleted */
+.hl .ge { font-style: italic } /* Generic.Emph */
+.hl .ges { font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.hl .gr { color: #E40000 } /* Generic.Error */
+.hl .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+.hl .gi { color: #008400 } /* Generic.Inserted */
+.hl .go { color: #717171 } /* Generic.Output */
+.hl .gp { color: #000080; font-weight: bold } /* Generic.Prompt */
+.hl .gs { font-weight: bold } /* Generic.Strong */
+.hl .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+.hl .gt { color: #04D } /* Generic.Traceback */
+.hl .kc { color: #008000; font-weight: bold } /* Keyword.Constant */
+.hl .kd { color: #008000; font-weight: bold } /* Keyword.Declaration */
+.hl .kn { color: #008000; font-weight: bold } /* Keyword.Namespace */
+.hl .kp { color: #008000 } /* Keyword.Pseudo */
+.hl .kr { color: #008000; font-weight: bold } /* Keyword.Reserved */
+.hl .kt { color: #B00040 } /* Keyword.Type */
+.hl .m { color: #666 } /* Literal.Number */
+.hl .s { color: #BA2121 } /* Literal.String */
+.hl .na { color: #687822 } /* Name.Attribute */
+.hl .nb { color: #008000 } /* Name.Builtin */
+.hl .nc { color: #00F; font-weight: bold } /* Name.Class */
+.hl .no { color: #800 } /* Name.Constant */
+.hl .nd { color: #A2F } /* Name.Decorator */
+.hl .ni { color: #717171; font-weight: bold } /* Name.Entity */
+.hl .ne { color: #CB3F38; font-weight: bold } /* Name.Exception */
+.hl .nf { color: #00F } /* Name.Function */
+.hl .nl { color: #767600 } /* Name.Label */
+.hl .nn { color: #00F; font-weight: bold } /* Name.Namespace */
+.hl .nt { color: #008000; font-weight: bold } /* Name.Tag */
+.hl .nv { color: #19177C } /* Name.Variable */
+.hl .ow { color: #A2F; font-weight: bold } /* Operator.Word */
+.hl .w { color: #BBB } /* Text.Whitespace */
+.hl .mb { color: #666 } /* Literal.Number.Bin */
+.hl .mf { color: #666 } /* Literal.Number.Float */
+.hl .mh { color: #666 } /* Literal.Number.Hex */
+.hl .mi { color: #666 } /* Literal.Number.Integer */
+.hl .mo { color: #666 } /* Literal.Number.Oct */
+.hl .sa { color: #BA2121 } /* Literal.String.Affix */
+.hl .sb { color: #BA2121 } /* Literal.String.Backtick */
+.hl .sc { color: #BA2121 } /* Literal.String.Char */
+.hl .dl { color: #BA2121 } /* Literal.String.Delimiter */
+.hl .sd { color: #BA2121; font-style: italic } /* Literal.String.Doc */
+.hl .s2 { color: #BA2121 } /* Literal.String.Double */
+.hl .se { color: #AA5D1F; font-weight: bold } /* Literal.String.Escape */
+.hl .sh { color: #BA2121 } /* Literal.String.Heredoc */
+.hl .si { color: #A45A77; font-weight: bold } /* Literal.String.Interpol */
+.hl .sx { color: #008000 } /* Literal.String.Other */
+.hl .sr { color: #A45A77 } /* Literal.String.Regex */
+.hl .s1 { color: #BA2121 } /* Literal.String.Single */
+.hl .ss { color: #19177C } /* Literal.String.Symbol */
+.hl .bp { color: #008000 } /* Name.Builtin.Pseudo */
+.hl .fm { color: #00F } /* Name.Function.Magic */
+.hl .vc { color: #19177C } /* Name.Variable.Class */
+.hl .vg { color: #19177C } /* Name.Variable.Global */
+.hl .vi { color: #19177C } /* Name.Variable.Instance */
+.hl .vm { color: #19177C } /* Name.Variable.Magic */
+.hl .il { color: #666 } /* Literal.Number.Integer.Long */
+@media (prefers-color-scheme:dark){
+:root:not([data-theme="light"]) .hl span{color:revert}
+pre { line-height: 125%; }
+td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
 
-> **Trap.** Using another LLM as the only arbiter. LLM judges are useful for *quality* checks, but permissions and limits must be enforced in code.
 
-**Read:** [OWASP LLM06: Excessive Agency](https://genai.owasp.org/llmrisk/llm062025-excessive-agency/) · [LangGraph human-in-the-loop](https://langchain-ai.github.io/langgraph/concepts/human_in_the_loop/)
+.hl .c { color: #959077 } /* Comment */
+.hl .err { color: #ED007E; background-color: #1E0010 } /* Error */
+.hl .esc { color: #F8F8F2 } /* Escape */
+.hl .g { color: #F8F8F2 } /* Generic */
+.hl .k { color: #66D9EF } /* Keyword */
+.hl .l { color: #AE81FF } /* Literal */
+.hl .n { color: #F8F8F2 } /* Name */
+.hl .o { color: #FF4689 } /* Operator */
+.hl .x { color: #F8F8F2 } /* Other */
+.hl .p { color: #F8F8F2 } /* Punctuation */
+.hl .ch { color: #959077 } /* Comment.Hashbang */
+.hl .cm { color: #959077 } /* Comment.Multiline */
+.hl .cp { color: #959077 } /* Comment.Preproc */
+.hl .cpf { color: #959077 } /* Comment.PreprocFile */
+.hl .c1 { color: #959077 } /* Comment.Single */
+.hl .cs { color: #959077 } /* Comment.Special */
+.hl .gd { color: #FF4689 } /* Generic.Deleted */
+.hl .ge { color: #F8F8F2; font-style: italic } /* Generic.Emph */
+.hl .ges { color: #F8F8F2; font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.hl .gr { color: #F8F8F2 } /* Generic.Error */
+.hl .gh { color: #F8F8F2 } /* Generic.Heading */
+.hl .gi { color: #A6E22E } /* Generic.Inserted */
+.hl .go { color: #66D9EF } /* Generic.Output */
+.hl .gp { color: #FF4689; font-weight: bold } /* Generic.Prompt */
+.hl .gs { color: #F8F8F2; font-weight: bold } /* Generic.Strong */
+.hl .gu { color: #959077 } /* Generic.Subheading */
+.hl .gt { color: #F8F8F2 } /* Generic.Traceback */
+.hl .kc { color: #66D9EF } /* Keyword.Constant */
+.hl .kd { color: #66D9EF } /* Keyword.Declaration */
+.hl .kn { color: #FF4689 } /* Keyword.Namespace */
+.hl .kp { color: #66D9EF } /* Keyword.Pseudo */
+.hl .kr { color: #66D9EF } /* Keyword.Reserved */
+.hl .kt { color: #66D9EF } /* Keyword.Type */
+.hl .ld { color: #E6DB74 } /* Literal.Date */
+.hl .m { color: #AE81FF } /* Literal.Number */
+.hl .s { color: #E6DB74 } /* Literal.String */
+.hl .na { color: #A6E22E } /* Name.Attribute */
+.hl .nb { color: #F8F8F2 } /* Name.Builtin */
+.hl .nc { color: #A6E22E } /* Name.Class */
+.hl .no { color: #66D9EF } /* Name.Constant */
+.hl .nd { color: #A6E22E } /* Name.Decorator */
+.hl .ni { color: #F8F8F2 } /* Name.Entity */
+.hl .ne { color: #A6E22E } /* Name.Exception */
+.hl .nf { color: #A6E22E } /* Name.Function */
+.hl .nl { color: #F8F8F2 } /* Name.Label */
+.hl .nn { color: #F8F8F2 } /* Name.Namespace */
+.hl .nx { color: #A6E22E } /* Name.Other */
+.hl .py { color: #F8F8F2 } /* Name.Property */
+.hl .nt { color: #FF4689 } /* Name.Tag */
+.hl .nv { color: #F8F8F2 } /* Name.Variable */
+.hl .ow { color: #FF4689 } /* Operator.Word */
+.hl .pm { color: #F8F8F2 } /* Punctuation.Marker */
+.hl .w { color: #F8F8F2 } /* Text.Whitespace */
+.hl .mb { color: #AE81FF } /* Literal.Number.Bin */
+.hl .mf { color: #AE81FF } /* Literal.Number.Float */
+.hl .mh { color: #AE81FF } /* Literal.Number.Hex */
+.hl .mi { color: #AE81FF } /* Literal.Number.Integer */
+.hl .mo { color: #AE81FF } /* Literal.Number.Oct */
+.hl .sa { color: #E6DB74 } /* Literal.String.Affix */
+.hl .sb { color: #E6DB74 } /* Literal.String.Backtick */
+.hl .sc { color: #E6DB74 } /* Literal.String.Char */
+.hl .dl { color: #E6DB74 } /* Literal.String.Delimiter */
+.hl .sd { color: #E6DB74 } /* Literal.String.Doc */
+.hl .s2 { color: #E6DB74 } /* Literal.String.Double */
+.hl .se { color: #AE81FF } /* Literal.String.Escape */
+.hl .sh { color: #E6DB74 } /* Literal.String.Heredoc */
+.hl .si { color: #E6DB74 } /* Literal.String.Interpol */
+.hl .sx { color: #E6DB74 } /* Literal.String.Other */
+.hl .sr { color: #E6DB74 } /* Literal.String.Regex */
+.hl .s1 { color: #E6DB74 } /* Literal.String.Single */
+.hl .ss { color: #E6DB74 } /* Literal.String.Symbol */
+.hl .bp { color: #F8F8F2 } /* Name.Builtin.Pseudo */
+.hl .fm { color: #A6E22E } /* Name.Function.Magic */
+.hl .vc { color: #F8F8F2 } /* Name.Variable.Class */
+.hl .vg { color: #F8F8F2 } /* Name.Variable.Global */
+.hl .vi { color: #F8F8F2 } /* Name.Variable.Instance */
+.hl .vm { color: #F8F8F2 } /* Name.Variable.Magic */
+.hl .il { color: #AE81FF } /* Literal.Number.Integer.Long */
+}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<header class="bar">
+  <a href="m4.html">← Module 4</a>
+  <a href="m6.html">Module 6 →</a>
+  <span class="grow"></span>
+  <button id="expand" type="button">Show all answers</button>
+  <button id="theme" type="button">Theme</button>
+  <button id="print" type="button">Print / PDF</button>
+</header>
+<div class="wrap">
+  <nav id="toc" aria-label="Chapters"><h4>Contents</h4>
+<a href="#m5-intro" data-id="m5-intro"><b>•</b><span>How to use this booklet</span></a>
+<a href="#m5-react" data-id="m5-react"><b>5.1</b><span>ReAct loop and planner–executor</span></a>
+<a href="#m5-arbiter" data-id="m5-arbiter"><b>5.2</b><span>The tool arbiter pattern</span></a>
+<a href="#m5-mcp" data-id="m5-mcp"><b>5.3</b><span>Function calling and MCP (Model Context Protocol)</span></a>
+<a href="#m5-tavily" data-id="m5-tavily"><b>5.4</b><span>Tool use — Tavily web search, parallel tool calls</span></a>
+<a href="#m5-langgraph" data-id="m5-langgraph"><b>5.5</b><span>LangGraph — state, nodes, edges, checkpointing, human-in-the-loop</span></a>
+<a href="#m5-crew" data-id="m5-crew"><b>5.6</b><span>CrewAI — role-based multi-agent teams</span></a>
+<a href="#m5-process" data-id="m5-process"><b>5.7</b><span>Sequential vs hierarchical process</span></a>
+<a href="#m5-agentic-rag" data-id="m5-agentic-rag"><b>5.8</b><span>Agentic RAG and n8n automation</span></a>
+<a href="#m5-memory" data-id="m5-memory"><b>5.9</b><span>Memory — short-term, long-term, episodic</span></a>
+<a href="#m5-orch" data-id="m5-orch"><b>5.10</b><span>Multi-agent orchestration — supervisor, peer-to-peer, fault isolation</span></a>
+<a href="#m5-eval" data-id="m5-eval"><b>5.11</b><span>LLM evaluation — RAGAS, DeepEval, Promptfoo, trajectory evaluation</span></a>
+<a href="#m5-guard" data-id="m5-guard"><b>5.12</b><span>Guardrails, injection defence, PII scrubbing, output filtering</span></a>
+<a href="#m5-boss" data-id="m5-boss"><b>•</b><span>Boss level — The Retrieval Bake-Off</span></a>
+<a href="#m5-glossary" data-id="m5-glossary"><b>•</b><span>Appendix A — Glossary</span></a>
+<a href="#m5-debug" data-id="m5-debug"><b>•</b><span>Appendix B — Debugging checklist for a failing RAG answer</span></a>
+<a href="#m5-quiz" data-id="m5-quiz"><b>•</b><span>Appendix C — Final self-assessment</span></a>
+  </nav>
+  <main id="content">
+<div class="cover">
+      <h1>Module 5 — Agentic AI Systems</h1>
+      <p class="sub">Detailed study booklet · 12 chapters, code walkthroughs, source links, and appendices</p>
+      <p class="hero-note">Quest: build software that decides its own next step, and knows when to stop and ask a human. Four weeks. Rule zero: use the simplest thing that works. A fixed workflow beats an autonomous agent whenever the steps are known in advance.</p>
+    </div>
+<h2 id="m5-intro" class="special">How to use this booklet</h2><p>This booklet expands the Module 5 notes. An <strong>agent</strong> is software where the model chooses its own next step; the hard part is not making it act, but making it act <em>safely</em>, <em>cheaply</em> and <em>measurably</em>. <strong>Rule zero:</strong> use the simplest thing that works. A fixed workflow beats an autonomous agent whenever the steps are known in advance.</p>
+<table>
+<thead>
+<tr>
+<th>Part</th>
+<th>What you get</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>In one line / Analogy</td>
+<td>The idea and a mental model</td>
+</tr>
+<tr>
+<td>Core ideas</td>
+<td>How it works and when to use it</td>
+</tr>
+<tr>
+<td>Code + Reading the code</td>
+<td>Snippets and what each part does</td>
+</tr>
+<tr>
+<td>Trap</td>
+<td>The mistake most people make</td>
+</tr>
+<tr>
+<td>Read</td>
+<td>Links to the best primary sources</td>
+</tr>
+</tbody>
+</table>
+<pre class="mermaid">flowchart LR
+  W["Workflow: fixed steps you design"] --&gt; H["Hybrid: workflow with agent nodes"]
+  H --&gt; A["Agent: model picks the steps"]
+  W -.-&gt;|more predictable, cheaper| P["Pick the leftmost that solves the task"]
+  A -.-&gt;|more flexible, riskier| P</pre>
 
-## 5.3 Function calling and MCP (Model Context Protocol) {#m5-mcp}
+<p>Setup used below: <code>pip install langgraph langchain-openai crewai mcp tavily-python deepeval guardrails-ai presidio-analyzer presidio-anonymizer</code>.</p>
+<blockquote class="callout tip">
+<p><strong>Tip.</strong> Read 5.1 to 5.5 for the single-agent core, 5.6 to 5.10 for multi-agent systems, memory and RAG, and 5.11 to 5.12 for evaluation and safety, which are what make an agent shippable.</p>
+</blockquote>
+<h2 id="m5-react"><span class="chnum">5.1</span>ReAct loop and planner–executor</h2>
+<p class="oneline"><strong>In one line:</strong> ReAct = think, act, observe, repeat. Planner–executor = write the whole plan first, then execute steps, re-planning only when something breaks.</p>
 
-**In one line:** MCP is an open protocol so any AI app (the host/client) can discover and call tools, resources, and prompts exposed by any MCP server — write the integration once, use it everywhere.
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> ReAct is improv theatre: react to each moment. Planner–executor is a heist movie: the plan on the whiteboard, then the crew executes, and someone yells “new plan!” when the alarm goes off.</p>
+</blockquote>
+<h3 id="m5-react--core-ideas">Core ideas</h3>
+<p>ReAct interleaves reasoning and tool calls, so it adapts to surprises but can wander. Planner–executor commits to steps up front, which is more predictable and easier to audit, but needs a re-plan path when a step fails. Pick ReAct for exploratory tasks and planner–executor for multi-step jobs with known structure.</p>
+<pre class="mermaid">flowchart TB
+  subgraph ReAct
+    T1["Think"] --&gt; A1["Act"] --&gt; O1["Observe"] --&gt; T1
+  end
+  subgraph PlanExecute
+    PL["Planner writes steps 1..n"] --&gt; EX["Executor runs step i"]
+    EX --&gt; CK{"Step ok?"}
+    CK --&gt;|yes, more steps| EX
+    CK --&gt;|failed| RP["Re-plan"] --&gt; EX
+    CK --&gt;|all done| FIN["Final answer"]
+  end</pre>
 
-> **Analogy.** USB-C for AI. Before: a different cable for every device. After: one port, and any compliant device just works.
+<h3 id="m5-react--code">Code</h3>
+<div class="hl"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">langchain_openai</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChatOpenAI</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">tool</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langgraph.prebuilt</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_react_agent</span>
 
-```mermaid
-flowchart LR
+<span class="nd">@tool</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_order</span><span class="p">(</span><span class="n">order_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Look up an order by id.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">order_id</span><span class="p">,</span> <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="s2">&quot;delivered&quot;</span><span class="p">,</span> <span class="s2">&quot;amount&quot;</span><span class="p">:</span> <span class="mi">1299</span><span class="p">}</span>
+
+<span class="nd">@tool</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_refund</span><span class="p">(</span><span class="n">order_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">amount</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a refund for an order.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;refund created for </span><span class="si">{</span><span class="n">order_id</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">amount</span><span class="si">}</span><span class="s2">&quot;</span>
+
+<span class="n">agent</span> <span class="o">=</span> <span class="n">create_react_agent</span><span class="p">(</span><span class="n">ChatOpenAI</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&quot;gpt-4o-mini&quot;</span><span class="p">),</span> <span class="n">tools</span><span class="o">=</span><span class="p">[</span><span class="n">get_order</span><span class="p">,</span> <span class="n">create_refund</span><span class="p">])</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">invoke</span><span class="p">({</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="p">[(</span><span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;Order A-17 arrived broken, please refund it&quot;</span><span class="p">)]})</span>
+<span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;messages&quot;</span><span class="p">]:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)[:</span><span class="mi">120</span><span class="p">])</span>
+</code></pre></div>
+
+<p><strong>Reading the code.</strong> The docstring and type hints become the tool description the model reads. The printed messages show the trajectory: human, AI tool call, tool result, final answer. Reading trajectories is the best debugging habit you can build.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Agents love to loop. Set a <code>recursion_limit</code>, a step budget, and a cost budget.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://www.anthropic.com/engineering/building-effective-agents">Anthropic: Building effective agents</a> · <a href="https://lilianweng.github.io/posts/2023-06-23-agent/">Lilian Weng: LLM-powered autonomous agents</a> · <a href="https://langchain-ai.github.io/langgraph/agents/agents/">LangGraph prebuilt agents</a></div>
+<h2 id="m5-arbiter"><span class="chnum">5.2</span>The tool arbiter pattern</h2>
+<p class="oneline"><strong>In one line:</strong> put a deterministic gate between “the model wants to call a tool” and “the tool runs”: it checks permissions, arguments, limits, and risk, and can require human approval.</p>
+
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> The model is an enthusiastic intern with ideas. The arbiter is the manager who signs off on purchases above ₹10,000 and refuses anything not on the approved vendor list.</p>
+</blockquote>
+<!-- -->
+
+<blockquote class="callout why">
+<p><strong>Why it matters for AI work.</strong> A model can be tricked or simply wrong. Anything that moves money or data needs rules the model cannot talk its way around. OWASP calls the failure “excessive agency”.</p>
+</blockquote>
+<pre class="mermaid">flowchart LR
+  LLM["LLM proposes tool call"] --&gt; ARB{"Arbiter"}
+  ARB --&gt;|allowed and low risk| RUN["Execute tool"]
+  ARB --&gt;|high risk| HUM["Human approval queue"]
+  ARB --&gt;|forbidden or invalid| REJ["Reject with reason back to LLM"]
+  RUN --&gt; LOG["Audit log"]
+  HUM --&gt; RUN</pre>
+
+<h3 id="m5-arbiter--code">Code</h3>
+<div class="hl"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">ValidationError</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">RefundArgs</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">order_id</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">amount</span><span class="p">:</span> <span class="nb">int</span>
+
+<span class="n">POLICY</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;get_order&quot;</span><span class="p">:</span>     <span class="p">{</span><span class="s2">&quot;risk&quot;</span><span class="p">:</span> <span class="s2">&quot;low&quot;</span><span class="p">,</span>  <span class="s2">&quot;schema&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">},</span>
+    <span class="s2">&quot;create_refund&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;risk&quot;</span><span class="p">:</span> <span class="s2">&quot;high&quot;</span><span class="p">,</span> <span class="s2">&quot;schema&quot;</span><span class="p">:</span> <span class="n">RefundArgs</span><span class="p">,</span> <span class="s2">&quot;max_amount&quot;</span><span class="p">:</span> <span class="mi">5000</span><span class="p">},</span>
+<span class="p">}</span>
+
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Decision</span><span class="p">:</span>
+    <span class="n">action</span><span class="p">:</span> <span class="nb">str</span>          <span class="c1"># &quot;run&quot;, &quot;approve&quot;, &quot;reject&quot;</span>
+    <span class="n">reason</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">arbitrate</span><span class="p">(</span><span class="n">tool</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">user_roles</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Decision</span><span class="p">:</span>
+    <span class="n">rule</span> <span class="o">=</span> <span class="n">POLICY</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">tool</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">rule</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Decision</span><span class="p">(</span><span class="s2">&quot;reject&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;unknown tool </span><span class="si">{</span><span class="n">tool</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">rule</span><span class="p">[</span><span class="s2">&quot;schema&quot;</span><span class="p">]:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">parsed</span> <span class="o">=</span> <span class="n">rule</span><span class="p">[</span><span class="s2">&quot;schema&quot;</span><span class="p">](</span><span class="o">**</span><span class="n">args</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">ValidationError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Decision</span><span class="p">(</span><span class="s2">&quot;reject&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;bad args: </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">errors</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;msg&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">tool</span> <span class="o">==</span> <span class="s2">&quot;create_refund&quot;</span> <span class="ow">and</span> <span class="n">parsed</span><span class="o">.</span><span class="n">amount</span> <span class="o">&gt;</span> <span class="n">rule</span><span class="p">[</span><span class="s2">&quot;max_amount&quot;</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="n">Decision</span><span class="p">(</span><span class="s2">&quot;approve&quot;</span><span class="p">,</span> <span class="s2">&quot;amount above auto-approve limit&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">rule</span><span class="p">[</span><span class="s2">&quot;risk&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;high&quot;</span> <span class="ow">and</span> <span class="s2">&quot;support_lead&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">user_roles</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Decision</span><span class="p">(</span><span class="s2">&quot;approve&quot;</span><span class="p">,</span> <span class="s2">&quot;high-risk tool requires a lead&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">Decision</span><span class="p">(</span><span class="s2">&quot;run&quot;</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">arbitrate</span><span class="p">(</span><span class="s2">&quot;create_refund&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;order_id&quot;</span><span class="p">:</span> <span class="s2">&quot;A-17&quot;</span><span class="p">,</span> <span class="s2">&quot;amount&quot;</span><span class="p">:</span> <span class="mi">9000</span><span class="p">},</span> <span class="p">{</span><span class="s2">&quot;agent&quot;</span><span class="p">}))</span>
+</code></pre></div>
+
+<p><strong>Reading the code.</strong> Unknown tools are rejected (default deny). Arguments are validated by a schema before anything runs. Rejections carry a <em>reason</em> that goes back to the model so it can correct itself. Every decision should also be written to an audit log.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Using another LLM as the only arbiter. LLM judges are useful for <em>quality</em> checks, but permissions and limits must be enforced in code.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://genai.owasp.org/llmrisk/llm062025-excessive-agency/">OWASP LLM06: Excessive Agency</a> · <a href="https://langchain-ai.github.io/langgraph/concepts/human_in_the_loop/">LangGraph human-in-the-loop</a></div>
+<h2 id="m5-mcp"><span class="chnum">5.3</span>Function calling and MCP (Model Context Protocol)</h2>
+<p class="oneline"><strong>In one line:</strong> MCP is an open protocol so any AI app (the host/client) can discover and call tools, resources, and prompts exposed by any MCP server: write the integration once, use it everywhere.</p>
+
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> USB-C for AI. Before: a different cable for every device. After: one port, and any compliant device just works.</p>
+</blockquote>
+<h3 id="m5-mcp--core-ideas">Core ideas</h3>
+<p>Function calling lets a model request a tool call as structured JSON. MCP standardises <em>how tools are described and reached</em>, over <strong>stdio</strong> (local process) or <strong>HTTP</strong> (remote). The host keeps one client per server, and the model sees all discovered tools together.</p>
+<pre class="mermaid">flowchart LR
   subgraph Host["Host app: Claude Desktop, Cursor, your agent"]
     C1["MCP client"]
     C2["MCP client"]
   end
-  C1 -->|stdio| S1["MCP server: orders DB"]
-  C2 -->|HTTP| S2["MCP server: ticketing API"]
-  S1 --> T1["tools: get_order"]
-  S1 --> R1["resources: schema docs"]
-  S2 --> T2["tools: create_ticket"]
-```
+  C1 --&gt;|stdio| S1["MCP server: orders DB"]
+  C2 --&gt;|HTTP| S2["MCP server: ticketing API"]
+  S1 --&gt; T1["tools: get_order"]
+  S1 --&gt; R1["resources: schema docs"]
+  S2 --&gt; T2["tools: create_ticket"]</pre>
 
-```python
-# ops_server.py
-from mcp.server.fastmcp import FastMCP
+<table>
+<thead>
+<tr>
+<th>Primitive</th>
+<th>Who controls it</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tools</td>
+<td>The model decides to call</td>
+<td><code>create_ticket</code></td>
+</tr>
+<tr>
+<td>Resources</td>
+<td>The app decides to attach</td>
+<td>A schema file, a policy</td>
+</tr>
+<tr>
+<td>Prompts</td>
+<td>The user picks</td>
+<td>“Triage this ticket” template</td>
+</tr>
+</tbody>
+</table>
+<h3 id="m5-mcp--code">Code</h3>
+<div class="hl"><pre><span></span><code><span class="c1"># ops_server.py</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mcp.server.fastmcp</span><span class="w"> </span><span class="kn">import</span> <span class="n">FastMCP</span>
+<span class="n">mcp</span> <span class="o">=</span> <span class="n">FastMCP</span><span class="p">(</span><span class="s2">&quot;ops&quot;</span><span class="p">)</span>
 
-mcp = FastMCP("ops")
+<span class="nd">@mcp</span><span class="o">.</span><span class="n">tool</span><span class="p">()</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_order</span><span class="p">(</span><span class="n">order_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Look up an order by id.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">order_id</span><span class="p">,</span> <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="s2">&quot;delivered&quot;</span><span class="p">}</span>
 
-@mcp.tool()
-def get_order(order_id: str) -> dict:
-    """Look up an order by id."""
-    return {"id": order_id, "status": "delivered"}
+<span class="nd">@mcp</span><span class="o">.</span><span class="n">resource</span><span class="p">(</span><span class="s2">&quot;policy://refunds&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">refund_policy</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The refund policy text.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;Refunds within 30 days for damaged items.&quot;</span>
 
-@mcp.resource("policy://refunds")
-def refund_policy() -> str:
-    """The refund policy text."""
-    return "Refunds within 30 days for damaged items."
+<span class="nd">@mcp</span><span class="o">.</span><span class="n">prompt</span><span class="p">()</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">triage</span><span class="p">(</span><span class="n">ticket</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Classify this ticket and suggest the next action:</span><span class="se">\n</span><span class="si">{</span><span class="n">ticket</span><span class="si">}</span><span class="s2">&quot;</span>
 
-@mcp.prompt()
-def triage(ticket: str) -> str:
-    return f"Classify this ticket and suggest the next action:\n{ticket}"
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">mcp</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>          <span class="c1"># stdio transport by default</span>
+</code></pre></div>
 
-if __name__ == "__main__":
-    mcp.run()          # stdio transport by default
-```
+<div class="hl"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;mcp[cli]&quot;</span>
+mcp<span class="w"> </span>dev<span class="w"> </span>ops_server.py<span class="w">     </span><span class="c1"># opens the MCP Inspector to try your tools</span>
+</code></pre></div>
 
-```bash
-pip install "mcp[cli]"
-mcp dev ops_server.py          # opens the MCP Inspector to try your tools
-```
+<p><strong>Reading the code.</strong> Decorators turn plain functions into protocol-level tools, resources and prompts; names, docstrings and type hints become their descriptions. The Inspector lets you test a server before any model touches it.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> An MCP server runs with <em>your</em> credentials. Only install servers you trust, and scope their permissions like any other service account.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://modelcontextprotocol.io/introduction">MCP introduction</a> · <a href="https://github.com/modelcontextprotocol/python-sdk">MCP Python SDK</a> · <a href="https://modelcontextprotocol.io/specification/2025-06-18">MCP specification</a></div>
+<h2 id="m5-tavily"><span class="chnum">5.4</span>Tool use — Tavily web search, parallel tool calls</h2>
+<p class="oneline"><strong>In one line:</strong> give the agent a search tool that returns clean, LLM-ready snippets, and let it request several independent tools in one turn.</p>
 
-| Primitive | Who controls it | Example |
-|---|---|---|
-| Tools | The model decides to call | `create_ticket` |
-| Resources | The app decides to attach | A schema file, a policy |
-| Prompts | The user picks | “Triage this ticket” template |
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> Sending three interns to three libraries at the same time instead of one intern visiting them one after another.</p>
+</blockquote>
+<div class="hl"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">tavily</span><span class="w"> </span><span class="kn">import</span> <span class="n">TavilyClient</span>
+<span class="n">tavily</span> <span class="o">=</span> <span class="n">TavilyClient</span><span class="p">()</span>          <span class="c1"># reads TAVILY_API_KEY</span>
+<span class="n">res</span> <span class="o">=</span> <span class="n">tavily</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s2">&quot;RBI guidelines on digital lending 2025&quot;</span><span class="p">,</span> <span class="n">max_results</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">res</span><span class="p">[</span><span class="s2">&quot;results&quot;</span><span class="p">]:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;title&quot;</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;url&quot;</span><span class="p">])</span>
+</code></pre></div>
 
-> **Trap.** An MCP server runs with *your* credentials. Only install servers you trust, and scope their permissions like any other service account.
+<div class="hl"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">langchain_tavily</span><span class="w"> </span><span class="kn">import</span> <span class="n">TavilySearch</span>
+<span class="n">agent</span> <span class="o">=</span> <span class="n">create_react_agent</span><span class="p">(</span><span class="n">ChatOpenAI</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&quot;gpt-4o-mini&quot;</span><span class="p">),</span> <span class="n">tools</span><span class="o">=</span><span class="p">[</span><span class="n">TavilySearch</span><span class="p">(</span><span class="n">max_results</span><span class="o">=</span><span class="mi">3</span><span class="p">),</span> <span class="n">get_order</span><span class="p">])</span>
+</code></pre></div>
 
-**Read:** [MCP introduction](https://modelcontextprotocol.io/introduction) · [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk) · [MCP specification](https://modelcontextprotocol.io/specification/2025-06-18)
+<h3 id="m5-tavily--core-ideas">Core ideas</h3>
+<p>In the raw OpenAI API a single assistant message can contain several <code>tool_calls</code>. Run independent ones concurrently and reply with exactly one <code>tool</code> message per <code>tool_call_id</code>. This cuts latency without extra model calls.</p>
+<div class="hl"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span><span class="o">,</span><span class="w"> </span><span class="nn">json</span>
 
-## 5.4 Tool use — Tavily web search, parallel tool calls {#m5-tavily}
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">run_calls</span><span class="p">(</span><span class="n">tool_calls</span><span class="p">,</span> <span class="n">registry</span><span class="p">):</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">one</span><span class="p">(</span><span class="n">call</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">registry</span><span class="p">[</span><span class="n">call</span><span class="o">.</span><span class="n">function</span><span class="o">.</span><span class="n">name</span><span class="p">](</span><span class="o">**</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">call</span><span class="o">.</span><span class="n">function</span><span class="o">.</span><span class="n">arguments</span><span class="p">))</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;tool&quot;</span><span class="p">,</span> <span class="s2">&quot;tool_call_id&quot;</span><span class="p">:</span> <span class="n">call</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">result</span><span class="p">)}</span>
+    <span class="k">return</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="n">one</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">tool_calls</span><span class="p">))</span>
+</code></pre></div>
 
-**In one line:** give the agent a search tool that returns clean, LLM-ready snippets, and let it request several independent tools in one turn.
-
-> **Analogy.** Sending three interns to three libraries at the same time instead of one intern visiting them one after another.
-
-```python
-from tavily import TavilyClient
-tavily = TavilyClient()                         # reads TAVILY_API_KEY
-res = tavily.search("RBI guidelines on digital lending 2025", max_results=5)
-for r in res["results"]:
-    print(r["title"], r["url"])
-```
-
-```python
-from langchain_tavily import TavilySearch
-agent = create_react_agent(ChatOpenAI(model="gpt-4o-mini"), tools=[TavilySearch(max_results=3), get_order])
-```
-
-Parallel tool calls in the raw OpenAI API: a single assistant message can contain several `tool_calls`; run them concurrently and reply with one `tool` message per `tool_call_id`.
-
-```python
-import asyncio, json
-async def run_calls(tool_calls, registry):
-    async def one(call):
-        result = await registry[call.function.name](**json.loads(call.function.arguments))
-        return {"role": "tool", "tool_call_id": call.id, "content": json.dumps(result)}
-    return await asyncio.gather(*(one(c) for c in tool_calls))
-```
-
-```mermaid
-sequenceDiagram
+<pre class="mermaid">sequenceDiagram
   participant LLM
   participant App
-  LLM->>App: tool_calls weather Pune, weather Delhi, fx USD-INR
+  LLM-&gt;&gt;App: tool_calls weather Pune, weather Delhi, fx USD-INR
   par in parallel
-    App->>App: weather Pune
+    App-&gt;&gt;App: weather Pune
   and
-    App->>App: weather Delhi
+    App-&gt;&gt;App: weather Delhi
   and
-    App->>App: fx rate
+    App-&gt;&gt;App: fx rate
   end
-  App->>LLM: three tool results
-```
+  App-&gt;&gt;LLM: three tool results</pre>
 
-> **Trap.** Web results are untrusted input — a perfect prompt-injection vector. Never let search content trigger high-risk tools without the arbiter.
+<p><strong>Reading the code.</strong> <code>asyncio.gather</code> runs all calls at once and keeps results in order. Matching <code>tool_call_id</code> is mandatory; a missing reply makes the API reject the next request.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Web results are untrusted input, a perfect prompt-injection vector. Never let search content trigger high-risk tools without the arbiter.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://docs.tavily.com/">Tavily docs</a> · <a href="https://platform.openai.com/docs/guides/function-calling#parallel-function-calling">OpenAI: parallel function calling</a></div>
+<h2 id="m5-langgraph"><span class="chnum">5.5</span>LangGraph — state, nodes, edges, checkpointing, human-in-the-loop</h2>
+<p class="oneline"><strong>In one line:</strong> LangGraph models an agent as a state machine: a typed state, nodes that update it, edges (including conditional ones) that route between nodes, and a checkpointer that saves state so runs can pause and resume.</p>
 
-**Read:** [Tavily docs](https://docs.tavily.com/) · [OpenAI: parallel function calling](https://platform.openai.com/docs/guides/function-calling#parallel-function-calling)
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> A board game. The state is the board; nodes are moves; edges are the rules for whose turn is next; a checkpoint is a photo of the board so you can continue tomorrow.</p>
+</blockquote>
+<h3 id="m5-langgraph--core-ideas">Core ideas</h3>
+<p>Explicit state makes agents debuggable and testable. A <strong>checkpointer</strong> stores state per <code>thread_id</code>, enabling memory across turns, pause and resume, and replay. <code>interrupt()</code> stops the graph and surfaces a question to a human; <code>Command(resume=...)</code> continues from exactly that point.</p>
+<pre class="mermaid">flowchart LR
+  START(("start")) --&gt; intake["intake: extract claim"]
+  intake --&gt; assess["assess: check policy"]
+  assess --&gt;|amount under 10k| approve["auto approve"]
+  assess --&gt;|amount over 10k| human["interrupt: human review"]
+  human --&gt; approve
+  human --&gt; deny["deny"]
+  approve --&gt; END(("end"))
+  deny --&gt; END</pre>
 
-## 5.5 LangGraph — state, nodes, edges, checkpointing, human-in-the-loop {#m5-langgraph}
+<h3 id="m5-langgraph--code">Code</h3>
+<div class="hl"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TypedDict</span><span class="p">,</span> <span class="n">Literal</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langgraph.graph</span><span class="w"> </span><span class="kn">import</span> <span class="n">StateGraph</span><span class="p">,</span> <span class="n">START</span><span class="p">,</span> <span class="n">END</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langgraph.checkpoint.memory</span><span class="w"> </span><span class="kn">import</span> <span class="n">InMemorySaver</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langgraph.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">interrupt</span><span class="p">,</span> <span class="n">Command</span>
 
-**In one line:** LangGraph models an agent as a state machine: a typed state, nodes that update it, edges (including conditional ones) that route between nodes, and a checkpointer that saves state so runs can pause and resume.
+<span class="k">class</span><span class="w"> </span><span class="nc">Claim</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">,</span> <span class="n">total</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">text</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">amount</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">decision</span><span class="p">:</span> <span class="nb">str</span>
 
-> **Analogy.** A board game. The state is the board; nodes are moves; edges are the rules for whose turn is next; a checkpoint is a photo of the board so you can continue tomorrow.
+<span class="k">def</span><span class="w"> </span><span class="nf">intake</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="n">Claim</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;amount&quot;</span><span class="p">:</span> <span class="mi">25_000</span><span class="p">}</span>          <span class="c1"># pretend we extracted it with an LLM</span>
 
-```mermaid
-flowchart LR
-  START(("start")) --> intake["intake: extract claim"]
-  intake --> assess["assess: check policy"]
-  assess -->|amount under 10k| approve["auto approve"]
-  assess -->|amount over 10k| human["interrupt: human review"]
-  human --> approve
-  human --> deny["deny"]
-  approve --> END(("end"))
-  deny --> END
-```
+<span class="k">def</span><span class="w"> </span><span class="nf">route</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="n">Claim</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;approve&quot;</span><span class="p">,</span> <span class="s2">&quot;human&quot;</span><span class="p">]:</span>
+    <span class="k">return</span> <span class="s2">&quot;approve&quot;</span> <span class="k">if</span> <span class="n">s</span><span class="p">[</span><span class="s2">&quot;amount&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">10_000</span> <span class="k">else</span> <span class="s2">&quot;human&quot;</span>
 
-```python
-from typing import TypedDict, Literal
-from langgraph.graph import StateGraph, START, END
-from langgraph.checkpoint.memory import InMemorySaver
-from langgraph.types import interrupt, Command
+<span class="k">def</span><span class="w"> </span><span class="nf">human</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="n">Claim</span><span class="p">):</span>
+    <span class="n">verdict</span> <span class="o">=</span> <span class="n">interrupt</span><span class="p">({</span><span class="s2">&quot;question&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Approve claim of </span><span class="si">{</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;amount&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">?&quot;</span><span class="p">})</span>   <span class="c1"># pauses the graph</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;decision&quot;</span><span class="p">:</span> <span class="n">verdict</span><span class="p">}</span>
 
-class Claim(TypedDict, total=False):
-    text: str
-    amount: int
-    decision: str
+<span class="k">def</span><span class="w"> </span><span class="nf">approve</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="n">Claim</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;decision&quot;</span><span class="p">:</span> <span class="n">s</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;decision&quot;</span><span class="p">,</span> <span class="s2">&quot;approved&quot;</span><span class="p">)}</span>
 
-def intake(s: Claim):
-    return {"amount": 25_000}                         # pretend we extracted it with an LLM
+<span class="n">g</span> <span class="o">=</span> <span class="n">StateGraph</span><span class="p">(</span><span class="n">Claim</span><span class="p">)</span>
+<span class="n">g</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="s2">&quot;intake&quot;</span><span class="p">,</span> <span class="n">intake</span><span class="p">);</span> <span class="n">g</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="s2">&quot;human&quot;</span><span class="p">,</span> <span class="n">human</span><span class="p">);</span> <span class="n">g</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="s2">&quot;approve&quot;</span><span class="p">,</span> <span class="n">approve</span><span class="p">)</span>
+<span class="n">g</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">START</span><span class="p">,</span> <span class="s2">&quot;intake&quot;</span><span class="p">)</span>
+<span class="n">g</span><span class="o">.</span><span class="n">add_conditional_edges</span><span class="p">(</span><span class="s2">&quot;intake&quot;</span><span class="p">,</span> <span class="n">route</span><span class="p">)</span>
+<span class="n">g</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="s2">&quot;human&quot;</span><span class="p">,</span> <span class="s2">&quot;approve&quot;</span><span class="p">);</span> <span class="n">g</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="s2">&quot;approve&quot;</span><span class="p">,</span> <span class="n">END</span><span class="p">)</span>
+<span class="n">app</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">checkpointer</span><span class="o">=</span><span class="n">InMemorySaver</span><span class="p">())</span>
 
-def route(s: Claim) -> Literal["approve", "human"]:
-    return "approve" if s["amount"] < 10_000 else "human"
+<span class="n">cfg</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;configurable&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;thread_id&quot;</span><span class="p">:</span> <span class="s2">&quot;claim-42&quot;</span><span class="p">}}</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">invoke</span><span class="p">({</span><span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;water damage&quot;</span><span class="p">},</span> <span class="n">cfg</span><span class="p">))</span>        <span class="c1"># stops at interrupt</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">Command</span><span class="p">(</span><span class="n">resume</span><span class="o">=</span><span class="s2">&quot;approved&quot;</span><span class="p">),</span> <span class="n">cfg</span><span class="p">))</span>      <span class="c1"># a human resumes it later</span>
+</code></pre></div>
 
-def human(s: Claim):
-    verdict = interrupt({"question": f"Approve claim of {s['amount']}?"})   # pauses the graph
-    return {"decision": verdict}
+<p><strong>Reading the code.</strong> The same <code>thread_id</code> ties the second call to the paused run. Nodes return only the keys they change. The routing function’s <code>Literal</code> return type documents the possible next nodes.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> <code>InMemorySaver</code> forgets everything on restart. In production use a Postgres or Redis checkpointer.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://langchain-ai.github.io/langgraph/">LangGraph docs</a> · <a href="https://langchain-ai.github.io/langgraph/concepts/persistence/">LangGraph persistence</a> · <a href="https://langchain-ai.github.io/langgraph/concepts/human_in_the_loop/">LangGraph human-in-the-loop</a></div>
+<h2 id="m5-crew"><span class="chnum">5.6</span>CrewAI — role-based multi-agent teams</h2>
+<p class="oneline"><strong>In one line:</strong> define agents by role, goal, and backstory; define tasks with expected outputs; put them in a crew and let them collaborate.</p>
 
-def approve(s: Claim):
-    return {"decision": s.get("decision", "approved")}
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> Assembling a newsroom: a researcher digs, a writer drafts, an editor polishes. Each has a job description; the crew is the newsroom.</p>
+</blockquote>
+<div class="hl"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">crewai</span><span class="w"> </span><span class="kn">import</span> <span class="n">Agent</span><span class="p">,</span> <span class="n">Task</span><span class="p">,</span> <span class="n">Crew</span><span class="p">,</span> <span class="n">Process</span>
 
-g = StateGraph(Claim)
-g.add_node("intake", intake); g.add_node("human", human); g.add_node("approve", approve)
-g.add_edge(START, "intake")
-g.add_conditional_edges("intake", route)
-g.add_edge("human", "approve"); g.add_edge("approve", END)
-app = g.compile(checkpointer=InMemorySaver())
+<span class="n">researcher</span> <span class="o">=</span> <span class="n">Agent</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;Market researcher&quot;</span><span class="p">,</span> <span class="n">goal</span><span class="o">=</span><span class="s2">&quot;Find facts about Indian UPI growth&quot;</span><span class="p">,</span>
+                   <span class="n">backstory</span><span class="o">=</span><span class="s2">&quot;Ex-analyst who always cites sources.&quot;</span><span class="p">,</span> <span class="n">allow_delegation</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">writer</span> <span class="o">=</span> <span class="n">Agent</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;Business writer&quot;</span><span class="p">,</span> <span class="n">goal</span><span class="o">=</span><span class="s2">&quot;Write a crisp one-page brief&quot;</span><span class="p">,</span>
+               <span class="n">backstory</span><span class="o">=</span><span class="s2">&quot;Writes for busy CXOs. Hates jargon.&quot;</span><span class="p">)</span>
 
-cfg = {"configurable": {"thread_id": "claim-42"}}
-print(app.invoke({"text": "water damage"}, cfg))           # stops at interrupt
-print(app.invoke(Command(resume="approved"), cfg))          # a human resumes it later
-```
+<span class="n">research</span> <span class="o">=</span> <span class="n">Task</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;Collect 5 key UPI statistics from the last two years with sources.&quot;</span><span class="p">,</span>
+                <span class="n">expected_output</span><span class="o">=</span><span class="s2">&quot;Bullet list of facts with URLs&quot;</span><span class="p">,</span> <span class="n">agent</span><span class="o">=</span><span class="n">researcher</span><span class="p">)</span>
+<span class="n">brief</span> <span class="o">=</span> <span class="n">Task</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;Turn the research into a one-page brief for a bank CTO.&quot;</span><span class="p">,</span>
+             <span class="n">expected_output</span><span class="o">=</span><span class="s2">&quot;Markdown brief under 300 words&quot;</span><span class="p">,</span> <span class="n">agent</span><span class="o">=</span><span class="n">writer</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="p">[</span><span class="n">research</span><span class="p">])</span>
 
-> **Trap.** `InMemorySaver` forgets everything on restart. In production use a Postgres or Redis checkpointer.
+<span class="n">crew</span> <span class="o">=</span> <span class="n">Crew</span><span class="p">(</span><span class="n">agents</span><span class="o">=</span><span class="p">[</span><span class="n">researcher</span><span class="p">,</span> <span class="n">writer</span><span class="p">],</span> <span class="n">tasks</span><span class="o">=</span><span class="p">[</span><span class="n">research</span><span class="p">,</span> <span class="n">brief</span><span class="p">],</span> <span class="n">process</span><span class="o">=</span><span class="n">Process</span><span class="o">.</span><span class="n">sequential</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">crew</span><span class="o">.</span><span class="n">kickoff</span><span class="p">())</span>
+</code></pre></div>
 
-**Read:** [LangGraph docs](https://langchain-ai.github.io/langgraph/) · [LangGraph persistence](https://langchain-ai.github.io/langgraph/concepts/persistence/) · [LangGraph human-in-the-loop](https://langchain-ai.github.io/langgraph/concepts/human_in_the_loop/)
+<pre class="mermaid">flowchart LR
+  R["Researcher agent"] --&gt;|facts| W["Writer agent"]
+  W --&gt;|brief| OUT["Output"]</pre>
 
-## 5.6 CrewAI — role-based multi-agent teams {#m5-crew}
+<p><strong>Reading the code.</strong> Role, goal and backstory become part of each agent’s prompt, so concrete wording (“always cites sources”) shapes behaviour. <code>context=[research]</code> passes the researcher’s output to the writer. <code>expected_output</code> is the acceptance criterion; make it specific.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> More agents ≠ better results. Each hand-off loses context and adds cost. Start with one agent and split only when a role clearly needs different tools or instructions.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://docs.crewai.com/">CrewAI docs</a> · <a href="https://docs.crewai.com/concepts/agents">CrewAI agents</a> · <a href="https://docs.crewai.com/concepts/tasks">CrewAI tasks</a></div>
+<h2 id="m5-process"><span class="chnum">5.7</span>Sequential vs hierarchical process</h2>
+<p class="oneline"><strong>In one line:</strong> sequential runs tasks in a fixed order; hierarchical adds a manager agent that plans, delegates, and reviews.</p>
 
-**In one line:** define agents by role, goal, and backstory; define tasks with expected outputs; put them in a crew and let them collaborate.
-
-> **Analogy.** Assembling a newsroom: a researcher digs, a writer drafts, an editor polishes. Each has a job description; the crew is the newsroom.
-
-```python
-from crewai import Agent, Task, Crew, Process
-
-researcher = Agent(role="Market researcher", goal="Find facts about Indian UPI growth",
-                   backstory="Ex-analyst who always cites sources.", allow_delegation=False)
-writer = Agent(role="Business writer", goal="Write a crisp one-page brief",
-               backstory="Writes for busy CXOs. Hates jargon.")
-
-research = Task(description="Collect 5 key UPI statistics from the last two years with sources.",
-                expected_output="Bullet list of facts with URLs", agent=researcher)
-brief = Task(description="Turn the research into a one-page brief for a bank CTO.",
-             expected_output="Markdown brief under 300 words", agent=writer, context=[research])
-
-crew = Crew(agents=[researcher, writer], tasks=[research, brief], process=Process.sequential, verbose=True)
-print(crew.kickoff())
-```
-
-```mermaid
-flowchart LR
-  R["Researcher agent"] -->|facts| W["Writer agent"]
-  W -->|brief| OUT["Output"]
-```
-
-> **Trap.** More agents ≠ better results. Each hand-off loses context and adds cost. Start with one agent and split only when a role clearly needs different tools or instructions.
-
-**Read:** [CrewAI docs](https://docs.crewai.com/) · [CrewAI agents](https://docs.crewai.com/concepts/agents) · [CrewAI tasks](https://docs.crewai.com/concepts/tasks)
-
-## 5.7 Sequential vs hierarchical process {#m5-process}
-
-**In one line:** sequential runs tasks in a fixed order; hierarchical adds a manager agent that plans, delegates, and reviews.
-
-> **Analogy.** Sequential is an assembly line. Hierarchical is a project manager assigning tickets and checking work.
-
-```mermaid
-flowchart TB
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> Sequential is an assembly line. Hierarchical is a project manager assigning tickets and checking work.</p>
+</blockquote>
+<pre class="mermaid">flowchart TB
   subgraph Sequential
-    A1["Task 1"] --> A2["Task 2"] --> A3["Task 3"]
+    A1["Task 1"] --&gt; A2["Task 2"] --&gt; A3["Task 3"]
   end
   subgraph Hierarchical
-    M["Manager"] --> W1["Worker A"]
-    M --> W2["Worker B"]
-    W1 --> M
-    W2 --> M
-  end
-```
+    M["Manager"] --&gt; W1["Worker A"]
+    M --&gt; W2["Worker B"]
+    W1 --&gt; M
+    W2 --&gt; M
+  end</pre>
 
-```python
-crew = Crew(
-    agents=[researcher, writer],
-    tasks=[research, brief],
-    process=Process.hierarchical,
-    manager_llm="gpt-4o",          # the manager plans and delegates
-)
-```
+<div class="hl"><pre><span></span><code><span class="n">crew</span> <span class="o">=</span> <span class="n">Crew</span><span class="p">(</span>
+    <span class="n">agents</span><span class="o">=</span><span class="p">[</span><span class="n">researcher</span><span class="p">,</span> <span class="n">writer</span><span class="p">],</span>
+    <span class="n">tasks</span><span class="o">=</span><span class="p">[</span><span class="n">research</span><span class="p">,</span> <span class="n">brief</span><span class="p">],</span>
+    <span class="n">process</span><span class="o">=</span><span class="n">Process</span><span class="o">.</span><span class="n">hierarchical</span><span class="p">,</span>
+    <span class="n">manager_llm</span><span class="o">=</span><span class="s2">&quot;gpt-4o&quot;</span><span class="p">,</span>          <span class="c1"># the manager plans and delegates</span>
+<span class="p">)</span>
+</code></pre></div>
 
-| | Sequential | Hierarchical |
-|---|---|---|
-| Predictability | High | Lower |
-| Cost | Lower | Higher (manager calls) |
-| Best for | Known pipelines | Open-ended tasks needing re-planning |
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Sequential</th>
+<th>Hierarchical</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Predictability</td>
+<td>High</td>
+<td>Lower</td>
+</tr>
+<tr>
+<td>Cost</td>
+<td>Lower</td>
+<td>Higher (manager calls)</td>
+</tr>
+<tr>
+<td>Best for</td>
+<td>Known pipelines</td>
+<td>Open-ended tasks needing re-planning</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Choosing.</strong> If you can draw the steps in advance, use sequential. Use hierarchical only when the task needs dynamic delegation, and give the manager a stronger model than the workers.</p>
+<div class="read"><strong>Read:</strong> <a href="https://docs.crewai.com/concepts/processes">CrewAI processes</a></div>
+<h2 id="m5-agentic-rag"><span class="chnum">5.8</span>Agentic RAG and n8n automation</h2>
+<p class="oneline"><strong>In one line:</strong> in agentic RAG the model decides <em>whether</em> to retrieve, <em>which</em> index to search, and <em>whether the results are good enough</em>; n8n can host the same pattern visually with an AI Agent node and vector-store tools.</p>
 
-**Read:** [CrewAI processes](https://docs.crewai.com/concepts/processes)
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> Classic RAG is a vending machine: press button, get snack. Agentic RAG is a personal shopper who decides which shops to visit and comes back if the first shop is out of stock.</p>
+</blockquote>
+<pre class="mermaid">flowchart LR
+  Q["Question"] --&gt; AG["Agent"]
+  AG --&gt;|policy question| T1["Search policy index"]
+  AG --&gt;|order question| T2["Query orders DB"]
+  AG --&gt;|current events| T3["Web search"]
+  T1 --&gt; AG
+  T2 --&gt; AG
+  T3 --&gt; AG
+  AG --&gt; ANS["Answer with sources"]</pre>
 
-## 5.8 Agentic RAG and n8n automation {#m5-agentic-rag}
+<div class="hl"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">tool</span>
 
-**In one line:** in agentic RAG the model decides *whether* to retrieve, *which* index to search, and *whether the results are good enough*; n8n can host the same pattern visually with an AI Agent node and vector-store tools.
+<span class="nd">@tool</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">search_policies</span><span class="p">(</span><span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Search internal policy documents.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">page_content</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">policy_retriever</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">query</span><span class="p">))</span>
 
-> **Analogy.** Classic RAG is a vending machine: press button, get snack. Agentic RAG is a personal shopper who decides which shops to visit and comes back if the first shop is out of stock.
+<span class="nd">@tool</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">search_faq</span><span class="p">(</span><span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Search the public FAQ.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">page_content</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">faq_retriever</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">query</span><span class="p">))</span>
 
-```mermaid
-flowchart LR
-  Q["Question"] --> AG["Agent"]
-  AG -->|policy question| T1["Search policy index"]
-  AG -->|order question| T2["Query orders DB"]
-  AG -->|current events| T3["Web search"]
-  T1 --> AG
-  T2 --> AG
-  T3 --> AG
-  AG --> ANS["Answer with sources"]
-```
+<span class="n">agent</span> <span class="o">=</span> <span class="n">create_react_agent</span><span class="p">(</span><span class="n">ChatOpenAI</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&quot;gpt-4o-mini&quot;</span><span class="p">),</span> <span class="n">tools</span><span class="o">=</span><span class="p">[</span><span class="n">search_policies</span><span class="p">,</span> <span class="n">search_faq</span><span class="p">,</span> <span class="n">get_order</span><span class="p">],</span>
+                           <span class="n">prompt</span><span class="o">=</span><span class="s2">&quot;Use tools when facts are needed. Cite the tool output you used.&quot;</span><span class="p">)</span>
+</code></pre></div>
 
-```python
-from langchain_core.tools import tool
+<p><strong>n8n recipe.</strong> <strong>Chat Trigger</strong> → <strong>AI Agent</strong> node (model + memory) with tools: <strong>Vector Store Tool</strong> (Pinecone/Qdrant), <strong>HTTP Request Tool</strong>, <strong>Postgres Tool</strong> → respond. It is the same loop as the code above, built by connecting nodes, which suits teams that prefer low-code.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Tool descriptions are prompts. Vague descriptions (“search stuff”) make the agent pick the wrong tool. Say exactly what each tool contains and when to use it.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://langchain-ai.github.io/langgraph/tutorials/rag/langgraph_agentic_rag/">LangGraph agentic RAG tutorial</a> · <a href="https://docs.n8n.io/advanced-ai/">n8n advanced AI</a> · <a href="https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.agent/">n8n AI Agent node</a></div>
+<h2 id="m5-memory"><span class="chnum">5.9</span>Memory — short-term, long-term, episodic</h2>
+<p class="oneline"><strong>In one line:</strong> short-term memory is the current conversation (thread state); long-term memory is facts stored across sessions (often in a vector store or key–value store); episodic memory is records of past runs the agent can learn from.</p>
 
-@tool
-def search_policies(query: str) -> str:
-    """Search internal policy documents."""
-    return "\n".join(d.page_content for d in policy_retriever.invoke(query))
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> Short-term: what you said 5 minutes ago in this meeting. Long-term: you know the client hates PDFs. Episodic: “last time we tried a bulk refund, the bank API timed out, so batch it”.</p>
+</blockquote>
+<pre class="mermaid">flowchart LR
+  U["User turn"] --&gt; ST["Short-term: thread messages, trimmed or summarised"]
+  ST --&gt; LLM["LLM"]
+  LT[("Long-term store: preferences, facts")] --&gt;|search by user id| LLM
+  EP[("Episodes: past runs and outcomes")] --&gt;|similar situations| LLM
+  LLM --&gt;|write new facts| LT
+  LLM --&gt;|log run| EP</pre>
 
-@tool
-def search_faq(query: str) -> str:
-    """Search the public FAQ."""
-    return "\n".join(d.page_content for d in faq_retriever.invoke(query))
+<h3 id="m5-memory--code">Code</h3>
+<div class="hl"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">langgraph.store.memory</span><span class="w"> </span><span class="kn">import</span> <span class="n">InMemoryStore</span>
+<span class="n">store</span> <span class="o">=</span> <span class="n">InMemoryStore</span><span class="p">()</span>
+<span class="n">ns</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;u-77&quot;</span><span class="p">,</span> <span class="s2">&quot;prefs&quot;</span><span class="p">)</span>
+<span class="n">store</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">ns</span><span class="p">,</span> <span class="s2">&quot;format&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="s2">&quot;prefers bullet points, no PDFs&quot;</span><span class="p">})</span>
+<span class="n">store</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">ns</span><span class="p">,</span> <span class="s2">&quot;lang&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="s2">&quot;replies in Hinglish&quot;</span><span class="p">})</span>
 
-agent = create_react_agent(ChatOpenAI(model="gpt-4o-mini"), tools=[search_policies, search_faq, get_order],
-                           prompt="Use tools when facts are needed. Cite the tool output you used.")
-```
+<span class="k">def</span><span class="w"> </span><span class="nf">recall</span><span class="p">(</span><span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="n">items</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">search</span><span class="p">((</span><span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="s2">&quot;prefs&quot;</span><span class="p">))</span>
+    <span class="k">return</span> <span class="s2">&quot;; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">items</span><span class="p">)</span>
 
-n8n recipe: **Chat Trigger** → **AI Agent** node (model + memory) with tools: **Vector Store Tool** (Pinecone/Qdrant), **HTTP Request Tool**, **Postgres Tool** → respond.
+<span class="nb">print</span><span class="p">(</span><span class="n">recall</span><span class="p">(</span><span class="s2">&quot;u-77&quot;</span><span class="p">))</span>
+</code></pre></div>
 
-> **Trap.** Tool descriptions are prompts. Vague descriptions (“search stuff”) make the agent pick the wrong tool. Say exactly what each tool contains and when to use it.
+<p>Short-term trimming keeps the prompt inside the context window:</p>
+<div class="hl"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="n">trim_messages</span>
+<span class="n">trimmed</span> <span class="o">=</span> <span class="n">trim_messages</span><span class="p">(</span><span class="n">history</span><span class="p">,</span> <span class="n">max_tokens</span><span class="o">=</span><span class="mi">3000</span><span class="p">,</span> <span class="n">token_counter</span><span class="o">=</span><span class="n">ChatOpenAI</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&quot;gpt-4o-mini&quot;</span><span class="p">),</span>
+                        <span class="n">strategy</span><span class="o">=</span><span class="s2">&quot;last&quot;</span><span class="p">,</span> <span class="n">include_system</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</code></pre></div>
 
-**Read:** [LangGraph agentic RAG tutorial](https://langchain-ai.github.io/langgraph/tutorials/rag/langgraph_agentic_rag/) · [n8n advanced AI](https://docs.n8n.io/advanced-ai/) · [n8n AI Agent node](https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.agent/)
+<p><strong>Reading the code.</strong> The namespace tuple scopes memories per user, which is also your privacy boundary. <code>strategy="last"</code> keeps the most recent messages and <code>include_system=True</code> always keeps the system prompt.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Long-term memory can store wrong or sensitive facts forever. Add expiry, let users see and delete memories, and do not store PII you do not need.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://langchain-ai.github.io/langgraph/concepts/memory/">LangGraph memory concepts</a> · <a href="https://arxiv.org/abs/2310.08560">MemGPT paper</a> · <a href="https://arxiv.org/abs/2304.03442">Generative Agents paper (memory stream)</a></div>
+<h2 id="m5-orch"><span class="chnum">5.10</span>Multi-agent orchestration — supervisor, peer-to-peer, fault isolation</h2>
+<p class="oneline"><strong>In one line:</strong> a supervisor routes work to specialist agents and combines their results; peer-to-peer agents hand off directly; either way, one agent failing must not crash the whole system.</p>
 
-## 5.9 Memory — short-term, long-term, episodic {#m5-memory}
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> An air-traffic controller (supervisor) versus pilots talking to each other on a shared frequency (peer-to-peer). Fault isolation: one plane’s engine trouble does not ground the airport.</p>
+</blockquote>
+<pre class="mermaid">flowchart TB
+  U["User"] --&gt; SUP["Supervisor"]
+  SUP --&gt; F["Flights agent"]
+  SUP --&gt; H["Hotels agent"]
+  SUP --&gt; B["Budget agent"]
+  F --&gt;|result or error| SUP
+  H --&gt;|result or error| SUP
+  B --&gt;|result or error| SUP
+  SUP --&gt; OUT["Combined plan, notes what failed"]</pre>
 
-**In one line:** short-term memory is the current conversation (thread state); long-term memory is facts stored across sessions (often in a vector store or key–value store); episodic memory is records of past runs the agent can learn from.
+<h3 id="m5-orch--code">Code</h3>
+<div class="hl"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 
-> **Analogy.** Short-term: what you said 5 minutes ago in this meeting. Long-term: you know the client hates PDFs. Episodic: “last time we tried a bulk refund, the bank API timed out — batch it”.
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">call_agent</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">20</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">name</span><span class="p">,</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">fn</span><span class="p">(</span><span class="n">task</span><span class="p">),</span> <span class="n">timeout</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>                 <span class="c1"># isolate the failure</span>
+        <span class="k">return</span> <span class="n">name</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="nb">type</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">}</span>
 
-```mermaid
-flowchart LR
-  U["User turn"] --> ST["Short-term: thread messages, trimmed or summarised"]
-  ST --> LLM["LLM"]
-  LT[("Long-term store: preferences, facts")] -->|search by user id| LLM
-  EP[("Episodes: past runs and outcomes")] -->|similar situations| LLM
-  LLM -->|write new facts| LT
-  LLM -->|log run| EP
-```
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">supervisor</span><span class="p">(</span><span class="n">task</span><span class="p">):</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span>
+        <span class="n">call_agent</span><span class="p">(</span><span class="s2">&quot;flights&quot;</span><span class="p">,</span> <span class="n">flights_agent</span><span class="p">,</span> <span class="n">task</span><span class="p">),</span>
+        <span class="n">call_agent</span><span class="p">(</span><span class="s2">&quot;hotels&quot;</span><span class="p">,</span> <span class="n">hotels_agent</span><span class="p">,</span> <span class="n">task</span><span class="p">),</span>
+        <span class="n">call_agent</span><span class="p">(</span><span class="s2">&quot;budget&quot;</span><span class="p">,</span> <span class="n">budget_agent</span><span class="p">,</span> <span class="n">task</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">ok</span> <span class="o">=</span> <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="n">r</span> <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span> <span class="k">if</span> <span class="s2">&quot;error&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">r</span><span class="p">}</span>
+    <span class="n">failed</span> <span class="o">=</span> <span class="p">[</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span> <span class="k">if</span> <span class="s2">&quot;error&quot;</span> <span class="ow">in</span> <span class="n">r</span><span class="p">]</span>
+    <span class="k">return</span> <span class="k">await</span> <span class="n">summarise_plan</span><span class="p">(</span><span class="n">ok</span><span class="p">,</span> <span class="n">failed</span><span class="p">)</span>     <span class="c1"># tell the user what is missing</span>
+</code></pre></div>
 
-```python
-from langgraph.store.memory import InMemoryStore
+<p><strong>Reading the code.</strong> Each specialist runs under its own timeout and try/except, so a failure becomes data (<code>{"error": ...}</code>) instead of an exception that kills the run. The final summary reports what is missing, which is more honest than a silent partial answer.</p>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Supervisor</td>
+<td>Clear control, easy to audit</td>
+<td>Supervisor is a bottleneck</td>
+</tr>
+<tr>
+<td>Peer-to-peer / swarm</td>
+<td>Flexible hand-offs</td>
+<td>Harder to debug and bound</td>
+</tr>
+<tr>
+<td>Hierarchical teams</td>
+<td>Scales to many agents</td>
+<td>Many LLM calls</td>
+</tr>
+</tbody>
+</table>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Free-form agent-to-agent chat is hard to bound. Always cap hops and total budget, and log every hand-off.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://langchain-ai.github.io/langgraph/concepts/multi_agent/">LangGraph multi-agent concepts</a> · <a href="https://github.com/langchain-ai/langgraph-supervisor-py">langgraph-supervisor</a> · <a href="https://openai.github.io/openai-agents-python/handoffs/">OpenAI Agents SDK: handoffs</a></div>
+<h2 id="m5-eval"><span class="chnum">5.11</span>LLM evaluation — RAGAS, DeepEval, Promptfoo, trajectory evaluation</h2>
+<p class="oneline"><strong>In one line:</strong> evaluate final answers (correctness, faithfulness), and for agents also the <em>trajectory</em>: did it call the right tools, in a sensible order, without wasted steps?</p>
 
-store = InMemoryStore()
-ns = ("user", "u-77", "prefs")
-store.put(ns, "format", {"value": "prefers bullet points, no PDFs"})
-store.put(ns, "lang", {"value": "replies in Hinglish"})
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> A driving test checks not only that you arrived (answer), but that you did not run red lights on the way (trajectory).</p>
+</blockquote>
+<h3 id="m5-eval--core-ideas">Core ideas</h3>
+<p>Use <strong>DeepEval</strong> for pytest-style tests in CI, <strong>Promptfoo</strong> to compare prompts and models side by side, and <strong>RAGAS</strong> for RAG metrics (Module 3). Trajectory checks catch agents that reach the right answer the wrong way, such as calling the refund tool twice.</p>
+<div class="hl"><pre><span></span><code><span class="c1"># DeepEval: pytest-style LLM tests</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepeval</span><span class="w"> </span><span class="kn">import</span> <span class="n">assert_test</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepeval.test_case</span><span class="w"> </span><span class="kn">import</span> <span class="n">LLMTestCase</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepeval.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnswerRelevancyMetric</span><span class="p">,</span> <span class="n">FaithfulnessMetric</span>
 
-def recall(user_id: str) -> str:
-    items = store.search(("user", user_id, "prefs"))
-    return "; ".join(i.value["value"] for i in items)
+<span class="k">def</span><span class="w"> </span><span class="nf">test_refund_answer</span><span class="p">():</span>
+    <span class="n">case</span> <span class="o">=</span> <span class="n">LLMTestCase</span><span class="p">(</span><span class="nb">input</span><span class="o">=</span><span class="s2">&quot;What is the refund window?&quot;</span><span class="p">,</span>
+                       <span class="n">actual_output</span><span class="o">=</span><span class="s2">&quot;You can get a refund within 30 days.&quot;</span><span class="p">,</span>
+                       <span class="n">retrieval_context</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Refunds are accepted within 30 days of purchase.&quot;</span><span class="p">])</span>
+    <span class="n">assert_test</span><span class="p">(</span><span class="n">case</span><span class="p">,</span> <span class="p">[</span><span class="n">AnswerRelevancyMetric</span><span class="p">(</span><span class="n">threshold</span><span class="o">=</span><span class="mf">0.7</span><span class="p">),</span> <span class="n">FaithfulnessMetric</span><span class="p">(</span><span class="n">threshold</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)])</span>
+</code></pre></div>
 
-print(recall("u-77"))
-```
+<div class="hl"><pre><span></span><code><span class="c1"># promptfooconfig.yaml — compare prompts and models side by side</span>
+<span class="nt">prompts</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">file</span><span class="p p-Indicator">:</span><span class="nv">//prompts/support_v1.txt</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">file</span><span class="p p-Indicator">:</span><span class="nv">//prompts/support_v2.txt</span><span class="p p-Indicator">]</span>
+<span class="nt">providers</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">openai</span><span class="p p-Indicator">:</span><span class="nv">gpt-4o-mini</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">anthropic</span><span class="p p-Indicator">:</span><span class="nv">messages</span><span class="p p-Indicator">:</span><span class="nv">claude-sonnet-4-5</span><span class="p p-Indicator">]</span>
+<span class="nt">tests</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">vars</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">question</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;I</span><span class="nv"> </span><span class="s">was</span><span class="nv"> </span><span class="s">charged</span><span class="nv"> </span><span class="s">twice&quot;</span><span class="p p-Indicator">}</span>
+<span class="w">    </span><span class="nt">assert</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">icontains</span>
+<span class="w">        </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">refund</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">llm-rubric</span>
+<span class="w">        </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Polite, does not ask for card number</span>
+</code></pre></div>
 
-Short-term trimming:
+<div class="hl"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">trajectory_score</span><span class="p">(</span><span class="n">actual_tools</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">expected</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="n">correct_order</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span><span class="n">t</span> <span class="ow">in</span> <span class="n">actual_tools</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">expected</span><span class="p">)</span> <span class="ow">and</span> \
+                    <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">actual_tools</span> <span class="k">if</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">expected</span><span class="p">]</span> <span class="o">==</span> <span class="n">expected</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;used_expected&quot;</span><span class="p">:</span> <span class="nb">set</span><span class="p">(</span><span class="n">expected</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="nb">set</span><span class="p">(</span><span class="n">actual_tools</span><span class="p">),</span>
+            <span class="s2">&quot;correct_order&quot;</span><span class="p">:</span> <span class="n">correct_order</span><span class="p">,</span>
+            <span class="s2">&quot;extra_steps&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">actual_tools</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">expected</span><span class="p">)}</span>
 
-```python
-from langchain_core.messages import trim_messages
-trimmed = trim_messages(history, max_tokens=3000, token_counter=ChatOpenAI(model="gpt-4o-mini"),
-                        strategy="last", include_system=True)
-```
+<span class="nb">print</span><span class="p">(</span><span class="n">trajectory_score</span><span class="p">([</span><span class="s2">&quot;get_order&quot;</span><span class="p">,</span> <span class="s2">&quot;get_order&quot;</span><span class="p">,</span> <span class="s2">&quot;create_refund&quot;</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;get_order&quot;</span><span class="p">,</span> <span class="s2">&quot;create_refund&quot;</span><span class="p">]))</span>
+</code></pre></div>
 
-> **Trap.** Long-term memory can store wrong or sensitive facts forever. Add expiry, let users see and delete memories, and do not store PII you do not need.
+<p><strong>Reading the code.</strong> The thresholds make a test pass or fail, so quality regressions break the build. In <code>trajectory_score</code>, <code>extra_steps</code> measures waste: one extra <code>get_order</code> call here.</p>
+<div class="read"><strong>Read:</strong> <a href="https://deepeval.com/docs/getting-started">DeepEval docs</a> · <a href="https://www.promptfoo.dev/docs/intro/">Promptfoo docs</a> · <a href="https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/agents/">RAGAS agent metrics</a> · <a href="https://docs.smith.langchain.com/evaluation/tutorials/agents">LangSmith: evaluate an agent</a></div>
+<h2 id="m5-guard"><span class="chnum">5.12</span>Guardrails, injection defence, PII scrubbing, output filtering</h2>
+<p class="oneline"><strong>In one line:</strong> wrap the model with input guards (PII masking, injection detection, topic limits) and output guards (schema validation, toxicity, leaked secrets), and decide in code what happens when a guard fails.</p>
 
-**Read:** [LangGraph memory concepts](https://langchain-ai.github.io/langgraph/concepts/memory/) · [MemGPT paper](https://arxiv.org/abs/2310.08560) · [Generative Agents paper (memory stream)](https://arxiv.org/abs/2304.03442)
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> Airport security on the way in, customs on the way out.</p>
+</blockquote>
+<pre class="mermaid">flowchart LR
+  IN["User input"] --&gt; PII["Mask PII with Presidio"]
+  PII --&gt; INJ["Injection and topic checks"]
+  INJ --&gt; LLM["LLM"]
+  LLM --&gt; OUTV["Validate: schema, toxicity, no secrets"]
+  OUTV --&gt;|pass| USER["User"]
+  OUTV --&gt;|fail| FIX["Reask, redact, or refuse"]</pre>
 
-## 5.10 Multi-agent orchestration — supervisor, peer-to-peer, fault isolation {#m5-orch}
+<h3 id="m5-guard--code">Code</h3>
+<div class="hl"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">presidio_analyzer</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnalyzerEngine</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">presidio_anonymizer</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnonymizerEngine</span>
 
-**In one line:** a supervisor routes work to specialist agents and combines their results; peer-to-peer agents hand off directly; either way, one agent failing must not crash the whole system.
+<span class="n">analyzer</span><span class="p">,</span> <span class="n">anonymizer</span> <span class="o">=</span> <span class="n">AnalyzerEngine</span><span class="p">(),</span> <span class="n">AnonymizerEngine</span><span class="p">()</span>
+<span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;Hi, I&#39;m Priya Sharma, my phone is 98200 12345 and email priya@example.com&quot;</span>
+<span class="n">findings</span> <span class="o">=</span> <span class="n">analyzer</span><span class="o">.</span><span class="n">analyze</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span> <span class="n">language</span><span class="o">=</span><span class="s2">&quot;en&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">anonymizer</span><span class="o">.</span><span class="n">anonymize</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span> <span class="n">analyzer_results</span><span class="o">=</span><span class="n">findings</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+<span class="c1"># Hi, I&#39;m &lt;PERSON&gt;, my phone is &lt;PHONE_NUMBER&gt; and email &lt;EMAIL_ADDRESS&gt;</span>
+</code></pre></div>
 
-> **Analogy.** An air-traffic controller (supervisor) versus pilots talking to each other on a shared frequency (peer-to-peer). Fault isolation: one plane’s engine trouble does not ground the airport.
+<div class="hl"><pre><span></span><code><span class="c1"># Guardrails AI: validators from the Hub (install with `guardrails hub install hub://guardrails/detect_pii`)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">guardrails</span><span class="w"> </span><span class="kn">import</span> <span class="n">Guard</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">guardrails.hub</span><span class="w"> </span><span class="kn">import</span> <span class="n">DetectPII</span>
 
-```mermaid
-flowchart TB
-  U["User"] --> SUP["Supervisor"]
-  SUP --> F["Flights agent"]
-  SUP --> H["Hotels agent"]
-  SUP --> B["Budget agent"]
-  F -->|result or error| SUP
-  H -->|result or error| SUP
-  B -->|result or error| SUP
-  SUP --> OUT["Combined plan, notes what failed"]
-```
+<span class="n">guard</span> <span class="o">=</span> <span class="n">Guard</span><span class="p">()</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="n">DetectPII</span><span class="p">(</span><span class="n">pii_entities</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;EMAIL_ADDRESS&quot;</span><span class="p">,</span> <span class="s2">&quot;PHONE_NUMBER&quot;</span><span class="p">],</span> <span class="n">on_fail</span><span class="o">=</span><span class="s2">&quot;fix&quot;</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">guard</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="s2">&quot;Contact me at priya@example.com&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">validated_output</span><span class="p">)</span>
+</code></pre></div>
 
-```python
-import asyncio
+<p><strong>Reading the code.</strong> Presidio finds entities, then the anonymiser replaces them with placeholders before text reaches the model or the logs. <code>on_fail</code> sets the policy: <code>fix</code> repairs, while other options refuse or re-ask. Treat <strong>prompt injection</strong> as a permanent risk: guards reduce it, the arbiter (5.2) contains it.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Presidio’s default recognisers are tuned for US formats. Add custom recognisers for Aadhaar, PAN, and Indian phone numbers before an Indian client deployment.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://www.guardrailsai.com/docs">Guardrails AI docs</a> · <a href="https://microsoft.github.io/presidio/">Microsoft Presidio</a> · <a href="https://genai.owasp.org/llm-top-10/">OWASP Top 10 for LLM applications</a> · <a href="https://docs.nvidia.com/nemo/guardrails/latest/index.html">NVIDIA NeMo Guardrails</a></div>
+<h2 id="m5-boss" class="special">Boss level — The Retrieval Bake-Off</h2>
+<blockquote class="callout boss">
+<p><strong>Boss level.</strong> “The Claims Desk”: a LangGraph claims agent with a Postgres checkpointer, an arbiter in front of payout tools, PII masking on input, and a human approval gate above ₹10,000, plus a DeepEval suite that runs in CI.</p>
+</blockquote>
+<p><strong>Suggested steps.</strong></p>
+<ol>
+<li>Model the claim as typed state and draw the graph first (5.5).</li>
+<li>Add intake, assessment and payout nodes; swap <code>InMemorySaver</code> for a Postgres checkpointer.</li>
+<li>Put an arbiter in front of every payout tool with schema, limit and role checks (5.2).</li>
+<li>Mask PII on input with Presidio, with Indian recognisers added (5.12).</li>
+<li>Gate claims above ₹10,000 with <code>interrupt</code> and test the resume path (5.5).</li>
+<li>Write DeepEval and trajectory tests and run them in CI (5.11).</li>
+</ol>
+<h2 id="m5-glossary" class="special">Appendix A — Glossary</h2>
+<div class="tblwrap"><table><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody><tr><td><strong>Agent</strong></td><td>Software where a model chooses its own next step and tools.</td></tr><tr><td><strong>Workflow</strong></td><td>A fixed sequence of steps designed in advance.</td></tr><tr><td><strong>ReAct</strong></td><td>Think, act, observe, repeat.</td></tr><tr><td><strong>Planner–executor</strong></td><td>Plan all steps first, execute, re-plan on failure.</td></tr><tr><td><strong>Arbiter</strong></td><td>Deterministic gate that approves, rejects or escalates tool calls.</td></tr><tr><td><strong>MCP</strong></td><td>Model Context Protocol: an open standard for exposing tools, resources and prompts.</td></tr><tr><td><strong>Checkpointer</strong></td><td>Component that saves graph state per thread so runs can resume.</td></tr><tr><td><strong>Interrupt</strong></td><td>LangGraph mechanism that pauses a run for human input.</td></tr><tr><td><strong>Supervisor</strong></td><td>An agent that routes work to specialists and merges results.</td></tr><tr><td><strong>Fault isolation</strong></td><td>Containing one agent’s failure so the system keeps working.</td></tr><tr><td><strong>Trajectory</strong></td><td>The sequence of tool calls and steps an agent took.</td></tr><tr><td><strong>Prompt injection</strong></td><td>Untrusted text that tries to override the model’s instructions.</td></tr><tr><td><strong>PII</strong></td><td>Personally identifiable information such as names, phone numbers, emails.</td></tr><tr><td><strong>Episodic memory</strong></td><td>Stored records of past runs and their outcomes.</td></tr></tbody></table></div>
+<h2 id="m5-debug" class="special">Appendix B — Debugging checklist for a failing RAG answer</h2>
+<p>Work down the list in order; most problems are in the first four items.</p><ol><li><strong>Do you need an agent at all?</strong> If the steps are known, use a workflow (intro diagram).</li><li><strong>Is the agent looping?</strong> Check recursion_limit and step and cost budgets (5.1).</li><li><strong>Is it picking the wrong tool?</strong> Rewrite tool descriptions; they are prompts (5.8).</li><li><strong>Did a tool call get rejected?</strong> Read the arbiter’s reason in the audit log (5.2).</li><li><strong>Does a resumed run start from scratch?</strong> Check thread_id and the checkpointer (5.5).</li><li><strong>Is one failing agent breaking the run?</strong> Add timeouts and isolate errors (5.10).</li><li><strong>Is context overflowing?</strong> Trim or summarise short-term memory (5.9).</li><li><strong>Is the answer right but the path wasteful?</strong> Score the trajectory, not just the answer (5.11).</li><li><strong>Is untrusted text driving actions?</strong> Route high-risk tools through the arbiter and guard inputs (5.4, 5.12).</li></ol>
+<h2 id="m5-quiz" class="special">Appendix C — Final self-assessment</h2>
+<p>Answer without looking. Anything you cannot explain in two sentences is a chapter to revisit.</p>
+<details>
+<summary>1. When is a workflow better than an agent?</summary>
+<p>When the steps are known in advance: it is cheaper and more predictable. (intro)</p>
+</details>
+<details>
+<summary>2. What is the difference between ReAct and planner–executor?</summary>
+<p>ReAct decides step by step; planner–executor plans first and re-plans on failure. (5.1)</p>
+</details>
+<details>
+<summary>3. Why must permissions be enforced in code, not by an LLM?</summary>
+<p>An LLM can be tricked or wrong; code gives guarantees. (5.2)</p>
+</details>
+<details>
+<summary>4. Which MCP primitive does the model decide to call?</summary>
+<p>Tools. (5.3)</p>
+</details>
+<details>
+<summary>5. Why is an MCP server a security risk?</summary>
+<p>It runs with your credentials, so only trusted servers should be installed. (5.3)</p>
+</details>
+<details>
+<summary>6. What must you return for each parallel tool call?</summary>
+<p>One tool message with the matching tool_call_id. (5.4)</p>
+</details>
+<details>
+<summary>7. What does a checkpointer enable?</summary>
+<p>Memory across turns, pause and resume, and replay per thread. (5.5)</p>
+</details>
+<details>
+<summary>8. How does a human resume an interrupted graph?</summary>
+<p>Invoke again with Command(resume=...) on the same thread_id. (5.5)</p>
+</details>
+<details>
+<summary>9. Why not start with many agents?</summary>
+<p>Each hand-off loses context and adds cost. (5.6)</p>
+</details>
+<details>
+<summary>10. Sequential or hierarchical for a known pipeline?</summary>
+<p>Sequential. (5.7)</p>
+</details>
+<details>
+<summary>11. Why are tool descriptions important?</summary>
+<p>The model reads them to choose tools, so they work as prompts. (5.8)</p>
+</details>
+<details>
+<summary>12. Name the three kinds of agent memory.</summary>
+<p>Short-term, long-term and episodic. (5.9)</p>
+</details>
+<details>
+<summary>13. How do you isolate failures in a supervisor design?</summary>
+<p>Timeouts and try/except per agent, returning errors as data. (5.10)</p>
+</details>
+<details>
+<summary>14. Why evaluate the trajectory?</summary>
+<p>An agent can reach the right answer through unsafe or wasteful steps. (5.11)</p>
+</details>
+<details>
+<summary>15. Why add custom Presidio recognisers?</summary>
+<p>Defaults target US formats and miss Aadhaar, PAN and Indian phones. (5.12)</p>
+</details>
+<p><a href="m4.html">← Module 4</a> · <a href="m6.html">Next: Module 6 — Cloud &amp; DevOps →</a></p>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+(function(){
+  // mermaid (needs internet; falls back to showing the diagram source)
+  try{
+    var dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    if(window.mermaid){ mermaid.initialize({startOnLoad:true, theme: dark ? "dark" : "default", securityLevel:"strict"}); }
+  }catch(e){}
 
-async def call_agent(name, fn, task, timeout=20):
-    try:
-        return name, await asyncio.wait_for(fn(task), timeout)
-    except Exception as e:                       # isolate the failure
-        return name, {"error": type(e).__name__}
+  // wrap tables for horizontal scroll
+  document.querySelectorAll("main table").forEach(function(t){
+    var w=document.createElement("div"); w.className="tblwrap"; t.parentNode.insertBefore(w,t); w.appendChild(t);
+  });
 
-async def supervisor(task):
-    results = await asyncio.gather(
-        call_agent("flights", flights_agent, task),
-        call_agent("hotels", hotels_agent, task),
-        call_agent("budget", budget_agent, task),
-    )
-    ok = {n: r for n, r in results if "error" not in r}
-    failed = [n for n, r in results if "error" in r]
-    return await summarise_plan(ok, failed)      # tell the user what is missing
-```
+  // reading progress
+  var bar=document.getElementById("progress");
+  function prog(){var h=document.documentElement; var p=h.scrollTop/(h.scrollHeight-h.clientHeight||1); bar.style.width=(p*100)+"%";}
+  window.addEventListener("scroll",prog,{passive:true}); prog();
 
-| Pattern | Pros | Cons |
-|---|---|---|
-| Supervisor | Clear control, easy to audit | Supervisor is a bottleneck |
-| Peer-to-peer / swarm | Flexible hand-offs | Harder to debug and bound |
-| Hierarchical teams | Scales to many agents | Many LLM calls |
+  // scroll-spy
+  var links={}; document.querySelectorAll("#toc a").forEach(function(a){links[a.dataset.id]=a;});
+  var obs=new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if(e.isIntersecting){
+        Object.values(links).forEach(function(l){l.classList.remove("active");});
+        var a=links[e.target.id]; if(a){a.classList.add("active"); a.scrollIntoView({block:"nearest"});}
+      }
+    });
+  },{rootMargin:"-10% 0px -80% 0px"});
+  document.querySelectorAll("main h2[id]").forEach(function(h){obs.observe(h);});
 
-**Read:** [LangGraph multi-agent concepts](https://langchain-ai.github.io/langgraph/concepts/multi_agent/) · [langgraph-supervisor](https://github.com/langchain-ai/langgraph-supervisor-py) · [OpenAI Agents SDK: handoffs](https://openai.github.io/openai-agents-python/handoffs/)
-
-## 5.11 LLM evaluation — RAGAS, DeepEval, Promptfoo, trajectory evaluation {#m5-eval}
-
-**In one line:** evaluate final answers (correctness, faithfulness), and for agents also the *trajectory* — did it call the right tools, in a sensible order, without wasted steps?
-
-> **Analogy.** A driving test checks not only that you arrived (answer), but that you did not run red lights on the way (trajectory).
-
-```python
-# DeepEval: pytest-style LLM tests
-from deepeval import assert_test
-from deepeval.test_case import LLMTestCase
-from deepeval.metrics import AnswerRelevancyMetric, FaithfulnessMetric
-
-def test_refund_answer():
-    case = LLMTestCase(input="What is the refund window?",
-                       actual_output="You can get a refund within 30 days.",
-                       retrieval_context=["Refunds are accepted within 30 days of purchase."])
-    assert_test(case, [AnswerRelevancyMetric(threshold=0.7), FaithfulnessMetric(threshold=0.8)])
-```
-
-```yaml
-# promptfooconfig.yaml — compare prompts and models side by side
-prompts: [file://prompts/support_v1.txt, file://prompts/support_v2.txt]
-providers: [openai:gpt-4o-mini, anthropic:messages:claude-sonnet-4-5]
-tests:
-  - vars: {question: "I was charged twice"}
-    assert:
-      - type: icontains
-        value: refund
-      - type: llm-rubric
-        value: Polite, does not ask for card number
-```
-
-```python
-def trajectory_score(actual_tools: list[str], expected: list[str]) -> dict:
-    correct_order = all(t in actual_tools for t in expected) and \
-        [t for t in actual_tools if t in expected] == expected
-    return {"used_expected": set(expected) <= set(actual_tools),
-            "correct_order": correct_order,
-            "extra_steps": len(actual_tools) - len(expected)}
-
-print(trajectory_score(["get_order", "get_order", "create_refund"], ["get_order", "create_refund"]))
-```
-
-**Read:** [DeepEval docs](https://deepeval.com/docs/getting-started) · [Promptfoo docs](https://www.promptfoo.dev/docs/intro/) · [RAGAS agent metrics](https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/agents/) · [LangSmith: evaluate an agent](https://docs.smith.langchain.com/evaluation/tutorials/agents)
-
-## 5.12 Guardrails, injection defence, PII scrubbing, output filtering {#m5-guard}
-
-**In one line:** wrap the model with input guards (PII masking, injection detection, topic limits) and output guards (schema validation, toxicity, leaked secrets), and decide in code what happens when a guard fails.
-
-> **Analogy.** Airport security on the way in, customs on the way out.
-
-```mermaid
-flowchart LR
-  IN["User input"] --> PII["Mask PII with Presidio"]
-  PII --> INJ["Injection and topic checks"]
-  INJ --> LLM["LLM"]
-  LLM --> OUTV["Validate: schema, toxicity, no secrets"]
-  OUTV -->|pass| USER["User"]
-  OUTV -->|fail| FIX["Reask, redact, or refuse"]
-```
-
-```python
-from presidio_analyzer import AnalyzerEngine
-from presidio_anonymizer import AnonymizerEngine
-
-analyzer, anonymizer = AnalyzerEngine(), AnonymizerEngine()
-text = "Hi, I'm Priya Sharma, my phone is 98200 12345 and email priya@example.com"
-findings = analyzer.analyze(text=text, language="en")
-print(anonymizer.anonymize(text=text, analyzer_results=findings).text)
-# Hi, I'm <PERSON>, my phone is <PHONE_NUMBER> and email <EMAIL_ADDRESS>
-```
-
-```python
-# Guardrails AI: validators from the Hub (install with `guardrails hub install hub://guardrails/detect_pii`)
-from guardrails import Guard
-from guardrails.hub import DetectPII
-
-guard = Guard().use(DetectPII(pii_entities=["EMAIL_ADDRESS", "PHONE_NUMBER"], on_fail="fix"))
-print(guard.validate("Contact me at priya@example.com").validated_output)
-```
-
-> **Trap.** Presidio’s default recognisers are tuned for US formats. Add custom recognisers for Aadhaar, PAN, and Indian phone numbers before an Indian client deployment.
-
-**Read:** [Guardrails AI docs](https://www.guardrailsai.com/docs) · [Microsoft Presidio](https://microsoft.github.io/presidio/) · [OWASP Top 10 for LLM applications](https://genai.owasp.org/llm-top-10/) · [NVIDIA NeMo Guardrails](https://docs.nvidia.com/nemo/guardrails/latest/index.html)
-
-> **Boss level.** “The Claims Desk”: a LangGraph claims agent with a Postgres checkpointer, an arbiter in front of payout tools, PII masking on input, and a human approval gate above ₹10,000 — plus a DeepEval suite that runs in CI.
-
-[← Module 4](m4.html) · [Next: Module 6 — Cloud & DevOps →](m6.html)
+  // buttons
+  var all=false, ex=document.getElementById("expand");
+  ex.addEventListener("click",function(){
+    all=!all; document.querySelectorAll("main details").forEach(function(d){d.open=all;});
+    ex.textContent= all ? "Hide all answers" : "Show all answers";
+  });
+  document.getElementById("theme").addEventListener("click",function(){
+    var r=document.documentElement, cur=r.getAttribute("data-theme");
+    var isDark = cur ? cur==="dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    r.setAttribute("data-theme", isDark ? "light" : "dark");
+  });
+  document.getElementById("print").addEventListener("click",function(){window.print();});
+  window.addEventListener("beforeprint",function(){document.querySelectorAll("main details").forEach(function(d){d.open=true;});});
+})();
 </script>
-<script src="notes.js"></script>
 </body>
 </html>
