@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tool stack cheat sheet — AI Engineering notes</title>
+  <title>Tool stack booklet — AI Engineering notes</title>
   <link rel="stylesheet" href="notes.css" />
 </head>
 <body>
@@ -19,9 +19,18 @@
     <main id="content"><p>Loading notes…</p></main>
   </div>
 <script type="text/markdown" id="md">
-# Tool stack cheat sheet
+# Tool stack — Booklet Edition
 
 <p class="hero-note">Quest: know what every tool is for in one sentence, have a 10-line snippet ready, and know where its docs live. Deep dives are linked to the module notes.</p>
+
+**How to use this booklet.** Each tool keeps its original one-liner, snippet, and doc links, and now adds a **Deep dive**: when to use it, when to skip it, key concepts, gotchas, and what it pairs with. Appendices at the end group tools by job, give reference stacks, a setup checklist, and a troubleshooting table.
+
+**Before you run any snippet**
+- Set API keys as environment variables, never in code: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `CO_API_KEY`, `PINECONE_API_KEY`, `HF_TOKEN`, `WANDB_API_KEY`, `LANGSMITH_API_KEY`.
+- Model names in the snippets (for example `gpt-4o-mini`, `claude-3-5-haiku-latest`) change over time. Check each provider’s model list and swap in a current one.
+- Pin library versions in `requirements.txt`; the LLM ecosystem changes fast.
+
+**The mental model:** Models (who answers) → Build (how you wire it) → Data (what it knows) → Quality (is it right?) → Ship (can others use it?).
 
 ```mermaid
 flowchart LR
@@ -76,6 +85,14 @@ r = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user
 print(r.choices[0].message.content, r.usage.total_tokens)
 ```
 
+**Deep dive**
+
+- **Use it when:** you want strong general models, structured outputs, tool calling, or embeddings with minimal setup.
+- **Skip it when:** data must stay fully on-premises (consider Ollama or a self-hosted model).
+- **Key concepts:** message roles (`system`, `user`, `assistant`), `temperature`, streaming, token usage (input + output are both billed).
+- **Gotchas:** handle rate-limit errors (HTTP 429) with retry and backoff; set timeouts and a max output length; the client reads `OPENAI_API_KEY` automatically.
+- **Pairs with:** Pydantic (structured output), LiteLLM (provider switching), LangChain.
+
 **Docs:** [platform.openai.com/docs](https://platform.openai.com/docs) · **Notes:** [OpenAI SDK](m2.html#m2-oai)
 
 ## Anthropic API {#t-anthropic}
@@ -88,6 +105,13 @@ client = anthropic.Anthropic()
 msg = client.messages.create(model="claude-3-5-haiku-latest", max_tokens=200, messages=[{"role": "user", "content": "Say hi in 3 words"}])
 print(msg.content[0].text)
 ```
+
+**Deep dive**
+
+- **Use it when:** you need long context, careful instruction following, or prompt caching for repeated long prefixes.
+- **Key concepts:** `max_tokens` is required; the system prompt is a separate `system` parameter, not a message; responses are a list of content blocks (read `msg.content[0].text`).
+- **Gotchas:** model IDs are retired and renamed — check the current list; the client reads `ANTHROPIC_API_KEY`.
+- **Pairs with:** LiteLLM, Promptfoo (side-by-side with OpenAI), AWS Bedrock (same models via AWS).
 
 **Docs:** [docs.anthropic.com](https://docs.anthropic.com/) · **Notes:** [Anthropic SDK](m2.html#m2-anthropic)
 
@@ -102,6 +126,14 @@ chain = ChatPromptTemplate.from_template("Explain {topic} to a 10-year-old") | C
 print(chain.invoke({"topic": "embeddings"}).content)
 ```
 
+**Deep dive**
+
+- **Use it when:** you are composing several steps (prompt → model → parser → retriever) and want streaming, batching, and tracing for free.
+- **Skip it when:** a single SDK call does the job — extra abstraction is extra debugging.
+- **Key concepts:** every component is a *Runnable* with `.invoke()`, `.stream()`, `.batch()`; `|` chains them (LCEL).
+- **Gotchas:** packages are split (`langchain-core`, `langchain-openai`, …); APIs move quickly, so pin versions.
+- **Pairs with:** LangGraph (when the flow needs loops), LangSmith (tracing), Chroma or Pinecone.
+
 **Docs:** [python.langchain.com](https://python.langchain.com/docs/introduction/) · **Notes:** [LCEL](m3.html#m3-lcel)
 
 ## LlamaIndex {#t-llama}
@@ -113,6 +145,13 @@ from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 index = VectorStoreIndex.from_documents(SimpleDirectoryReader("docs").load_data())
 print(index.as_query_engine().query("What is the refund window?"))
 ```
+
+**Deep dive**
+
+- **Use it when:** your project is document-heavy and you want ingestion, chunking, indexing, and query engines quickly.
+- **Key concepts:** Reader → Nodes (chunks) → Index → Query engine.
+- **Gotchas:** defaults use OpenAI for the LLM and embeddings unless you set them in `Settings`; the snippet above needs a key or a configured local model.
+- **Pairs with:** Chroma or Pinecone as the vector store, RAGAS for evaluation.
 
 **Docs:** [docs.llamaindex.ai](https://docs.llamaindex.ai/en/stable/) · **Notes:** [End-to-end RAG](m3.html#m3-e2e)
 
@@ -127,6 +166,14 @@ index.upsert(vectors=[{"id": "doc1", "values": vec, "metadata": {"team": "hr"}}]
 print(index.query(vector=qvec, top_k=5, filter={"team": "hr"}, include_metadata=True))
 ```
 
+**Deep dive**
+
+- **Use it when:** you need a managed vector database at scale, metadata filtering, or per-tenant isolation via namespaces.
+- **Skip it when:** you are prototyping locally — Chroma is simpler and free.
+- **Key concepts:** index, namespace, `upsert`, `top_k`, metadata filter.
+- **Gotchas:** the index dimension must equal your embedding model’s output dimension; use the *same* embedding model for ingestion and queries.
+- **Pairs with:** Cohere Rerank, LlamaIndex, LangChain.
+
 **Docs:** [docs.pinecone.io](https://docs.pinecone.io/) · **Notes:** [Vector databases](m3.html#m3-vdb)
 
 ## ChromaDB {#t-chroma}
@@ -139,6 +186,13 @@ col = chromadb.PersistentClient(path="db").get_or_create_collection("notes")
 col.add(ids=["a", "b"], documents=["Refunds take 7 days", "Shipping is free over 500"])
 print(col.query(query_texts=["how long for refund?"], n_results=1)["documents"])
 ```
+
+**Deep dive**
+
+- **Use it when:** building local RAG, tutorials, tests, or small apps.
+- **Key concepts:** client → collection → documents with ids and optional metadata; `PersistentClient(path=...)` keeps data on disk.
+- **Gotchas:** set your embedding function explicitly so ingestion and queries always match; heavy multi-user production needs a server deployment or a managed vector database.
+- **Pairs with:** LangChain, LlamaIndex, Ollama (fully local stack).
 
 **Docs:** [docs.trychroma.com](https://docs.trychroma.com/) · **Notes:** [Vector databases](m3.html#m3-vdb)
 
@@ -156,6 +210,13 @@ g.add_edge(START, "inc"); g.add_edge("inc", END)
 print(g.compile().invoke({"n": 1}))
 ```
 
+**Deep dive**
+
+- **Use it when:** your agent needs loops, branches, retries, saved state, or human approval steps.
+- **Key concepts:** *State* (a typed dict), *nodes* (functions), *edges* and *conditional edges*, *checkpointer* (persistence), *interrupt* (pause for a human).
+- **Gotchas:** always cap loops (retry counters and the recursion limit); keep state small and serialisable.
+- **Pairs with:** LangChain components, LangSmith traces, MCP tools.
+
 **Docs:** [langchain-ai.github.io/langgraph](https://langchain-ai.github.io/langgraph/) · **Notes:** [LangGraph](m5.html#m5-langgraph)
 
 ## CrewAI {#t-crew}
@@ -169,6 +230,13 @@ task = Task(description="List 3 uses of RAG", expected_output="3 bullet points",
 print(Crew(agents=[researcher], tasks=[task]).kickoff())
 ```
 
+**Deep dive**
+
+- **Use it when:** a role-based pipeline (researcher → writer → reviewer) fits the problem and you want fast setup.
+- **Skip it when:** you need precise control over state and flow — LangGraph is better.
+- **Key concepts:** `Agent` (role, goal, backstory), `Task` (description, expected output), `Crew` (runs them in order).
+- **Gotchas:** every agent turn is an LLM call, so cost and latency add up; give tasks concrete expected outputs.
+
 **Docs:** [docs.crewai.com](https://docs.crewai.com/) · **Notes:** [CrewAI](m5.html#m5-crew)
 
 ## Ollama {#t-ollama}
@@ -180,6 +248,13 @@ ollama pull llama3.2
 ollama run llama3.2 "Explain LoRA in one line"
 curl http://localhost:11434/api/generate -d '{"model":"llama3.2","prompt":"hi","stream":false}'
 ```
+
+**Deep dive**
+
+- **Use it when:** you need local or private inference, offline demos, or cheap development.
+- **Key concepts:** model tags (`llama3.2`, quantised variants), the native API on port 11434, and an OpenAI-compatible endpoint under `/v1`.
+- **Gotchas:** first pull downloads gigabytes; set context length explicitly (`num_ctx`); laptop speed is not server speed.
+- **Pairs with:** LiteLLM (`ollama/...` model names), Chroma, Modelfiles for packaging a system prompt.
 
 **Docs:** [github.com/ollama/ollama](https://github.com/ollama/ollama) · **Notes:** [Ollama](m4.html#m4-ollama)
 
@@ -194,6 +269,14 @@ class Ticket(BaseModel):
     priority: int = Field(ge=1, le=5)
 print(Ticket.model_validate_json('{"title": "Login broken", "priority": 2}'))
 ```
+
+**Deep dive**
+
+- **Use it when:** you need to validate anything — LLM JSON, API requests, config.
+- **Key concepts:** `BaseModel`, `Field` constraints (`ge`, `le`, `max_length`), `model_validate_json`, `model_json_schema()` (the schema you can give to a model).
+- **Pattern:** ask for JSON → validate → on `ValidationError` send the error back to the model and retry once or twice.
+- **Gotchas:** this is Pydantic v2 syntax; many older tutorials show v1 method names.
+- **Pairs with:** FastAPI, OpenAI structured outputs, DSPy, LangChain parsers.
 
 **Docs:** [docs.pydantic.dev](https://docs.pydantic.dev/latest/) · **Notes:** [Structured outputs](m1.html#m1-pydantic) · [Type hints](m2.html#m2-types)
 
@@ -211,6 +294,13 @@ if __name__ == "__main__":
     mcp.run()
 ```
 
+**Deep dive**
+
+- **Use it when:** the same tools should work across many AI clients (IDEs, chat apps, your own agent) without custom glue each time.
+- **Key concepts:** a *server* exposes tools, resources, and prompts; a *client* (inside a host app) connects over a transport such as stdio or HTTP.
+- **Gotchas:** the function name, type hints, and docstring become what the model sees — write them clearly; treat tool inputs as untrusted and give servers least-privilege access.
+- **Pairs with:** LangGraph or any agent loop, FastAPI for remote servers.
+
 **Docs:** [modelcontextprotocol.io](https://modelcontextprotocol.io/) · **Notes:** [MCP](m5.html#m5-mcp)
 
 ## DSPy {#t-dspy}
@@ -223,6 +313,13 @@ dspy.configure(lm=dspy.LM("openai/gpt-4o-mini"))
 qa = dspy.ChainOfThought("question -> answer")
 print(qa(question="What is 17 * 3?").answer)
 ```
+
+**Deep dive**
+
+- **Use it when:** you have example data and a metric, and want prompts optimised automatically rather than by hand.
+- **Skip it when:** you have no eval set — there is nothing for the optimiser to aim at.
+- **Key concepts:** *Signature* (inputs → outputs), *Module* (`Predict`, `ChainOfThought`), *Optimizer*, *Metric*.
+- **Gotchas:** optimisation runs many LLM calls, so set a budget; keep a held-out set to confirm the gain is real.
 
 **Docs:** [dspy.ai](https://dspy.ai/) · **Notes:** [DSPy](m1.html#m1-dspy) · [DSPy in Python](m2.html#m2-dspy)
 
@@ -239,6 +336,19 @@ model = get_peft_model(model, LoraConfig(r=16, lora_alpha=32, target_modules="al
 model.print_trainable_parameters()
 ```
 
+**Deep dive — who does what**
+
+| Piece | Role |
+|---|---|
+| Hugging Face Hub | Hosts models and datasets |
+| Transformers | Loads models, tokenisers, training utilities |
+| bitsandbytes | 4-bit and 8-bit quantisation |
+| PEFT | LoRA and other adapter methods |
+| TRL | Trainers for SFT and DPO |
+
+- **Gotchas:** gated models (like Llama) require accepting the licence and an `HF_TOKEN`; bitsandbytes is mainly for supported NVIDIA GPUs; the adapter only works with the same base model it was trained on.
+- **Pairs with:** Axolotl (config-driven), Weights & Biases, Ollama or GGUF for serving.
+
 **Docs:** [PEFT](https://huggingface.co/docs/peft/index) · [bitsandbytes](https://huggingface.co/docs/bitsandbytes/main/en/index) · [Transformers](https://huggingface.co/docs/transformers/index) · **Notes:** [QLoRA](m4.html#m4-qlora) · [PEFT](m4.html#m4-peft)
 
 ## Axolotl {#t-ax}
@@ -250,6 +360,13 @@ pip install axolotl
 axolotl train config.yml
 axolotl inference config.yml --lora-model-dir ./out
 ```
+
+**Deep dive**
+
+- **Use it when:** you want reproducible fine-tuning runs where the whole setup lives in one version-controlled YAML.
+- **Workflow:** edit YAML → `preprocess` and inspect samples → `train` → `inference` → optional merge.
+- **Gotchas:** a wrong chat template silently trains on bad text; out of memory usually means lowering batch size or sequence length.
+- **Pairs with:** RunPod or vast.ai GPUs, Weights & Biases.
 
 **Docs:** [docs.axolotl.ai](https://docs.axolotl.ai/) · **Notes:** [Axolotl](m4.html#m4-axolotl)
 
@@ -267,6 +384,13 @@ def test_refund():
     assert_test(case, [AnswerRelevancyMetric(threshold=0.7)])
 ```
 
+**Deep dive**
+
+- **Use it when:** you want LLM quality checks to behave like unit tests that fail a CI build.
+- **Key concepts:** `LLMTestCase` (input, actual output, context), a *metric* with a *threshold*, `assert_test`; run files with `deepeval test run`.
+- **Gotchas:** LLM-judged metrics cost tokens and vary run to run; pin the judge model and spot-check scores by hand; calibrate thresholds on your own data.
+- **Pairs with:** pytest, GitHub Actions, RAGAS.
+
 **Docs:** [deepeval.com/docs](https://deepeval.com/docs/getting-started) · **Notes:** [Agent evaluation](m5.html#m5-eval)
 
 ## LangSmith {#t-ls}
@@ -281,6 +405,13 @@ from langsmith import traceable
 def summarise(text: str) -> str:
     return llm(text)
 ```
+
+**Deep dive**
+
+- **Use it when:** you need to see every step, prompt, token count, and latency of a chain or agent, or to build datasets and experiments from real traces.
+- **Key concepts:** *trace* (one run), *run/span* (one step), *dataset*, *experiment*; `@traceable` works on plain Python functions, not only LangChain.
+- **Gotchas:** it also needs `LANGSMITH_API_KEY`; traces may contain sensitive data, so redact before sending.
+- **Pairs with:** LangChain, LangGraph, Promptfoo.
 
 **Docs:** [docs.smith.langchain.com](https://docs.smith.langchain.com/) · **Notes:** [LangSmith](m6.html#m6-smith)
 
@@ -298,6 +429,13 @@ tests:
         value: Paris
 ```
 
+**Deep dive**
+
+- **Use it when:** comparing prompts or models side by side, or gating changes with regression tests and red-team checks in CI.
+- **Key concepts:** `prompts`, `providers`, `tests` with `vars` and `assert`s (`contains`, model-graded rubrics, and more).
+- **Gotchas:** exact-match assertions are brittle for free text — mix them with rubric-based checks; keep a small fast suite for pull requests and a larger one for scheduled runs.
+- **Pairs with:** GitHub Actions, DeepEval.
+
 **Docs:** [promptfoo.dev/docs](https://www.promptfoo.dev/docs/intro/) · **Notes:** [CI evals](m6.html#m6-ci-eval)
 
 ## RAGAS {#t-ragas}
@@ -311,6 +449,19 @@ ds = EvaluationDataset.from_list([{"user_input": "Refund window?", "retrieved_co
 print(evaluate(ds, metrics=[Faithfulness(), LLMContextRecall()]))
 ```
 
+**Deep dive — the four core metrics**
+
+| Metric | Question it answers |
+|---|---|
+| Faithfulness | Is every claim in the answer supported by the retrieved context? |
+| Answer relevancy | Does the answer address the question? |
+| Context precision | Are the relevant chunks ranked near the top? |
+| Context recall | Was the information needed to answer actually retrieved? |
+
+- **Reading results:** low recall → fix retrieval (chunking, hybrid search, reranking); low faithfulness → fix generation (prompt, grounding).
+- **Gotchas:** recall needs a reference answer; metrics use an LLM judge, so scores are noisy on tiny datasets.
+- **Pairs with:** LlamaIndex, LangChain, Cohere Rerank.
+
 **Docs:** [docs.ragas.io](https://docs.ragas.io/en/stable/) · **Notes:** [RAGAS](m3.html#m3-ragas)
 
 ## Arize {#t-arize}
@@ -323,6 +474,13 @@ from phoenix.otel import register
 px.launch_app()
 register(project_name="rag-app", auto_instrument=True)
 ```
+
+**Deep dive**
+
+- **Use it when:** you want local, open-source tracing and evals for a RAG or agent app, built on OpenTelemetry.
+- **Key concepts:** *trace* and *span*; auto-instrumentation records LLM calls, retrievals, and tool calls.
+- **Gotchas:** call `register(...)` early, before creating clients; keep the same trace IDs between dev and production for easier debugging.
+- **Pairs with:** LangChain, LlamaIndex, RAGAS.
 
 **Docs:** [arize.com/docs/phoenix](https://arize.com/docs/phoenix) · **Notes:** [LLMOps](m6.html#m6-llmops)
 
@@ -338,6 +496,13 @@ async def health():
     return {"ok": True}
 ```
 
+**Deep dive**
+
+- **Use it when:** exposing your chain or agent as an HTTP API with validation and docs.
+- **Key concepts:** path operations (`@app.get/post`), Pydantic request and response models, dependency injection, automatic docs at `/docs`; run with `uvicorn main:app`.
+- **Gotchas:** a blocking call inside `async def` stalls the event loop — use async clients or plain `def` endpoints; use `StreamingResponse` for token streaming; keep a cheap `/health` endpoint for probes.
+- **Pairs with:** Docker, Kubernetes, Pydantic.
+
 **Docs:** [fastapi.tiangolo.com](https://fastapi.tiangolo.com/) · **Notes:** [FastAPI](m6.html#m6-fastapi)
 
 ## Docker {#t-docker}
@@ -350,6 +515,13 @@ docker run -p 8000:8000 --env-file .env answer-service
 docker compose up --build
 ```
 
+**Deep dive**
+
+- **Key concepts:** *image* (the recipe, built once) vs *container* (a running instance); `Dockerfile`, layers, `.dockerignore`, `docker compose` for multi-service setups.
+- **Best practices:** copy `requirements.txt` and install before copying code (better caching); pin the base image tag; run as a non-root user; pass secrets at runtime with `--env-file` or a secret manager, never bake them into the image.
+- **Gotchas:** large images (ML libraries) slow deploys — use slim bases and multi-stage builds.
+- **Pairs with:** FastAPI, GitHub Actions, Kubernetes.
+
 **Docs:** [docs.docker.com](https://docs.docker.com/get-started/) · **Notes:** [Docker](m6.html#m6-docker)
 
 ## LiteLLM {#t-lite}
@@ -361,6 +533,13 @@ from litellm import completion
 for model in ["gpt-4o-mini", "anthropic/claude-3-5-haiku-latest", "ollama/llama3.2"]:
     print(model, completion(model=model, messages=[{"role": "user", "content": "hi"}]).choices[0].message.content)
 ```
+
+**Deep dive**
+
+- **Use it when:** you want to switch or compare providers with one interface, or run a proxy with fallbacks, budgets, and spend tracking.
+- **Key concepts:** provider-prefixed model names (`anthropic/...`, `ollama/...`); the optional proxy server adds virtual keys and routing.
+- **Gotchas:** abstractions leak — provider-specific features may not map cleanly; test the exact feature you depend on.
+- **Pairs with:** OpenAI, Anthropic, Ollama.
 
 **Docs:** [docs.litellm.ai](https://docs.litellm.ai/) · **Notes:** [Unified client](m2.html#m2-client)
 
@@ -380,6 +559,12 @@ jobs:
       - run: pip install -r requirements.txt && pytest -q
 ```
 
+**Deep dive**
+
+- **Key concepts:** *workflow* (YAML file), *event* (push, pull request, schedule), *job*, *step*, *secrets*, *matrix*, caching.
+- **Gotchas:** read secrets with `${{ secrets.NAME }}`; they are not exposed to pull requests from forks by default; LLM evals cost money, so run a small smoke set on each PR and the full suite on `main` or a schedule.
+- **Pairs with:** pytest, Promptfoo, DeepEval, Docker (build and push images), Terraform.
+
 **Docs:** [docs.github.com/actions](https://docs.github.com/en/actions) · **Notes:** [GitHub Actions](m6.html#m6-gha)
 
 ## Cohere {#t-cohere}
@@ -392,6 +577,13 @@ co = cohere.ClientV2()
 r = co.rerank(model="rerank-v3.5", query="refund window", documents=["Refunds in 30 days", "Free shipping over 500"], top_n=1)
 print(r.results[0].index, r.results[0].relevance_score)
 ```
+
+**Deep dive**
+
+- **Use it when:** you need a drop-in reranker or good multilingual embeddings on top of an existing retriever.
+- **Pattern:** retrieve 30–50 chunks → `rerank` → keep `top_n` (3–8).
+- **Gotchas:** check the per-request document limit; tune score thresholds on your own golden set; the client reads `CO_API_KEY`.
+- **Pairs with:** Pinecone, Chroma, LlamaIndex, RAGAS.
 
 **Docs:** [docs.cohere.com](https://docs.cohere.com/) · **Notes:** [Reranking](m3.html#m3-rerank)
 
@@ -406,6 +598,21 @@ resp = bedrock.converse(modelId="anthropic.claude-3-haiku-20240307-v1:0",
                         messages=[{"role": "user", "content": [{"text": "hi"}]}])
 print(resp["output"]["message"]["content"][0]["text"])
 ```
+
+**Deep dive — service map**
+
+| Need | AWS service |
+|---|---|
+| Object storage | S3 |
+| Run containers | ECS or EKS |
+| Small event-driven code | Lambda |
+| Managed foundation models | Bedrock |
+| Secrets | Secrets Manager |
+| Logs and metrics | CloudWatch |
+| Permissions | IAM |
+
+- **Gotchas:** Bedrock model access must be enabled per account and region, and model IDs differ by region; grant least-privilege IAM roles; set budgets and billing alerts early.
+- **Pairs with:** Terraform (provision it), Docker and Kubernetes (run it), Anthropic models via Bedrock.
 
 **Docs:** [docs.aws.amazon.com](https://docs.aws.amazon.com/) · [Bedrock user guide](https://docs.aws.amazon.com/bedrock/latest/userguide/what-is-bedrock.html) · **Notes:** [AWS](m6.html#m6-aws)
 
@@ -423,6 +630,13 @@ export async function POST(req: Request) {
 }
 ```
 
+**Deep dive**
+
+- **Use it when:** you want a fast frontend or chat UI with git-push deploys and streaming responses.
+- **Key concepts:** serverless functions, environment variables in the dashboard, the AI SDK for streaming and provider switching, v0 for UI prototypes.
+- **Gotchas:** serverless functions have time limits (they vary by plan), so long jobs belong on a backend or queue; always review v0-generated code before shipping; keep API keys on the server side.
+- **Pairs with:** a FastAPI or other backend for heavy work.
+
 **Docs:** [vercel.com/docs](https://vercel.com/docs) · [AI SDK](https://ai-sdk.dev/docs/introduction) · [v0](https://v0.dev/)
 
 ## Streamlit {#t-st}
@@ -436,6 +650,13 @@ if q := st.chat_input("Ask about a policy"):
     st.chat_message("user").write(q)
     st.chat_message("assistant").write(chain.invoke(q))
 ```
+
+**Deep dive**
+
+- **Use it when:** you need a demo UI for a RAG app or agent in minutes.
+- **Key concepts:** the whole script reruns on every interaction; keep chat history in `st.session_state`; cache expensive setup with `st.cache_resource`.
+- **Gotchas:** great for demos and internal tools, but not a replacement for a production frontend with auth and scale.
+- **Pairs with:** LangChain, Chroma, Ollama.
 
 **Docs:** [docs.streamlit.io](https://docs.streamlit.io/) · **Notes:** [No-code and quick UIs](m1.html#m1-nocode)
 
@@ -453,6 +674,13 @@ resource "aws_s3_bucket" "docs" {
 terraform init && terraform plan && terraform apply
 ```
 
+**Deep dive**
+
+- **Workflow:** `init` (download providers) → `plan` (preview changes) → `apply` (make them) → `destroy` (remove).
+- **Key concepts:** resources, variables, outputs, modules, and the *state file* that records what exists.
+- **Gotchas:** read every plan before applying; store state remotely with locking and never commit it (it can contain secrets); keep separate environments (dev, prod).
+- **Pairs with:** AWS, GitHub Actions (plan on pull request, apply on merge).
+
 **Docs:** [developer.hashicorp.com/terraform](https://developer.hashicorp.com/terraform/docs) · **Notes:** [Terraform](m6.html#m6-tf)
 
 ## Kubernetes {#t-k8s}
@@ -466,7 +694,66 @@ kubectl autoscale deployment answer --min=2 --max=10 --cpu-percent=70
 kubectl rollout status deployment/answer
 ```
 
+**Deep dive**
+
+- **Key objects:** *Pod* (running containers), *Deployment* (desired replicas and rollouts), *Service* (stable network name), *Ingress* (external routes), *HPA* (autoscaling), *ConfigMap* and *Secret* (configuration).
+- **Gotchas:** set resource requests and limits; add readiness and liveness probes that call your `/health` endpoint; autoscaling needs a metrics source; start with a managed cluster (EKS) rather than running your own.
+- **Pairs with:** Docker, FastAPI, Helm (packaging), Terraform (provisioning the cluster).
+
 **Docs:** [kubernetes.io/docs](https://kubernetes.io/docs/home/) · **Notes:** [Kubernetes](m6.html#m6-k8s) · [Helm](m6.html#m6-helm)
+
+## Appendix A — Tools by job {#t-by-job}
+
+| Job | Pick from |
+|---|---|
+| Call a model | OpenAI, Anthropic, Cohere, Ollama (local), AWS Bedrock |
+| Switch providers | LiteLLM |
+| Chain steps / RAG | LangChain, LlamaIndex |
+| Agents and workflows | LangGraph, CrewAI, MCP |
+| Optimise prompts | DSPy |
+| Validate structure | Pydantic |
+| Store vectors | Chroma (local), Pinecone (managed) |
+| Rerank | Cohere Rerank |
+| Fine-tune | Hugging Face, PEFT, bitsandbytes, Axolotl |
+| Evaluate | RAGAS, DeepEval, Promptfoo |
+| Observe | LangSmith, Arize Phoenix |
+| Serve | FastAPI, Streamlit, Vercel |
+| Package and deploy | Docker, GitHub Actions, Terraform, Kubernetes, AWS |
+
+## Appendix B — Reference stacks {#t-stacks}
+
+| Goal | Stack |
+|---|---|
+| Weekend prototype | OpenAI or Anthropic + Chroma + LangChain + Streamlit |
+| Private local assistant | Ollama + Chroma + LlamaIndex |
+| Production RAG service | FastAPI + Pydantic + Pinecone + Cohere Rerank + LangSmith or Phoenix + Docker + GitHub Actions |
+| Agent product | LangGraph + MCP tools + LangSmith + DeepEval in CI |
+| Specialist small model | Hugging Face + PEFT + Axolotl + W&B → GGUF → Ollama |
+| Full cloud deployment | Docker image → Terraform on AWS → Kubernetes with autoscaling |
+
+## Appendix C — 10-minute setup checklist {#t-setup}
+
+- [ ] Python 3.10+ and a virtual environment created
+- [ ] API keys exported as environment variables (never committed)
+- [ ] `.env` and `.gitignore` in place
+- [ ] Library versions pinned in `requirements.txt`
+- [ ] One smoke test per provider: print a three-word reply
+- [ ] Ollama installed and one small model pulled
+- [ ] Docker runs `hello-world`
+- [ ] Tracing switched on (LangSmith or Phoenix) before you build more
+
+## Appendix D — Troubleshooting {#t-trouble}
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| 401 / authentication error | Missing or wrong API key | Check the environment variable name and shell session |
+| 429 / rate limit | Too many requests or tokens | Retry with backoff, batch, lower concurrency |
+| Vector dimension mismatch | Embedding model differs from index | Recreate the index or use the original model |
+| Empty or irrelevant retrieval | Bad chunking or different embedding model at query time | Re-ingest consistently; add hybrid search and reranking |
+| CUDA out of memory | Batch, sequence length, or model too big | Smaller batch and length, gradient checkpointing, 4-bit |
+| Output not valid JSON | Model drifted from the format | Structured outputs, Pydantic validation, retry with the error |
+| Works locally, fails in Docker | Missing env vars or files in the image | Use `--env-file`, check `.dockerignore` and paths |
+| Surprise cloud bill | Idle GPU, runaway loop, no budget | Stop pods, cap retries and hops, set billing alerts |
 
 [← Projects](projects.html) · [Back to all notes](index.html)
 </script>

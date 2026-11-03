@@ -1,85 +1,429 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Module 7 notes — Forward Deployed AI Engineering</title>
-  <link rel="stylesheet" href="notes.css" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Module 7 booklet — Forward Deployed AI Engineering</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f3f5f8; --paper:#ffffff; --ink:#16202e; --muted:#5b6778; --line:#dde3ea;
+  --accent:#0a6c8f; --accent-soft:#e3f1f6;
+  --trap:#a4440b; --trap-soft:#fdf0e6;
+  --why:#4b3fa0; --why-soft:#eeecfa;
+  --tip:#12724a; --tip-soft:#e6f5ee;
+  --boss:#8a1c3a; --boss-soft:#fbe9ee;
+  --code-bg:#f6f8fa; --code-ink:#1f2933; --inline-bg:#e9eef3;
+  --head:"Space Grotesk","Segoe UI",system-ui,sans-serif;
+  --body:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e141c; --paper:#151d28; --ink:#e4e9f0; --muted:#97a3b4; --line:#27323f;
+    --accent:#52b8da; --accent-soft:#12303c;
+    --trap:#f2a066; --trap-soft:#2c1e14;
+    --why:#b3a8ff; --why-soft:#211e3a;
+    --tip:#6fd3a0; --tip-soft:#14291f;
+    --boss:#ff8fab; --boss-soft:#341822;
+    --code-bg:#0b1118; --code-ink:#e6edf3; --inline-bg:#202b38;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e141c; --paper:#151d28; --ink:#e4e9f0; --muted:#97a3b4; --line:#27323f;
+  --accent:#52b8da; --accent-soft:#12303c;
+  --trap:#f2a066; --trap-soft:#2c1e14;
+  --why:#b3a8ff; --why-soft:#211e3a;
+  --tip:#6fd3a0; --tip-soft:#14291f;
+  --boss:#ff8fab; --boss-soft:#341822;
+  --code-bg:#0b1118; --code-ink:#e6edf3; --inline-bg:#202b38;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:18px;line-height:1.7}
+.bar{position:sticky;top:0;z-index:20;display:flex;gap:16px;align-items:center;flex-wrap:wrap;
+  padding:10px 20px;background:var(--paper);border-bottom:1px solid var(--line);font-family:var(--head);font-size:14px}
+.bar a{color:var(--accent);text-decoration:none}
+.bar a:hover{text-decoration:underline}
+.bar .grow{flex:1}
+.bar button{font:inherit;background:none;border:1px solid var(--line);color:var(--ink);padding:4px 10px;border-radius:6px;cursor:pointer}
+.bar button:hover{border-color:var(--accent)}
+#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:30}
+.wrap{display:grid;grid-template-columns:290px minmax(0,1fr);gap:0;max-width:1280px;margin:0 auto}
+nav#toc{position:sticky;top:52px;align-self:start;height:calc(100vh - 52px);overflow:auto;
+  padding:24px 12px 40px 20px;font-family:var(--head);font-size:14px;border-right:1px solid var(--line)}
+nav#toc h4{margin:0 0 10px;font-size:13px;color:var(--muted);font-weight:600}
+nav#toc a{display:flex;gap:10px;padding:6px 8px;border-radius:6px;color:var(--ink);text-decoration:none;line-height:1.35}
+nav#toc a b{min-width:30px;color:var(--muted);font-weight:600}
+nav#toc a:hover{background:var(--accent-soft)}
+nav#toc a.active{background:var(--accent-soft);color:var(--accent)}
+nav#toc a.active b{color:var(--accent)}
+main#content{padding:36px clamp(18px,4vw,56px) 80px;max-width:860px}
+.cover{padding:8px 0 28px;border-bottom:2px solid var(--ink);margin-bottom:28px}
+.cover h1{font-family:var(--head);font-size:clamp(30px,4.4vw,46px);line-height:1.1;margin:0 0 14px;letter-spacing:-.02em}
+.cover .sub{font-family:var(--head);font-size:15px;color:var(--muted);margin:0}
+.hero-note{margin:18px 0 0;padding:14px 18px;background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:0 8px 8px 0;font-size:19px}
+h2{font-family:var(--head);font-size:clamp(25px,3vw,32px);line-height:1.2;margin:68px 0 14px;padding-top:26px;border-top:1px solid var(--line);letter-spacing:-.01em;display:flex;gap:14px;align-items:baseline}
+h2 .chnum{flex:none;font-size:.62em;font-weight:600;color:var(--paper);background:var(--accent);padding:3px 10px;border-radius:6px;position:relative;top:-3px}
+h3{font-family:var(--head);font-size:20px;margin:36px 0 8px;color:var(--accent)}
+p{margin:0 0 14px}
+a{color:var(--accent)}
+.oneline{font-size:20px;line-height:1.55;padding:12px 0;border-top:1px dashed var(--line);border-bottom:1px dashed var(--line)}
+.read{font-family:var(--head);font-size:15px;padding:12px 14px;background:var(--paper);border:1px solid var(--line);border-radius:8px;margin-top:22px}
+blockquote.callout{margin:18px 0;padding:12px 18px;border-radius:8px;border-left:4px solid var(--accent);background:var(--accent-soft)}
+blockquote.callout p{margin:0}
+blockquote.callout.trap{border-color:var(--trap);background:var(--trap-soft)}
+blockquote.callout.trap strong:first-child{color:var(--trap)}
+blockquote.callout.why{border-color:var(--why);background:var(--why-soft)}
+blockquote.callout.why strong:first-child{color:var(--why)}
+blockquote.callout.tip{border-color:var(--tip);background:var(--tip-soft)}
+blockquote.callout.tip strong:first-child{color:var(--tip)}
+blockquote.callout.boss{border-color:var(--boss);background:var(--boss-soft)}
+blockquote.callout.boss strong:first-child{color:var(--boss)}
+blockquote.callout.analogy strong:first-child{color:var(--accent)}
+code{font-family:var(--mono);font-size:.84em;background:var(--inline-bg);padding:1px 6px;border-radius:4px}
+.hl{margin:16px 0;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;overflow-x:auto}
+.hl pre{margin:0;padding:14px 16px;line-height:1.55;font-size:14px;color:var(--code-ink)}
+.hl pre{font-family:var(--mono)}
+.hl code{font-family:var(--mono);background:none;padding:0;font-size:inherit}
+.hl pre{font-size:14px}
+pre.mermaid{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:16px;text-align:center;overflow-x:auto;font-family:var(--mono);font-size:13px;white-space:pre}
+.tblwrap{overflow-x:auto;margin:16px 0}
+table{border-collapse:collapse;width:100%;font-family:var(--head);font-size:15px;background:var(--paper)}
+th,td{border:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top;line-height:1.45}
+th{background:var(--accent-soft);font-weight:600}
+td code,th code{font-size:.9em}
+details{margin:12px 0;border:1px solid var(--line);border-radius:8px;background:var(--paper)}
+summary{cursor:pointer;padding:10px 14px;font-family:var(--head);font-size:15px;font-weight:600;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:700}
+details[open] summary::before{content:"−"}
+details[open] summary{border-bottom:1px solid var(--line)}
+details > :not(summary){margin-left:16px;margin-right:16px}
+details > :nth-child(2){margin-top:12px}
+details > :last-child{margin-bottom:14px}
+ol,ul{padding-left:26px}
+li{margin:4px 0}
+li>p{margin:0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:900px){
+  .wrap{grid-template-columns:1fr}
+  nav#toc{position:static;height:auto;max-height:260px;border-right:0;border-bottom:1px solid var(--line)}
+  body{font-size:17px}
+}
+@media print{
+  :root{--bg:#fff;--paper:#fff}
+  .bar,nav#toc,#progress{display:none}
+  .wrap{display:block}
+  body{font-size:11.5pt}
+  main#content{max-width:none;padding:0}
+  h2{break-before:page;margin-top:0;border-top:0}
+  .cover+*+h2,h2:first-of-type{break-before:auto}
+  pre,table,blockquote,details{break-inside:avoid}
+  .hl{overflow:visible}.hl pre{white-space:pre-wrap}
+  @page{margin:18mm 16mm}
+}
+
+/* code colours */
+.hl .hll{background:none}
+pre { line-height: 125%; }
+td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+
+
+.hl .c { color: #3D7B7B; font-style: italic } /* Comment */
+.hl .err { border: 1px solid #F00 } /* Error */
+.hl .k { color: #008000; font-weight: bold } /* Keyword */
+.hl .o { color: #666 } /* Operator */
+.hl .ch { color: #3D7B7B; font-style: italic } /* Comment.Hashbang */
+.hl .cm { color: #3D7B7B; font-style: italic } /* Comment.Multiline */
+.hl .cp { color: #9C6500 } /* Comment.Preproc */
+.hl .cpf { color: #3D7B7B; font-style: italic } /* Comment.PreprocFile */
+.hl .c1 { color: #3D7B7B; font-style: italic } /* Comment.Single */
+.hl .cs { color: #3D7B7B; font-style: italic } /* Comment.Special */
+.hl .gd { color: #A00000 } /* Generic.Deleted */
+.hl .ge { font-style: italic } /* Generic.Emph */
+.hl .ges { font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.hl .gr { color: #E40000 } /* Generic.Error */
+.hl .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+.hl .gi { color: #008400 } /* Generic.Inserted */
+.hl .go { color: #717171 } /* Generic.Output */
+.hl .gp { color: #000080; font-weight: bold } /* Generic.Prompt */
+.hl .gs { font-weight: bold } /* Generic.Strong */
+.hl .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+.hl .gt { color: #04D } /* Generic.Traceback */
+.hl .kc { color: #008000; font-weight: bold } /* Keyword.Constant */
+.hl .kd { color: #008000; font-weight: bold } /* Keyword.Declaration */
+.hl .kn { color: #008000; font-weight: bold } /* Keyword.Namespace */
+.hl .kp { color: #008000 } /* Keyword.Pseudo */
+.hl .kr { color: #008000; font-weight: bold } /* Keyword.Reserved */
+.hl .kt { color: #B00040 } /* Keyword.Type */
+.hl .m { color: #666 } /* Literal.Number */
+.hl .s { color: #BA2121 } /* Literal.String */
+.hl .na { color: #687822 } /* Name.Attribute */
+.hl .nb { color: #008000 } /* Name.Builtin */
+.hl .nc { color: #00F; font-weight: bold } /* Name.Class */
+.hl .no { color: #800 } /* Name.Constant */
+.hl .nd { color: #A2F } /* Name.Decorator */
+.hl .ni { color: #717171; font-weight: bold } /* Name.Entity */
+.hl .ne { color: #CB3F38; font-weight: bold } /* Name.Exception */
+.hl .nf { color: #00F } /* Name.Function */
+.hl .nl { color: #767600 } /* Name.Label */
+.hl .nn { color: #00F; font-weight: bold } /* Name.Namespace */
+.hl .nt { color: #008000; font-weight: bold } /* Name.Tag */
+.hl .nv { color: #19177C } /* Name.Variable */
+.hl .ow { color: #A2F; font-weight: bold } /* Operator.Word */
+.hl .w { color: #BBB } /* Text.Whitespace */
+.hl .mb { color: #666 } /* Literal.Number.Bin */
+.hl .mf { color: #666 } /* Literal.Number.Float */
+.hl .mh { color: #666 } /* Literal.Number.Hex */
+.hl .mi { color: #666 } /* Literal.Number.Integer */
+.hl .mo { color: #666 } /* Literal.Number.Oct */
+.hl .sa { color: #BA2121 } /* Literal.String.Affix */
+.hl .sb { color: #BA2121 } /* Literal.String.Backtick */
+.hl .sc { color: #BA2121 } /* Literal.String.Char */
+.hl .dl { color: #BA2121 } /* Literal.String.Delimiter */
+.hl .sd { color: #BA2121; font-style: italic } /* Literal.String.Doc */
+.hl .s2 { color: #BA2121 } /* Literal.String.Double */
+.hl .se { color: #AA5D1F; font-weight: bold } /* Literal.String.Escape */
+.hl .sh { color: #BA2121 } /* Literal.String.Heredoc */
+.hl .si { color: #A45A77; font-weight: bold } /* Literal.String.Interpol */
+.hl .sx { color: #008000 } /* Literal.String.Other */
+.hl .sr { color: #A45A77 } /* Literal.String.Regex */
+.hl .s1 { color: #BA2121 } /* Literal.String.Single */
+.hl .ss { color: #19177C } /* Literal.String.Symbol */
+.hl .bp { color: #008000 } /* Name.Builtin.Pseudo */
+.hl .fm { color: #00F } /* Name.Function.Magic */
+.hl .vc { color: #19177C } /* Name.Variable.Class */
+.hl .vg { color: #19177C } /* Name.Variable.Global */
+.hl .vi { color: #19177C } /* Name.Variable.Instance */
+.hl .vm { color: #19177C } /* Name.Variable.Magic */
+.hl .il { color: #666 } /* Literal.Number.Integer.Long */
+@media (prefers-color-scheme:dark){
+:root:not([data-theme="light"]) .hl span{color:revert}
+pre { line-height: 125%; }
+td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+
+
+.hl .c { color: #959077 } /* Comment */
+.hl .err { color: #ED007E; background-color: #1E0010 } /* Error */
+.hl .esc { color: #F8F8F2 } /* Escape */
+.hl .g { color: #F8F8F2 } /* Generic */
+.hl .k { color: #66D9EF } /* Keyword */
+.hl .l { color: #AE81FF } /* Literal */
+.hl .n { color: #F8F8F2 } /* Name */
+.hl .o { color: #FF4689 } /* Operator */
+.hl .x { color: #F8F8F2 } /* Other */
+.hl .p { color: #F8F8F2 } /* Punctuation */
+.hl .ch { color: #959077 } /* Comment.Hashbang */
+.hl .cm { color: #959077 } /* Comment.Multiline */
+.hl .cp { color: #959077 } /* Comment.Preproc */
+.hl .cpf { color: #959077 } /* Comment.PreprocFile */
+.hl .c1 { color: #959077 } /* Comment.Single */
+.hl .cs { color: #959077 } /* Comment.Special */
+.hl .gd { color: #FF4689 } /* Generic.Deleted */
+.hl .ge { color: #F8F8F2; font-style: italic } /* Generic.Emph */
+.hl .ges { color: #F8F8F2; font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.hl .gr { color: #F8F8F2 } /* Generic.Error */
+.hl .gh { color: #F8F8F2 } /* Generic.Heading */
+.hl .gi { color: #A6E22E } /* Generic.Inserted */
+.hl .go { color: #66D9EF } /* Generic.Output */
+.hl .gp { color: #FF4689; font-weight: bold } /* Generic.Prompt */
+.hl .gs { color: #F8F8F2; font-weight: bold } /* Generic.Strong */
+.hl .gu { color: #959077 } /* Generic.Subheading */
+.hl .gt { color: #F8F8F2 } /* Generic.Traceback */
+.hl .kc { color: #66D9EF } /* Keyword.Constant */
+.hl .kd { color: #66D9EF } /* Keyword.Declaration */
+.hl .kn { color: #FF4689 } /* Keyword.Namespace */
+.hl .kp { color: #66D9EF } /* Keyword.Pseudo */
+.hl .kr { color: #66D9EF } /* Keyword.Reserved */
+.hl .kt { color: #66D9EF } /* Keyword.Type */
+.hl .ld { color: #E6DB74 } /* Literal.Date */
+.hl .m { color: #AE81FF } /* Literal.Number */
+.hl .s { color: #E6DB74 } /* Literal.String */
+.hl .na { color: #A6E22E } /* Name.Attribute */
+.hl .nb { color: #F8F8F2 } /* Name.Builtin */
+.hl .nc { color: #A6E22E } /* Name.Class */
+.hl .no { color: #66D9EF } /* Name.Constant */
+.hl .nd { color: #A6E22E } /* Name.Decorator */
+.hl .ni { color: #F8F8F2 } /* Name.Entity */
+.hl .ne { color: #A6E22E } /* Name.Exception */
+.hl .nf { color: #A6E22E } /* Name.Function */
+.hl .nl { color: #F8F8F2 } /* Name.Label */
+.hl .nn { color: #F8F8F2 } /* Name.Namespace */
+.hl .nx { color: #A6E22E } /* Name.Other */
+.hl .py { color: #F8F8F2 } /* Name.Property */
+.hl .nt { color: #FF4689 } /* Name.Tag */
+.hl .nv { color: #F8F8F2 } /* Name.Variable */
+.hl .ow { color: #FF4689 } /* Operator.Word */
+.hl .pm { color: #F8F8F2 } /* Punctuation.Marker */
+.hl .w { color: #F8F8F2 } /* Text.Whitespace */
+.hl .mb { color: #AE81FF } /* Literal.Number.Bin */
+.hl .mf { color: #AE81FF } /* Literal.Number.Float */
+.hl .mh { color: #AE81FF } /* Literal.Number.Hex */
+.hl .mi { color: #AE81FF } /* Literal.Number.Integer */
+.hl .mo { color: #AE81FF } /* Literal.Number.Oct */
+.hl .sa { color: #E6DB74 } /* Literal.String.Affix */
+.hl .sb { color: #E6DB74 } /* Literal.String.Backtick */
+.hl .sc { color: #E6DB74 } /* Literal.String.Char */
+.hl .dl { color: #E6DB74 } /* Literal.String.Delimiter */
+.hl .sd { color: #E6DB74 } /* Literal.String.Doc */
+.hl .s2 { color: #E6DB74 } /* Literal.String.Double */
+.hl .se { color: #AE81FF } /* Literal.String.Escape */
+.hl .sh { color: #E6DB74 } /* Literal.String.Heredoc */
+.hl .si { color: #E6DB74 } /* Literal.String.Interpol */
+.hl .sx { color: #E6DB74 } /* Literal.String.Other */
+.hl .sr { color: #E6DB74 } /* Literal.String.Regex */
+.hl .s1 { color: #E6DB74 } /* Literal.String.Single */
+.hl .ss { color: #E6DB74 } /* Literal.String.Symbol */
+.hl .bp { color: #F8F8F2 } /* Name.Builtin.Pseudo */
+.hl .fm { color: #A6E22E } /* Name.Function.Magic */
+.hl .vc { color: #F8F8F2 } /* Name.Variable.Class */
+.hl .vg { color: #F8F8F2 } /* Name.Variable.Global */
+.hl .vi { color: #F8F8F2 } /* Name.Variable.Instance */
+.hl .vm { color: #F8F8F2 } /* Name.Variable.Magic */
+.hl .il { color: #AE81FF } /* Literal.Number.Integer.Long */
+}
+</style>
 </head>
 <body>
-  <header class="bar">
-    <a href="../index.html">← Tutorials</a>
-    <a href="index.html">All notes</a>
-    <a href="m6.html">← Module 6</a>
-    <a href="sd.html">System design →</a>
-    <span>Module 7 · Client engineering</span>
-  </header>
-  <div class="wrap">
-    <nav id="toc"></nav>
-    <main id="content"><p>Loading notes…</p></main>
-  </div>
-<script type="text/markdown" id="md">
-# Module 7 — Forward Deployed AI Engineering & Client Consulting
+<div id="progress"></div>
+<header class="bar">
+  <a href="m6.html">← Module 6</a>
+  <a href="sd.html">System design →</a>
+  <span class="grow"></span>
+  <button id="expand" type="button">Show all answers</button>
+  <button id="theme" type="button">Theme</button>
+  <button id="print" type="button">Print / PDF</button>
+</header>
+<div class="wrap">
+  <nav id="toc" aria-label="Chapters"><h4>Contents</h4>
+<a href="#m7-intro" data-id="m7-intro"><b>•</b><span>How to use this booklet</span></a>
+<a href="#m7-problem" data-id="m7-problem"><b>7.1</b><span>Stated problem vs actual problem</span></a>
+<a href="#m7-scope" data-id="m7-scope"><b>7.2</b><span>Scoping under political and budget constraints</span></a>
+<a href="#m7-docs" data-id="m7-docs"><b>7.3</b><span>Engagement artefacts — PRD-lite, SOW, ADRs</span></a>
+<a href="#m7-cdc" data-id="m7-cdc"><b>7.4</b><span>Getting data out — firewalls, read replicas, change data capture</span></a>
+<a href="#m7-schema" data-id="m7-schema"><b>7.5</b><span>Schema archaeology on undocumented systems</span></a>
+<a href="#m7-pii-extract" data-id="m7-pii-extract"><b>7.6</b><span>PII identification and masking at extraction</span></a>
+<a href="#m7-vpc" data-id="m7-vpc"><b>7.7</b><span>VPC-only, private endpoints, air-gapped inference</span></a>
+<a href="#m7-sso" data-id="m7-sso"><b>7.8</b><span>Enterprise auth — SSO, SAML, OIDC, service principals, RBAC</span></a>
+<a href="#m7-security-review" data-id="m7-security-review"><b>7.9</b><span>Why the security team rejects your first architecture</span></a>
+<a href="#m7-sla" data-id="m7-sla"><b>7.10</b><span>Inference serving and throughput under real SLAs</span></a>
+<a href="#m7-scale-vec" data-id="m7-scale-vec"><b>7.11</b><span>Vector search at 10M+ documents</span></a>
+<a href="#m7-rollout" data-id="m7-rollout"><b>7.12</b><span>Model versioning, staged rollout, fleet-wide observability</span></a>
+<a href="#m7-cost" data-id="m7-cost"><b>7.13</b><span>Cost modelling and the token-economics talk with a CTO</span></a>
+<a href="#m7-privacy" data-id="m7-privacy"><b>7.14</b><span>India’s DPDP Act, GDPR, data residency</span></a>
+<a href="#m7-audit" data-id="m7-audit"><b>7.15</b><span>Audit logging, model cards, retention policy</span></a>
+<a href="#m7-hitl" data-id="m7-hitl"><b>7.16</b><span>Human-in-the-loop gates for consequential actions</span></a>
+<a href="#m7-incident" data-id="m7-incident"><b>7.17</b><span>Incident response when a live AI system fails</span></a>
+<a href="#m7-panel" data-id="m7-panel"><b>7.18</b><span>Presenting trade-offs to a hostile stakeholder panel</span></a>
+<a href="#m7-architects" data-id="m7-architects"><b>7.19</b><span>Defending your design to the client’s architects</span></a>
+<a href="#m7-boss" data-id="m7-boss"><b>•</b><span>Boss level — The Retrieval Bake-Off</span></a>
+<a href="#m7-glossary" data-id="m7-glossary"><b>•</b><span>Appendix A — Glossary</span></a>
+<a href="#m7-debug" data-id="m7-debug"><b>•</b><span>Appendix B — Debugging checklist for a failing RAG answer</span></a>
+<a href="#m7-quiz" data-id="m7-quiz"><b>•</b><span>Appendix C — Final self-assessment</span></a>
+  </nav>
+  <main id="content">
+<div class="cover">
+      <h1>Module 7 — Forward Deployed AI Engineering &amp; Client Consulting</h1>
+      <p class="sub">Detailed study booklet · 19 chapters, code walkthroughs, source links, and appendices</p>
+      <p class="hero-note">Quest: the demo worked. Now ship it inside a bank with a firewall, a legacy database nobody documented, a security team that says “no” by default, and a CTO who wants the token bill explained. Six weeks — the module that turns engineers into trusted advisors.</p>
+    </div>
+<h2 id="m7-intro" class="special">How to use this booklet</h2><p>This booklet expands the Module 7 notes. The demo worked; now it must ship inside a bank with a firewall, an undocumented legacy database, a security team that says “no” by default, and a CTO who wants the token bill explained. This is the module that turns engineers into <strong>trusted advisors</strong>.</p>
+<table>
+<thead>
+<tr>
+<th>Part</th>
+<th>What you get</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>In one line / Analogy</td>
+<td>The idea and a mental model</td>
+</tr>
+<tr>
+<td>Core ideas</td>
+<td>How it works and what to bring to the room</td>
+</tr>
+<tr>
+<td>Code / templates</td>
+<td>Snippets and documents you can reuse</td>
+</tr>
+<tr>
+<td>Trap</td>
+<td>The mistake most people make</td>
+</tr>
+<tr>
+<td>Read</td>
+<td>Links to the best primary sources</td>
+</tr>
+</tbody>
+</table>
+<pre class="mermaid">flowchart LR
+  D["Discovery"] --&gt; S["Scope + SOW"]
+  S --&gt; DA["Data access"]
+  DA --&gt; AR["Architecture + security review"]
+  AR --&gt; B["Build + evals"]
+  B --&gt; R["Staged rollout"]
+  R --&gt; O["Operate + report"]
+  O --&gt; D</pre>
 
-<p class="hero-note">Quest: the demo worked. Now ship it inside a bank with a firewall, a legacy database nobody documented, a security team that says “no” by default, and a CTO who wants the token bill explained. Six weeks — the module that turns engineers into trusted advisors.</p>
+<blockquote class="callout tip">
+<p><strong>Tip.</strong> Chapters 7.1 to 7.3 are about problems and paperwork, 7.4 to 7.9 about data and security, 7.10 to 7.13 about scale and cost, 7.14 to 7.17 about compliance and operations, and 7.18 to 7.19 about defending your decisions out loud. Technical skill gets you the build; these skills get you the contract renewal.</p>
+</blockquote>
+<h2 id="m7-problem"><span class="chnum">7.1</span>Stated problem vs actual problem</h2>
+<p class="oneline"><strong>In one line:</strong> clients describe a solution (“we need a chatbot”); your job is to find the underlying problem (“agents spend 40% of their time searching three wikis”) and the metric that proves you fixed it.</p>
 
-```mermaid
-flowchart LR
-  D["Discovery"] --> S["Scope + SOW"]
-  S --> DA["Data access"]
-  DA --> AR["Architecture + security review"]
-  AR --> B["Build + evals"]
-  B --> R["Staged rollout"]
-  R --> O["Operate + report"]
-  O --> D
-```
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> A patient says “I need antibiotics”. A good doctor asks where it hurts, since when, and what they have tried.</p>
+</blockquote>
+<h3 id="m7-problem--core-ideas">Core ideas</h3>
+<p>Ask about the <strong>past</strong> (what actually happened), not the <strong>future</strong> (what they would do). Past behaviour is evidence; hypotheticals are politeness. Then drill down with “why?” until you reach a cause you can measure.</p>
+<p><strong>Discovery question bank.</strong></p>
+<ul>
+<li>“Walk me through the last time this went wrong.” (a story, not an opinion)</li>
+<li>“What happens today, step by step, and who touches it?”</li>
+<li>“What does it cost when it fails: time, money, risk?”</li>
+<li>“If this worked perfectly, what number changes, and who notices?”</li>
+<li>“What have you tried before, and why did it stop?”</li>
+<li>“Who has to say yes for this to go live?”</li>
+</ul>
+<pre class="mermaid">flowchart TD
+  ASK["Stated: build a chatbot"] --&gt; WHY1["Why? Support is slow"]
+  WHY1 --&gt; WHY2["Why? Agents search 3 wikis per ticket"]
+  WHY2 --&gt; WHY3["Why? Policies are scattered and outdated"]
+  WHY3 --&gt; REAL["Actual: findable, current answers for agents"]
+  REAL --&gt; MET["Metric: median handle time down 25 percent"]</pre>
 
-## 7.1 Stated problem vs actual problem {#m7-problem}
-
-**In one line:** clients describe a solution (“we need a chatbot”); your job is to find the underlying problem (“agents spend 40% of their time searching three wikis”) and the metric that proves you fixed it.
-
-> **Analogy.** A patient says “I need antibiotics”. A good doctor asks where it hurts, since when, and what they have tried.
-
-Discovery question bank:
-- “Walk me through the last time this went wrong.” (story, not opinion)
-- “What happens today, step by step, and who touches it?”
-- “What does it cost when it fails — time, money, risk?”
-- “If this worked perfectly, what number changes, and who notices?”
-- “What have you tried before, and why did it stop?”
-- “Who has to say yes for this to go live?”
-
-```mermaid
-flowchart TD
-  ASK["Stated: build a chatbot"] --> WHY1["Why? Support is slow"]
-  WHY1 --> WHY2["Why? Agents search 3 wikis per ticket"]
-  WHY2 --> WHY3["Why? Policies are scattered and outdated"]
-  WHY3 --> REAL["Actual: findable, current answers for agents"]
-  REAL --> MET["Metric: median handle time down 25 percent"]
-```
-
-```text
-Problem statement template
+<div class="hl"><pre><span></span><code>Problem statement template
 For  [user group]
 who  [struggle with X, measured as Y today]
 we will [capability], so that [metric] moves from [baseline] to [target] by [date].
 Out of scope: [list]
-```
+</code></pre></div>
 
-> **Trap.** Asking “would you use a feature that…?” — everyone says yes to hypotheticals. Ask about past behaviour instead.
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Asking “would you use a feature that…?” Everyone says yes to hypotheticals. Ask about past behaviour instead.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://www.momtestbook.com/">The Mom Test (Rob Fitzpatrick)</a> · <a href="https://en.wikipedia.org/wiki/Five_whys">Five whys (Wikipedia)</a> · <a href="https://www.christenseninstitute.org/theory/jobs-to-be-done/">Jobs to be done (Christensen Institute)</a></div>
+<h2 id="m7-scope"><span class="chnum">7.2</span>Scoping under political and budget constraints</h2>
+<p class="oneline"><strong>In one line:</strong> pick the smallest slice that proves value to the person who controls the budget, avoids the political landmines, and can ship in weeks, not quarters.</p>
 
-**Read:** [The Mom Test (Rob Fitzpatrick)](https://www.momtestbook.com/) · [Five whys (Wikipedia)](https://en.wikipedia.org/wiki/Five_whys) · [Jobs to be done (Christensen Institute)](https://www.christenseninstitute.org/theory/jobs-to-be-done/)
-
-## 7.2 Scoping under political and budget constraints {#m7-scope}
-
-**In one line:** pick the smallest slice that proves value to the person who controls the budget, avoids the political landmines, and can ship in weeks, not quarters.
-
-> **Analogy.** Building a bridge across a river with angry landowners on both banks. Start with a footbridge where everyone agrees, prove people use it, then widen it.
-
-```mermaid
-quadrantChart
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> Building a bridge across a river with angry landowners on both banks. Start with a footbridge where everyone agrees, prove people use it, then widen it.</p>
+</blockquote>
+<pre class="mermaid">quadrantChart
   title Pick the first slice
-  x-axis Low effort --> High effort
-  y-axis Low value --> High value
+  x-axis Low effort --&gt; High effort
+  y-axis Low value --&gt; High value
   quadrant-1 Plan later
   quadrant-2 Do first
   quadrant-3 Skip
@@ -87,138 +431,151 @@ quadrantChart
   Agent search assistant: [0.3, 0.8]
   Full auto replies: [0.85, 0.75]
   FAQ bot for website: [0.25, 0.35]
-  Replace CRM: [0.95, 0.4]
-```
+  Replace CRM: [0.95, 0.4]</pre>
 
-Stakeholder map: **Sponsor** (pays), **Users** (adopt), **Gatekeepers** (security, legal, data owners — can block), **Bystanders**. Meet gatekeepers *early*.
+<h3 id="m7-scope--core-ideas">Core ideas</h3>
+<p><strong>Stakeholder map:</strong> the <strong>Sponsor</strong> pays, <strong>Users</strong> adopt, <strong>Gatekeepers</strong> (security, legal, data owners) can block, <strong>Bystanders</strong> are affected but not decisive. Meet gatekeepers <em>early</em>; a late “no” from security costs weeks.</p>
+<table>
+<thead>
+<tr>
+<th>Lever</th>
+<th>Tight budget move</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scope</td>
+<td>One team, one document set, one language</td>
+</tr>
+<tr>
+<td>Model</td>
+<td>Small model + RAG before fine-tuning</td>
+</tr>
+<tr>
+<td>Infra</td>
+<td>Client’s existing cloud and SSO</td>
+</tr>
+<tr>
+<td>Timeline</td>
+<td>4–6 week pilot with a go/no-go metric</td>
+</tr>
+</tbody>
+</table>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Scope creep disguised as “small asks”. Keep a written change log; every new ask gets an estimate and a trade-off.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://www.atlassian.com/work-management/project-management/project-scope">Atlassian: project scope</a> · <a href="https://www.mindtools.com/aol0rms/stakeholder-analysis">Stakeholder analysis (MindTools)</a></div>
+<h2 id="m7-docs"><span class="chnum">7.3</span>Engagement artefacts — PRD-lite, SOW, ADRs</h2>
+<p class="oneline"><strong>In one line:</strong> a one-page PRD aligns <em>what</em> and <em>why</em>, the statement of work fixes <em>what you deliver and when</em>, and architecture decision records capture <em>why you chose X over Y</em>.</p>
 
-| Lever | Tight budget move |
-|---|---|
-| Scope | One team, one document set, one language |
-| Model | Small model + RAG before fine-tuning |
-| Infra | Client’s existing cloud and SSO |
-| Timeline | 4–6 week pilot with a go/no-go metric |
-
-> **Trap.** Scope creep disguised as “small asks”. Keep a written change log; every new ask gets an estimate and a trade-off.
-
-**Read:** [Atlassian: project scope](https://www.atlassian.com/work-management/project-management/project-scope) · [Stakeholder analysis (MindTools)](https://www.mindtools.com/aol0rms/stakeholder-analysis)
-
-## 7.3 Engagement artefacts — PRD-lite, SOW, ADRs {#m7-docs}
-
-**In one line:** a one-page PRD aligns *what* and *why*, the statement of work fixes *what you deliver and when*, and architecture decision records capture *why you chose X over Y*.
-
-> **Analogy.** PRD is the trip plan, SOW is the booking confirmation, ADRs are the diary entries explaining why you took the mountain road.
-
-```markdown
-# PRD-lite: Agent Policy Assistant
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> The PRD is the trip plan, the SOW is the booking confirmation, ADRs are the diary entries explaining why you took the mountain road.</p>
+</blockquote>
+<div class="hl"><pre><span></span><code><span class="gh"># PRD-lite: Agent Policy Assistant</span>
 Problem: Agents take 6 min median to find policy answers.
 Users: 120 tier-1 support agents (Hindi + English).
-Goal: Median lookup time < 90 s; answer accuracy ≥ 90% on golden set.
+Goal: Median lookup time &lt; 90 s; answer accuracy ≥ 90% on golden set.
 Scope: Refund, KYC, fraud policies (≈400 pages). Web UI inside the CRM.
 Out of scope: Customer-facing bot, auto-replies, voice.
 Risks: Outdated policies; PII in tickets; SSO integration lead time.
 Success check: Week 6 pilot with 20 agents, A/B against current process.
-```
+</code></pre></div>
 
-```markdown
-# ADR-003: Use hybrid search (BM25 + vectors) with reranking
+<div class="hl"><pre><span></span><code><span class="gh"># ADR-003: Use hybrid search (BM25 + vectors) with reranking</span>
 Status: Accepted — 2026-11-01
-Context: Agents search by policy codes (e.g. "RF-12") and by natural language.
+Context: Agents search by policy codes (e.g. &quot;RF-12&quot;) and by natural language.
 Decision: Hybrid retrieval with RRF, cross-encoder rerank top 30 → 5.
 Alternatives: Pure vector (missed codes: hit@5 0.71); BM25 only (missed paraphrases: 0.64).
 Consequences: +120 ms p95 latency; one more model to host; hit@5 0.89.
-```
+</code></pre></div>
 
-SOW essentials: deliverables, milestones and dates, acceptance criteria, assumptions (client provides data access by week 1), out-of-scope list, change process, and fees.
+<p><strong>SOW essentials:</strong> deliverables, milestones and dates, acceptance criteria, assumptions (for example “client provides data access by week 1”), an out-of-scope list, a change process, and fees.</p>
+<p><strong>Reading the examples.</strong> The PRD has <em>numbers</em> (90 s, 90%) so success is testable. The ADR records the rejected alternatives with evidence, which stops the same debate being reopened six months later.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> A SOW without assumptions. If the data arrives three weeks late, the assumptions clause is what protects your timeline.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://adr.github.io/">ADR GitHub organisation</a> · <a href="https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions">Michael Nygard: Documenting architecture decisions</a> · <a href="https://www.atlassian.com/agile/product-management/requirements">Atlassian: product requirements</a></div>
+<h2 id="m7-cdc"><span class="chnum">7.4</span>Getting data out — firewalls, read replicas, change data capture</h2>
+<p class="oneline"><strong>In one line:</strong> never hammer the client’s production database; read from a replica or export, and use change data capture (CDC) to stream inserts and updates as events.</p>
 
-**Read:** [ADR GitHub organisation](https://adr.github.io/) · [Michael Nygard: Documenting architecture decisions](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions) · [Atlassian: product requirements](https://www.atlassian.com/agile/product-management/requirements)
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> Instead of repeatedly asking the busy shopkeeper “anything new?”, you install a doorbell that rings every time stock changes (CDC).</p>
+</blockquote>
+<pre class="mermaid">flowchart LR
+  PROD[("Prod Postgres")] --&gt;|WAL replication| REP[("Read replica")]
+  PROD --&gt;|write-ahead log| DBZ["Debezium connector"]
+  DBZ --&gt; K["Kafka topic per table"]
+  K --&gt; C["Your consumer: clean, mask PII, chunk, embed"]
+  C --&gt; VS[("Vector store")]</pre>
 
-## 7.4 Getting data out — firewalls, read replicas, change data capture {#m7-cdc}
+<h3 id="m7-cdc--code">Code</h3>
+<div class="hl"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;policies-connector&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;config&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;connector.class&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;io.debezium.connector.postgresql.PostgresConnector&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;database.hostname&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;replica.internal&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;database.user&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;cdc_reader&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;database.password&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;${file:/secrets/db.properties:password}&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;database.dbname&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;crm&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;topic.prefix&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;crm&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;table.include.list&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;public.policies,public.tickets&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;plugin.name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pgoutput&quot;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
 
-**In one line:** never hammer the client’s production database; read from a replica or export, and use change data capture (CDC) to stream inserts and updates as events.
+<div class="hl"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">kafka</span><span class="w"> </span><span class="kn">import</span> <span class="n">KafkaConsumer</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 
-> **Analogy.** Instead of repeatedly asking the busy shopkeeper “anything new?”, you install a doorbell that rings every time stock changes (CDC).
+<span class="n">consumer</span> <span class="o">=</span> <span class="n">KafkaConsumer</span><span class="p">(</span><span class="s2">&quot;crm.public.policies&quot;</span><span class="p">,</span> <span class="n">bootstrap_servers</span><span class="o">=</span><span class="s2">&quot;kafka:9092&quot;</span><span class="p">,</span>
+                         <span class="n">value_deserializer</span><span class="o">=</span><span class="k">lambda</span> <span class="n">b</span><span class="p">:</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="k">if</span> <span class="n">b</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="n">consumer</span><span class="p">:</span>
+    <span class="n">event</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;payload&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">msg</span><span class="o">.</span><span class="n">value</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">event</span><span class="p">:</span>
+        <span class="k">continue</span>
+    <span class="n">op</span><span class="p">,</span> <span class="n">after</span> <span class="o">=</span> <span class="n">event</span><span class="p">[</span><span class="s2">&quot;op&quot;</span><span class="p">],</span> <span class="n">event</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;after&quot;</span><span class="p">)</span>      <span class="c1"># c=create, u=update, d=delete</span>
+    <span class="k">if</span> <span class="n">op</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;c&quot;</span><span class="p">,</span> <span class="s2">&quot;u&quot;</span><span class="p">):</span>
+        <span class="n">upsert_policy</span><span class="p">(</span><span class="n">after</span><span class="p">)</span>                         <span class="c1"># re-chunk and re-embed this row</span>
+    <span class="k">elif</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">&quot;d&quot;</span><span class="p">:</span>
+        <span class="n">delete_policy</span><span class="p">(</span><span class="n">event</span><span class="p">[</span><span class="s2">&quot;before&quot;</span><span class="p">][</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>
+</code></pre></div>
 
-```mermaid
-flowchart LR
-  PROD[("Prod Postgres")] -->|WAL replication| REP[("Read replica")]
-  PROD -->|write-ahead log| DBZ["Debezium connector"]
-  DBZ --> K["Kafka topic per table"]
-  K --> C["Your consumer: clean, mask PII, chunk, embed"]
-  C --> VS[("Vector store")]
-```
+<p><strong>Reading the code.</strong> The connector reads the database’s write-ahead log (from the <em>replica</em>, so production is untouched), and the password comes from a file reference, not the config. The consumer handles all three operations; handling <code>d</code> is what keeps deleted policies out of your answers.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Asking for broad database credentials. Request a least-privilege read-only user on specific tables, and get the data owner’s written approval.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://debezium.io/documentation/">Debezium documentation</a> · <a href="https://debezium.io/documentation/reference/stable/connectors/postgresql.html">Debezium PostgreSQL connector</a> · <a href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ReadRepl.html">AWS RDS read replicas</a></div>
+<h2 id="m7-schema"><span class="chnum">7.5</span>Schema archaeology on undocumented systems</h2>
+<p class="oneline"><strong>In one line:</strong> reflect the schema, profile every column (nulls, distinct values, formats), find the real join keys, and write the data dictionary nobody else did.</p>
 
-```json
-{
-  "name": "policies-connector",
-  "config": {
-    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
-    "database.hostname": "replica.internal",
-    "database.port": "5432",
-    "database.user": "cdc_reader",
-    "database.password": "${file:/secrets/db.properties:password}",
-    "database.dbname": "crm",
-    "topic.prefix": "crm",
-    "table.include.list": "public.policies,public.tickets",
-    "plugin.name": "pgoutput"
-  }
-}
-```
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> An archaeologist brushing dust off bones: you do not know what animal it is yet, but measurements and patterns tell you.</p>
+</blockquote>
+<div class="hl"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_engine</span><span class="p">,</span> <span class="n">inspect</span><span class="p">,</span> <span class="n">text</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 
-```python
-from kafka import KafkaConsumer
-import json
+<span class="n">engine</span> <span class="o">=</span> <span class="n">create_engine</span><span class="p">(</span><span class="s2">&quot;postgresql+psycopg://reader:***@replica.internal/crm&quot;</span><span class="p">)</span>
+<span class="n">insp</span> <span class="o">=</span> <span class="n">inspect</span><span class="p">(</span><span class="n">engine</span><span class="p">)</span>
 
-consumer = KafkaConsumer("crm.public.policies", bootstrap_servers="kafka:9092",
-                         value_deserializer=lambda b: json.loads(b) if b else None)
-for msg in consumer:
-    event = msg.value["payload"] if msg.value else None
-    if not event:
-        continue
-    op, after = event["op"], event.get("after")      # c=create, u=update, d=delete
-    if op in ("c", "u"):
-        upsert_policy(after)                          # re-chunk and re-embed this row
-    elif op == "d":
-        delete_policy(event["before"]["id"])
-```
+<span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">insp</span><span class="o">.</span><span class="n">get_table_names</span><span class="p">(</span><span class="n">schema</span><span class="o">=</span><span class="s2">&quot;public&quot;</span><span class="p">):</span>
+    <span class="n">cols</span> <span class="o">=</span> <span class="n">insp</span><span class="o">.</span><span class="n">get_columns</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="s2">&quot;public&quot;</span><span class="p">)</span>
+    <span class="n">fks</span> <span class="o">=</span> <span class="n">insp</span><span class="o">.</span><span class="n">get_foreign_keys</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="s2">&quot;public&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="p">[</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">],</span> <span class="s2">&quot;FKs:&quot;</span><span class="p">,</span> <span class="p">[(</span><span class="n">f</span><span class="p">[</span><span class="s2">&quot;constrained_columns&quot;</span><span class="p">],</span> <span class="n">f</span><span class="p">[</span><span class="s2">&quot;referred_table&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">fks</span><span class="p">])</span>
 
-> **Trap.** Asking for broad database credentials. Request a least-privilege read-only user on specific tables, and get the data owner’s written approval.
+<span class="k">def</span><span class="w"> </span><span class="nf">profile</span><span class="p">(</span><span class="n">table</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">sample</span><span class="o">=</span><span class="mi">50_000</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">text</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;SELECT * FROM &quot;</span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s1">&quot; TABLESAMPLE SYSTEM (5) LIMIT </span><span class="si">{</span><span class="n">sample</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">),</span> <span class="n">engine</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+        <span class="s2">&quot;null_pct&quot;</span><span class="p">:</span> <span class="n">df</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span>
+        <span class="s2">&quot;distinct&quot;</span><span class="p">:</span> <span class="n">df</span><span class="o">.</span><span class="n">nunique</span><span class="p">(),</span>
+        <span class="s2">&quot;example&quot;</span><span class="p">:</span> <span class="n">df</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">s</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()),</span>
+    <span class="p">})</span>
 
-**Read:** [Debezium documentation](https://debezium.io/documentation/) · [Debezium PostgreSQL connector](https://debezium.io/documentation/reference/stable/connectors/postgresql.html) · [AWS RDS read replicas](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ReadRepl.html)
+<span class="nb">print</span><span class="p">(</span><span class="n">profile</span><span class="p">(</span><span class="s2">&quot;tickets&quot;</span><span class="p">))</span>
+</code></pre></div>
 
-## 7.5 Schema archaeology on undocumented systems {#m7-schema}
-
-**In one line:** reflect the schema, profile every column (nulls, distinct values, formats), find the real join keys, and write the data dictionary nobody else did.
-
-> **Analogy.** An archaeologist brushing dust off bones: you do not know what animal it is yet, but measurements and patterns tell you.
-
-```python
-from sqlalchemy import create_engine, inspect, text
-import pandas as pd
-
-engine = create_engine("postgresql+psycopg://reader:***@replica.internal/crm")
-insp = inspect(engine)
-
-for table in insp.get_table_names(schema="public"):
-    cols = insp.get_columns(table, schema="public")
-    fks = insp.get_foreign_keys(table, schema="public")
-    print(table, [c["name"] for c in cols], "FKs:", [(f["constrained_columns"], f["referred_table"]) for f in fks])
-
-def profile(table: str, sample=50_000) -> pd.DataFrame:
-    df = pd.read_sql(text(f'SELECT * FROM "{table}" TABLESAMPLE SYSTEM (5) LIMIT {sample}'), engine)
-    return pd.DataFrame({
-        "null_pct": df.isna().mean().round(3),
-        "distinct": df.nunique(),
-        "example": df.apply(lambda s: s.dropna().astype(str).head(3).tolist()),
-    })
-
-print(profile("tickets"))
-```
-
-Clues to look for: columns named `*_id` without foreign keys (implicit joins), status codes stored as integers (find the lookup table or ask), `deleted_at` soft deletes, text columns secretly holding JSON, and timestamps in mixed time zones.
-
-```mermaid
-erDiagram
+<p><strong>Clues to look for.</strong> <code>*_id</code> columns without foreign keys (implicit joins), status codes stored as integers (find the lookup table or ask), <code>deleted_at</code> soft deletes, text columns secretly holding JSON, and timestamps in mixed time zones.</p>
+<p><strong>Reading the code.</strong> <code>TABLESAMPLE</code> profiles a sample so you never scan a huge table. Null percentage and distinct counts quickly reveal keys (high distinct), flags (distinct of 2) and dead columns (mostly null).</p>
+<pre class="mermaid">erDiagram
   CUSTOMER ||--o{ TICKET : raises
   TICKET ||--o{ TICKET_EVENT : has
   POLICY ||--o{ TICKET : referenced_by
@@ -230,517 +587,809 @@ erDiagram
     int id
     int cust_ref
     int status_cd
-  }
-```
+  }</pre>
 
-> **Trap.** Trusting column names. `cust_ref` might join to `cust_no` only for tickets after 2019. Verify joins with match-rate queries.
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Trusting column names. <code>cust_ref</code> might join to <code>cust_no</code> only for tickets after 2019. Verify joins with match-rate queries.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://docs.sqlalchemy.org/en/20/core/reflection.html">SQLAlchemy: reflecting database objects</a> · <a href="https://docs.profiling.ydata.ai/latest/">ydata-profiling</a> · <a href="https://docs.greatexpectations.io/docs/home/">Great Expectations</a></div>
+<h2 id="m7-pii-extract"><span class="chnum">7.6</span>PII identification and masking at extraction</h2>
+<p class="oneline"><strong>In one line:</strong> detect and mask personal data <em>before</em> it leaves the source boundary, in the extraction job, so it never lands in your vector store, logs, or prompts.</p>
 
-**Read:** [SQLAlchemy: reflecting database objects](https://docs.sqlalchemy.org/en/20/core/reflection.html) · [ydata-profiling](https://docs.profiling.ydata.ai/latest/) · [Great Expectations](https://docs.greatexpectations.io/docs/home/)
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> Redacting a document with a black marker before photocopying it, not after it is already on everyone’s desk.</p>
+</blockquote>
+<div class="hl"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">presidio_analyzer</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnalyzerEngine</span><span class="p">,</span> <span class="n">PatternRecognizer</span><span class="p">,</span> <span class="n">Pattern</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">presidio_anonymizer</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnonymizerEngine</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">presidio_anonymizer.entities</span><span class="w"> </span><span class="kn">import</span> <span class="n">OperatorConfig</span>
 
-## 7.6 PII identification and masking at extraction {#m7-pii-extract}
+<span class="n">pan</span> <span class="o">=</span> <span class="n">PatternRecognizer</span><span class="p">(</span><span class="n">supported_entity</span><span class="o">=</span><span class="s2">&quot;IN_PAN&quot;</span><span class="p">,</span>
+                        <span class="n">patterns</span><span class="o">=</span><span class="p">[</span><span class="n">Pattern</span><span class="p">(</span><span class="s2">&quot;pan&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;\b[A-Z]</span><span class="si">{5}</span><span class="s2">[0-9]</span><span class="si">{4}</span><span class="s2">[A-Z]\b&quot;</span><span class="p">,</span> <span class="mf">0.85</span><span class="p">)])</span>
+<span class="n">aadhaar</span> <span class="o">=</span> <span class="n">PatternRecognizer</span><span class="p">(</span><span class="n">supported_entity</span><span class="o">=</span><span class="s2">&quot;IN_AADHAAR&quot;</span><span class="p">,</span>
+                            <span class="n">patterns</span><span class="o">=</span><span class="p">[</span><span class="n">Pattern</span><span class="p">(</span><span class="s2">&quot;aadhaar&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;\b\d</span><span class="si">{4}</span><span class="s2">\s?\d</span><span class="si">{4}</span><span class="s2">\s?\d</span><span class="si">{4}</span><span class="s2">\b&quot;</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">)])</span>
 
-**In one line:** detect and mask personal data *before* it leaves the source boundary — in the extraction job — so it never lands in your vector store, logs, or prompts.
+<span class="n">analyzer</span> <span class="o">=</span> <span class="n">AnalyzerEngine</span><span class="p">()</span>
+<span class="n">analyzer</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">add_recognizer</span><span class="p">(</span><span class="n">pan</span><span class="p">)</span>
+<span class="n">analyzer</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">add_recognizer</span><span class="p">(</span><span class="n">aadhaar</span><span class="p">)</span>
+<span class="n">anonymizer</span> <span class="o">=</span> <span class="n">AnonymizerEngine</span><span class="p">()</span>
 
-> **Analogy.** Redacting a document with a black marker before photocopying it, not after it is already on everyone’s desk.
+<span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;Customer Rahul Verma, PAN ABCDE1234F, Aadhaar 1234 5678 9012, called about refund.&quot;</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">analyzer</span><span class="o">.</span><span class="n">analyze</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span> <span class="n">language</span><span class="o">=</span><span class="s2">&quot;en&quot;</span><span class="p">)</span>
+<span class="n">masked</span> <span class="o">=</span> <span class="n">anonymizer</span><span class="o">.</span><span class="n">anonymize</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span> <span class="n">analyzer_results</span><span class="o">=</span><span class="n">results</span><span class="p">,</span> <span class="n">operators</span><span class="o">=</span><span class="p">{</span>
+    <span class="s2">&quot;DEFAULT&quot;</span><span class="p">:</span> <span class="n">OperatorConfig</span><span class="p">(</span><span class="s2">&quot;replace&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;new_value&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;REDACTED&gt;&quot;</span><span class="p">}),</span>
+    <span class="s2">&quot;PERSON&quot;</span><span class="p">:</span> <span class="n">OperatorConfig</span><span class="p">(</span><span class="s2">&quot;replace&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;new_value&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;CUSTOMER&gt;&quot;</span><span class="p">}),</span>
+<span class="p">})</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">masked</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+</code></pre></div>
 
-```python
-import re
-from presidio_analyzer import AnalyzerEngine, PatternRecognizer, Pattern
-from presidio_anonymizer import AnonymizerEngine
-from presidio_anonymizer.entities import OperatorConfig
+<pre class="mermaid">flowchart LR
+  SRC[("Client DB")] --&gt; EXT["Extraction job inside client network"]
+  EXT --&gt; DET["Detect PII: Presidio + custom rules"]
+  DET --&gt; MASK["Mask or tokenise"]
+  MASK --&gt; OUT["Clean data to RAG pipeline"]
+  DET --&gt; MAP[("Token vault, client-owned, if re-identification is needed")]</pre>
 
-pan = PatternRecognizer(supported_entity="IN_PAN",
-                        patterns=[Pattern("pan", r"\b[A-Z]{5}[0-9]{4}[A-Z]\b", 0.85)])
-aadhaar = PatternRecognizer(supported_entity="IN_AADHAAR",
-                            patterns=[Pattern("aadhaar", r"\b\d{4}\s?\d{4}\s?\d{4}\b", 0.6)])
+<p><strong>Reading the code.</strong> Custom recognisers add Indian ID formats the defaults miss. Operators choose <em>how</em> to mask: replace with a label, or tokenise when someone must later re-identify a record (the token vault stays client-owned).</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Regexes alone miss names and addresses; NER alone misses IDs. Combine both, then measure recall on a hand-labelled sample.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://microsoft.github.io/presidio/">Presidio docs</a> · <a href="https://microsoft.github.io/presidio/analyzer/">Presidio analyzer and custom recognizers</a> · <a href="https://docs.aws.amazon.com/comprehend/latest/dg/how-pii.html">AWS Comprehend PII detection</a></div>
+<h2 id="m7-vpc"><span class="chnum">7.7</span>VPC-only, private endpoints, air-gapped inference</h2>
+<p class="oneline"><strong>In one line:</strong> keep all traffic on private networks: private endpoints to cloud model services, or models hosted inside the client’s VPC, and fully offline (air-gapped) when the data cannot touch the internet at all.</p>
 
-analyzer = AnalyzerEngine()
-analyzer.registry.add_recognizer(pan)
-analyzer.registry.add_recognizer(aadhaar)
-anonymizer = AnonymizerEngine()
-
-text = "Customer Rahul Verma, PAN ABCDE1234F, Aadhaar 1234 5678 9012, called about refund."
-results = analyzer.analyze(text=text, language="en")
-masked = anonymizer.anonymize(text=text, analyzer_results=results, operators={
-    "DEFAULT": OperatorConfig("replace", {"new_value": "<REDACTED>"}),
-    "PERSON": OperatorConfig("replace", {"new_value": "<CUSTOMER>"}),
-})
-print(masked.text)
-```
-
-```mermaid
-flowchart LR
-  SRC[("Client DB")] --> EXT["Extraction job inside client network"]
-  EXT --> DET["Detect PII: Presidio + custom rules"]
-  DET --> MASK["Mask or tokenise"]
-  MASK --> OUT["Clean data to RAG pipeline"]
-  DET --> MAP[("Token vault, client-owned, if re-identification is needed")]
-```
-
-> **Trap.** Regexes alone miss names and addresses; NER alone misses IDs. Combine both, then measure recall on a hand-labelled sample.
-
-**Read:** [Presidio docs](https://microsoft.github.io/presidio/) · [Presidio analyzer and custom recognizers](https://microsoft.github.io/presidio/analyzer/) · [AWS Comprehend PII detection](https://docs.aws.amazon.com/comprehend/latest/dg/how-pii.html)
-
-## 7.7 VPC-only, private endpoints, air-gapped inference {#m7-vpc}
-
-**In one line:** keep all traffic on private networks: private endpoints to cloud model services, or models hosted inside the client’s VPC — and fully offline (air-gapped) when the data cannot touch the internet at all.
-
-> **Analogy.** Three levels of a secure building: (1) visitors use a private corridor (private endpoint), (2) the expert works inside your office (self-hosted in VPC), (3) the room has no windows or doors to the outside at all (air-gapped).
-
-```mermaid
-flowchart LR
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> Three levels of a secure building: (1) visitors use a private corridor (private endpoint), (2) the expert works inside your office (self-hosted in VPC), (3) the room has no windows or doors to the outside at all (air-gapped).</p>
+</blockquote>
+<pre class="mermaid">flowchart LR
   subgraph VPC["Client VPC, private subnets only"]
-    APP["App on ECS or EKS"] --> PE["VPC endpoint / PrivateLink"]
-    APP --> LLM["Self-hosted model: vLLM or Ollama on GPU"]
-    APP --> VDB[("Vector DB")]
+    APP["App on ECS or EKS"] --&gt; PE["VPC endpoint / PrivateLink"]
+    APP --&gt; LLM["Self-hosted model: vLLM or Ollama on GPU"]
+    APP --&gt; VDB[("Vector DB")]
   end
-  PE --> BR["Managed model service: Bedrock or Azure OpenAI private endpoint"]
-  APP -.->|blocked, no internet gateway| X["Public internet"]
-```
+  PE --&gt; BR["Managed model service: Bedrock or Azure OpenAI private endpoint"]
+  APP -.-&gt;|blocked, no internet gateway| X["Public internet"]</pre>
 
-| Pattern | Data leaves VPC? | Ops burden | Typical client |
-|---|---|---|---|
-| Public API over internet | Yes | Low | Startups |
-| Managed service via private endpoint | To provider, privately | Low–medium | Most enterprises |
-| Self-hosted in VPC | No | High | Banks, healthcare |
-| Air-gapped | No, ever | Very high | Defence, some government |
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Data leaves VPC?</th>
+<th>Ops burden</th>
+<th>Typical client</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Public API over internet</td>
+<td>Yes</td>
+<td>Low</td>
+<td>Startups</td>
+</tr>
+<tr>
+<td>Managed service via private endpoint</td>
+<td>To provider, privately</td>
+<td>Low–medium</td>
+<td>Most enterprises</td>
+</tr>
+<tr>
+<td>Self-hosted in VPC</td>
+<td>No</td>
+<td>High</td>
+<td>Banks, healthcare</td>
+</tr>
+<tr>
+<td>Air-gapped</td>
+<td>No, ever</td>
+<td>Very high</td>
+<td>Defence, some government</td>
+</tr>
+</tbody>
+</table>
+<div class="hl"><pre><span></span><code><span class="c1"># Air-gapped: ship models and images in, nothing comes out</span>
+ollama<span class="w"> </span>pull<span class="w"> </span>llama3.1:8b<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>tar<span class="w"> </span>czf<span class="w"> </span>models.tgz<span class="w"> </span>~/.ollama/models<span class="w">     </span><span class="c1"># on a connected machine</span>
+docker<span class="w"> </span>save<span class="w"> </span>policy-assistant:1.4<span class="w"> </span><span class="p">|</span><span class="w"> </span>gzip<span class="w"> </span>&gt;<span class="w"> </span>app.tgz
+<span class="c1"># Transfer via approved media, then on the isolated host:</span>
+docker<span class="w"> </span>load<span class="w"> </span>&lt;<span class="w"> </span>app.tgz
+</code></pre></div>
 
-```bash
-# Air-gapped: ship models and images in, nothing comes out
-ollama pull llama3.1:8b && tar czf models.tgz ~/.ollama/models     # on a connected machine
-docker save policy-assistant:1.4 | gzip > app.tgz
-# Transfer via approved media, then on the isolated host:
-docker load < app.tgz
-```
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Pip, npm, Hugging Face downloads, and telemetry quietly need the internet. Mirror packages internally and disable telemetry before claiming “air-gapped”.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://docs.aws.amazon.com/vpc/latest/privatelink/what-is-privatelink.html">AWS PrivateLink</a> · <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/vpc-interface-endpoints.html">Amazon Bedrock VPC endpoints</a> · <a href="https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/network">Azure OpenAI private networking</a> · <a href="https://docs.vllm.ai/en/latest/">vLLM docs</a></div>
+<h2 id="m7-sso"><span class="chnum">7.8</span>Enterprise auth — SSO, SAML, OIDC, service principals, RBAC</h2>
+<p class="oneline"><strong>In one line:</strong> humans log in through the client’s identity provider (SAML or OIDC); workloads use service principals or IAM roles; RBAC decides what each can see, including which documents RAG may retrieve.</p>
 
-> **Trap.** Pip, npm, Hugging Face downloads, and telemetry quietly need the internet. Mirror packages internally and disable telemetry before claiming “air-gapped”.
-
-**Read:** [AWS PrivateLink](https://docs.aws.amazon.com/vpc/latest/privatelink/what-is-privatelink.html) · [Amazon Bedrock VPC endpoints](https://docs.aws.amazon.com/bedrock/latest/userguide/vpc-interface-endpoints.html) · [Azure OpenAI private networking](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/network) · [vLLM docs](https://docs.vllm.ai/en/latest/)
-
-## 7.8 Enterprise auth — SSO, SAML, OIDC, service principals, RBAC {#m7-sso}
-
-**In one line:** humans log in through the client’s identity provider (SAML or OIDC); workloads use service principals or IAM roles; RBAC decides what each can see — including which documents RAG may retrieve.
-
-> **Analogy.** The office building’s badge (SSO) opens the front door; your role decides which floors the badge works on (RBAC); the cleaning robot has its own badge (service principal).
-
-```mermaid
-sequenceDiagram
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> The office building’s badge (SSO) opens the front door; your role decides which floors the badge works on (RBAC); the cleaning robot has its own badge (service principal).</p>
+</blockquote>
+<pre class="mermaid">sequenceDiagram
   participant U as User
   participant App
   participant IdP as Okta or Entra ID
-  U->>App: open app
-  App->>IdP: redirect, OIDC authorization code flow
-  IdP->>U: login + MFA
-  IdP-->>App: code
-  App->>IdP: exchange code for ID token
-  IdP-->>App: ID token with groups claim
-  App->>App: map groups to roles, filter retrieval
-```
+  U-&gt;&gt;App: open app
+  App-&gt;&gt;IdP: redirect, OIDC authorization code flow
+  IdP-&gt;&gt;U: login + MFA
+  IdP--&gt;&gt;App: code
+  App-&gt;&gt;IdP: exchange code for ID token
+  IdP--&gt;&gt;App: ID token with groups claim
+  App-&gt;&gt;App: map groups to roles, filter retrieval</pre>
 
-```python
-import jwt                                  # pip install pyjwt[crypto]
-from jwt import PyJWKClient
+<h3 id="m7-sso--code">Code</h3>
+<div class="hl"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">jwt</span>                                  <span class="c1"># pip install pyjwt[crypto]</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">jwt</span><span class="w"> </span><span class="kn">import</span> <span class="n">PyJWKClient</span>
 
-JWKS = PyJWKClient("https://login.example.com/.well-known/jwks.json")
+<span class="n">JWKS</span> <span class="o">=</span> <span class="n">PyJWKClient</span><span class="p">(</span><span class="s2">&quot;https://login.example.com/.well-known/jwks.json&quot;</span><span class="p">)</span>
 
-def verify(token: str) -> dict:
-    key = JWKS.get_signing_key_from_jwt(token).key
-    return jwt.decode(token, key, algorithms=["RS256"], audience="policy-assistant",
-                      issuer="https://login.example.com/")
+<span class="k">def</span><span class="w"> </span><span class="nf">verify</span><span class="p">(</span><span class="n">token</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="n">JWKS</span><span class="o">.</span><span class="n">get_signing_key_from_jwt</span><span class="p">(</span><span class="n">token</span><span class="p">)</span><span class="o">.</span><span class="n">key</span>
+    <span class="k">return</span> <span class="n">jwt</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">algorithms</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;RS256&quot;</span><span class="p">],</span> <span class="n">audience</span><span class="o">=</span><span class="s2">&quot;policy-assistant&quot;</span><span class="p">,</span>
+                      <span class="n">issuer</span><span class="o">=</span><span class="s2">&quot;https://login.example.com/&quot;</span><span class="p">)</span>
 
-ROLE_FILTERS = {"support_agent": {"visibility": {"$in": ["public", "internal"]}},
-                "compliance": {}}           # no filter: sees everything
+<span class="n">ROLE_FILTERS</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;support_agent&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;visibility&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;$in&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;public&quot;</span><span class="p">,</span> <span class="s2">&quot;internal&quot;</span><span class="p">]}},</span>
+                <span class="s2">&quot;compliance&quot;</span><span class="p">:</span> <span class="p">{}}</span>           <span class="c1"># no filter: sees everything</span>
 
-def retrieval_filter(claims: dict) -> dict:
-    roles = claims.get("groups", [])
-    return ROLE_FILTERS["compliance"] if "compliance" in roles else ROLE_FILTERS["support_agent"]
-```
+<span class="k">def</span><span class="w"> </span><span class="nf">retrieval_filter</span><span class="p">(</span><span class="n">claims</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="n">roles</span> <span class="o">=</span> <span class="n">claims</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;groups&quot;</span><span class="p">,</span> <span class="p">[])</span>
+    <span class="k">return</span> <span class="n">ROLE_FILTERS</span><span class="p">[</span><span class="s2">&quot;compliance&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;compliance&quot;</span> <span class="ow">in</span> <span class="n">roles</span> <span class="k">else</span> <span class="n">ROLE_FILTERS</span><span class="p">[</span><span class="s2">&quot;support_agent&quot;</span><span class="p">]</span>
+</code></pre></div>
 
-| | SAML | OIDC |
-|---|---|---|
-| Format | XML assertions | JSON / JWT tokens |
-| Built on | Its own spec | OAuth 2.0 |
-| Common in | Older enterprise web apps | Modern web, mobile, APIs |
+<table>
+<thead>
+<tr>
+<th></th>
+<th>SAML</th>
+<th>OIDC</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Format</td>
+<td>XML assertions</td>
+<td>JSON / JWT tokens</td>
+</tr>
+<tr>
+<td>Built on</td>
+<td>Its own spec</td>
+<td>OAuth 2.0</td>
+</tr>
+<tr>
+<td>Common in</td>
+<td>Older enterprise web apps</td>
+<td>Modern web, mobile, APIs</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Reading the code.</strong> <code>verify</code> checks the signature, audience and issuer, so a token meant for another app is rejected. The groups claim becomes a metadata filter that is sent <em>with the retrieval query</em>.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Filtering documents <em>after</em> the LLM has seen them. Access control must be applied in the retrieval query, or the model can leak restricted text.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://openid.net/developers/how-connect-works/">OpenID Connect: how it works</a> · <a href="https://www.oauth.com/">OAuth 2.0 simplified</a> · <a href="https://learn.microsoft.com/en-us/entra/identity-platform/app-objects-and-service-principals">Microsoft: application and service principal objects</a> · <a href="https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html">OWASP Authorization cheat sheet</a></div>
+<h2 id="m7-security-review"><span class="chnum">7.9</span>Why the security team rejects your first architecture</h2>
+<p class="oneline"><strong>In one line:</strong> they reject what they cannot verify (data leaving the boundary, unclear retention, broad permissions, no audit trail, unvetted third parties), so pre-answer those questions in your design document.</p>
 
-> **Trap.** Filtering documents *after* the LLM has seen them. Access control must be applied in the retrieval query, or the model can leak restricted text.
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> Airport security does not hate you; they just need to see everything in a clear plastic bag.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>They ask</th>
+<th>Bring</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Where does our data go?</td>
+<td>Data-flow diagram with every hop, region, and vendor</td>
+</tr>
+<tr>
+<td>Does the vendor train on our data?</td>
+<td>Vendor terms + zero-retention / no-training settings</td>
+</tr>
+<tr>
+<td>Who can access what?</td>
+<td>RBAC matrix, SSO, least-privilege IAM policies</td>
+</tr>
+<tr>
+<td>How long are prompts kept?</td>
+<td>Retention policy + deletion mechanism</td>
+</tr>
+<tr>
+<td>Can you prove what happened?</td>
+<td>Audit logs: who asked what, which docs, which model version</td>
+</tr>
+<tr>
+<td>What about prompt injection?</td>
+<td>Threat model, tool arbiter, red-team results</td>
+</tr>
+<tr>
+<td>What if the vendor is down?</td>
+<td>Fallback model, graceful degradation</td>
+</tr>
+</tbody>
+</table>
+<pre class="mermaid">flowchart LR
+  U["User in corp network"] --&gt;|SSO, TLS| APP["App in client VPC"]
+  APP --&gt;|private endpoint, TLS| LLM["LLM: zero retention"]
+  APP --&gt; VDB[("Vector DB, encrypted, same region")]
+  APP --&gt; LOG[("Audit log, 1 year, immutable")]
+  SRC[("Source systems")] --&gt;|masked extract| VDB</pre>
 
-**Read:** [OpenID Connect: how it works](https://openid.net/developers/how-connect-works/) · [OAuth 2.0 simplified](https://www.oauth.com/) · [Microsoft: application and service principal objects](https://learn.microsoft.com/en-us/entra/identity-platform/app-objects-and-service-principals) · [OWASP Authorization cheat sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html)
+<p><strong>How to use this.</strong> Draw the data-flow diagram <em>before</em> the review and annotate every arrow with encryption, region and retention. Treat the security reviewer as a collaborator: ask early what their checklist is.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Showing up with a vendor-heavy architecture and no data-flow diagram. Draw the diagram first; it is usually the first thing they ask for.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://genai.owasp.org/llm-top-10/">OWASP Top 10 for LLM applications</a> · <a href="https://learn.microsoft.com/en-us/azure/security/develop/threat-modeling-tool-threats">STRIDE threat modelling (Microsoft)</a> · <a href="https://openai.com/enterprise-privacy/">OpenAI enterprise privacy</a></div>
+<h2 id="m7-sla"><span class="chnum">7.10</span>Inference serving and throughput under real SLAs</h2>
+<p class="oneline"><strong>In one line:</strong> throughput depends on batching, KV-cache memory, and output length; size GPUs from expected concurrent requests and tokens per second, then load-test against the SLA.</p>
 
-## 7.9 Why the security team rejects your first architecture {#m7-security-review}
-
-**In one line:** they reject what they cannot verify — data leaving the boundary, unclear retention, broad permissions, no audit trail, unvetted third parties — so pre-answer those questions in your design document.
-
-> **Analogy.** Airport security does not hate you; they just need to see everything in a clear plastic bag.
-
-Common rejection reasons and the fix to bring with you:
-
-| They ask | Bring |
-|---|---|
-| Where does our data go? | Data-flow diagram with every hop, region, and vendor |
-| Does the vendor train on our data? | Vendor terms + zero-retention / no-training settings |
-| Who can access what? | RBAC matrix, SSO, least-privilege IAM policies |
-| How long are prompts kept? | Retention policy + deletion mechanism |
-| Can you prove what happened? | Audit logs: who asked what, which docs, which model version |
-| What about prompt injection? | Threat model, tool arbiter, red-team results |
-| What if the vendor is down? | Fallback model, graceful degradation |
-
-```mermaid
-flowchart LR
-  U["User in corp network"] -->|SSO, TLS| APP["App in client VPC"]
-  APP -->|private endpoint, TLS| LLM["LLM: zero retention"]
-  APP --> VDB[("Vector DB, encrypted, same region")]
-  APP --> LOG[("Audit log, 1 year, immutable")]
-  SRC[("Source systems")] -->|masked extract| VDB
-```
-
-> **Trap.** Showing up with a vendor-heavy architecture and no data-flow diagram. Draw the diagram first; it is usually the first thing they ask for.
-
-**Read:** [OWASP Top 10 for LLM applications](https://genai.owasp.org/llm-top-10/) · [STRIDE threat modelling (Microsoft)](https://learn.microsoft.com/en-us/azure/security/develop/threat-modeling-tool-threats) · [OpenAI enterprise privacy](https://openai.com/enterprise-privacy/)
-
-## 7.10 Inference serving and throughput under real SLAs {#m7-sla}
-
-**In one line:** throughput depends on batching, KV-cache memory, and output length; size GPUs from expected concurrent requests and tokens per second, then load-test against the SLA.
-
-> **Analogy.** A bus is more efficient than taxis (batching), but passengers wait for it to fill. Continuous batching is a bus that picks people up at every stop without stopping the route.
-
-```text
-Capacity back-of-envelope
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> A bus is more efficient than taxis (batching), but passengers wait for it to fill. Continuous batching is a bus that picks people up at every stop without stopping the route.</p>
+</blockquote>
+<div class="hl"><pre><span></span><code>Capacity back-of-envelope
 peak requests per second (RPS)  = 20
 average output tokens           = 250
 tokens per second needed        = 20 × 250 = 5,000 tok/s
 one GPU serving an 8B model     ≈ 1,500–3,000 tok/s aggregate (measure yours!)
 → 2–4 GPUs + 1 spare for failover
-```
+</code></pre></div>
 
-```bash
-# vLLM: OpenAI-compatible server with continuous batching and paged KV cache
-pip install vllm
-vllm serve meta-llama/Llama-3.1-8B-Instruct --max-model-len 8192 --gpu-memory-utilization 0.9
-```
+<div class="hl"><pre><span></span><code><span class="c1"># vLLM: OpenAI-compatible server with continuous batching and paged KV cache</span>
+pip<span class="w"> </span>install<span class="w"> </span>vllm
+vllm<span class="w"> </span>serve<span class="w"> </span>meta-llama/Llama-3.1-8B-Instruct<span class="w"> </span>--max-model-len<span class="w"> </span><span class="m">8192</span><span class="w"> </span>--gpu-memory-utilization<span class="w"> </span><span class="m">0</span>.9
+</code></pre></div>
 
-```mermaid
-flowchart LR
-  LB["Load balancer"] --> G1["GPU node 1: vLLM"]
-  LB --> G2["GPU node 2: vLLM"]
-  LB --> G3["GPU node 3: spare"]
-  Q["Queue depth + TTFT metrics"] -.->|autoscale| LB
-```
+<table>
+<thead>
+<tr>
+<th>Knob</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>max_tokens</code></td>
+<td>Shorter outputs = more requests per GPU</td>
+</tr>
+<tr>
+<td>Context length</td>
+<td>Longer contexts eat KV-cache memory, fewer concurrent requests</td>
+</tr>
+<tr>
+<td>Quantisation (AWQ, FP8)</td>
+<td>More throughput, small quality cost</td>
+</tr>
+<tr>
+<td>Batch / concurrency limits</td>
+<td>Higher throughput vs higher per-request latency</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Reading the numbers.</strong> The KV cache stores attention state for every active request; paged attention (vLLM) manages it like virtual memory, so more requests fit. Always add a spare GPU for failover, and scale on queue depth and time-to-first-token rather than CPU.</p>
+<div class="read"><strong>Read:</strong> <a href="https://docs.vllm.ai/en/latest/">vLLM docs</a> · <a href="https://arxiv.org/abs/2309.06180">PagedAttention paper (vLLM)</a> · <a href="https://www.anyscale.com/blog/continuous-batching-llm-inference">Anyscale: continuous batching</a> · <a href="https://huggingface.co/docs/text-generation-inference/index">Hugging Face TGI</a></div>
+<h2 id="m7-scale-vec"><span class="chnum">7.11</span>Vector search at 10M+ documents</h2>
+<p class="oneline"><strong>In one line:</strong> at tens of millions of vectors, use approximate indexes (HNSW, IVF-PQ), shard by tenant or time, filter on metadata efficiently, and budget memory explicitly.</p>
 
-| Knob | Effect |
-|---|---|
-| `max_tokens` | Shorter outputs = more requests per GPU |
-| Context length | Longer contexts eat KV-cache memory, fewer concurrent requests |
-| Quantisation (AWQ, FP8) | More throughput, small quality cost |
-| Batch / concurrency limits | Higher throughput vs higher per-request latency |
-
-**Read:** [vLLM docs](https://docs.vllm.ai/en/latest/) · [PagedAttention paper (vLLM)](https://arxiv.org/abs/2309.06180) · [Anyscale: continuous batching](https://www.anyscale.com/blog/continuous-batching-llm-inference) · [Hugging Face TGI](https://huggingface.co/docs/text-generation-inference/index)
-
-## 7.11 Vector search at 10M+ documents {#m7-scale-vec}
-
-**In one line:** at tens of millions of vectors, use approximate indexes (HNSW, IVF-PQ), shard by tenant or time, filter on metadata efficiently, and budget memory explicitly.
-
-> **Analogy.** Finding a friend in a stadium. Checking every seat (flat search) works for a classroom, not 80,000 people. You use sections, rows, and a good guess (approximate search).
-
-```text
-Memory estimate (float32)
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> Finding a friend in a stadium. Checking every seat (flat search) works for a classroom, not 80,000 people. You use sections, rows, and a good guess (approximate search).</p>
+</blockquote>
+<div class="hl"><pre><span></span><code>Memory estimate (float32)
 10,000,000 vectors × 1,536 dims × 4 bytes ≈ 61 GB  (before index overhead)
 Options: smaller dims (512), int8 or binary quantisation, product quantisation (PQ)
-```
-
-```python
-import faiss, numpy as np
-
-d, nlist, m = 768, 4096, 64                    # dims, clusters, PQ sub-vectors
-quantizer = faiss.IndexFlatIP(d)
-index = faiss.IndexIVFPQ(quantizer, d, nlist, m, 8)
-train = np.random.rand(200_000, d).astype("float32")
-index.train(train)
-index.add(train)
-index.nprobe = 32                              # recall vs speed knob
-D, I = index.search(train[:5], 10)
-
-hnsw = faiss.IndexHNSWFlat(d, 32)              # M=32 links per node
-hnsw.hnsw.efSearch = 64                        # higher = better recall, slower
-```
-
-```mermaid
-flowchart TB
-  Q["Query + tenant filter"] --> R["Router by tenant or date"]
-  R --> S1["Shard 1: HNSW"]
-  R --> S2["Shard 2: HNSW"]
-  R --> S3["Shard 3: HNSW"]
-  S1 --> M["Merge top-k"]
-  S2 --> M
-  S3 --> M
-  M --> RR["Rerank top 50"]
-```
-
-> **Trap.** Restrictive metadata filters can wreck HNSW recall (most neighbours get filtered out). Check that your database supports filtered search well, or partition by the filter key.
-
-**Read:** [HNSW paper](https://arxiv.org/abs/1603.09320) · [Pinecone: HNSW explained](https://www.pinecone.io/learn/series/faiss/hnsw/) · [FAISS: guidelines to choose an index](https://github.com/facebookresearch/faiss/wiki/Guidelines-to-choose-an-index) · [Qdrant: filtering](https://qdrant.tech/documentation/concepts/filtering/)
-
-## 7.12 Model versioning, staged rollout, fleet-wide observability {#m7-rollout}
-
-**In one line:** every response is tagged with model + prompt + index version; new versions go to a small canary slice first; compare quality, latency, and cost before widening.
-
-> **Analogy.** A new recipe goes on the menu at one branch for a week before the whole chain adopts it.
-
-```mermaid
-flowchart LR
-  V2["New version: prompt v4 + model B"] --> SH["Shadow: run silently, compare offline"]
-  SH --> C5["Canary: 5 percent of users"]
-  C5 --> C25["25 percent"]
-  C25 --> ALL["100 percent"]
-  C5 -->|quality or cost worse| RB["Roll back to v3"]
-  C25 -->|regression| RB
-```
-
-```python
-import hashlib
-
-RELEASES = {"stable": {"prompt": "answer_v3", "model": "gpt-4o-mini", "index": "2026-10-28"},
-            "canary": {"prompt": "answer_v4", "model": "gpt-4.1-mini", "index": "2026-10-31"}}
-CANARY_PCT = 5
-
-def pick_release(user_id: str) -> dict:
-    bucket = int(hashlib.sha256(user_id.encode()).hexdigest(), 16) % 100   # sticky per user
-    name = "canary" if bucket < CANARY_PCT else "stable"
-    return {"release": name, **RELEASES[name]}
-
-release = pick_release("agent-1042")
-# log release fields with every request and trace, then compare dashboards by release
-```
-
-> **Trap.** Comparing canary vs stable on different traffic mixes. Use sticky hashing and segment metrics by release on comparable cohorts.
-
-**Read:** [Martin Fowler: canary release](https://martinfowler.com/bliki/CanaryRelease.html) · [Google SRE: canarying releases](https://sre.google/workbook/canarying-releases/) · [MLflow model registry](https://mlflow.org/docs/latest/ml/model-registry/)
-
-## 7.13 Cost modelling and the token-economics talk with a CTO {#m7-cost}
-
-**In one line:** translate tokens into business units — cost per ticket, per agent per month, per resolved query — show the levers, and compare against the cost of the problem you are solving.
-
-> **Analogy.** The CTO does not care about litres of fuel; they care about cost per delivery and whether a bigger truck pays off.
-
-```python
-def cost_per_query(tok_in=2500, tok_out=300, price_in=0.40, price_out=1.60,
-                   cache_hit=0.6, cache_discount=0.9, rerank=0.0002, embed=0.00002):
-    effective_in = tok_in * (1 - cache_hit * cache_discount)
-    llm = (effective_in * price_in + tok_out * price_out) / 1e6
-    return llm + rerank + embed
-
-q = cost_per_query()
-queries_per_agent_day, agents, workdays = 60, 120, 22
-monthly = q * queries_per_agent_day * agents * workdays
-saved_minutes = 4.5 * queries_per_agent_day * agents * workdays
-print(f"${q:.4f}/query  ${monthly:,.0f}/month  {saved_minutes / 60:,.0f} agent-hours saved/month")
-```
-
-| Lever | Typical saving |
-|---|---|
-| Smaller model for easy queries (routing) | 50–90% on routed traffic |
-| Prompt caching of system + docs | Large on repeated prefixes |
-| Trim retrieved context (rerank top 5, not 20) | 30–60% input tokens |
-| Cap output length | Direct, output tokens cost more |
-| Cache answers to frequent questions | Near 100% on hits |
-
-> **Trap.** Presenting only the LLM bill. Include vector DB, GPUs, observability tools, and engineering time — and the value side (hours saved, errors avoided).
-
-**Read:** [OpenAI pricing](https://openai.com/api/pricing/) · [Anthropic pricing](https://www.anthropic.com/pricing) · [a16z: Navigating the high cost of AI compute](https://a16z.com/navigating-the-high-cost-of-ai-compute/)
-
-## 7.14 India’s DPDP Act, GDPR, data residency {#m7-privacy}
-
-**In one line:** process personal data only for a stated purpose with a lawful basis (often consent), collect the minimum, keep it secure, honour user rights, and respect where data must be stored and processed.
-
-> **Analogy.** Borrowing someone’s car: ask first (consent), use it only for the trip you said (purpose limitation), do not copy the keys (minimisation), and return it when asked (erasure).
-
-| Concept | DPDP Act 2023 (India) | GDPR (EU) |
-|---|---|---|
-| Who | Data fiduciary / data principal | Controller / data subject |
-| Lawful basis | Consent or certain “legitimate uses” | Six lawful bases |
-| Rights | Access, correction, erasure, grievance | Access, rectification, erasure, portability, objection |
-| Cross-border | Allowed except to countries the government restricts | Adequacy, SCCs, and similar safeguards |
-| Penalties | Up to ₹250 crore per breach category | Up to €20M or 4% of global turnover |
-
-```mermaid
-flowchart LR
-  C["Collect with notice + consent"] --> P["Process for stated purpose only"]
-  P --> S["Store: encrypted, in approved region"]
-  S --> R["Retain only as long as needed"]
-  R --> D["Delete or anonymise"]
-  U["User request: access or erase"] --> S
-```
-
-Engineering checklist: purpose recorded per dataset; PII masked before LLM calls where possible; region-pinned storage and model endpoints; deletion that also covers vector stores, caches, logs, and backups; DPIA (impact assessment) for high-risk uses. *Not legal advice — involve the client’s DPO and counsel.*
-
-**Read:** [MeitY: data protection framework (DPDP)](https://www.meity.gov.in/data-protection-framework) · [GDPR full text (EUR-Lex)](https://eur-lex.europa.eu/eli/reg/2016/679/oj) · [GDPR.eu overview](https://gdpr.eu/what-is-gdpr/) · [ICO: guide to data protection](https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/)
-
-## 7.15 Audit logging, model cards, retention policy {#m7-audit}
-
-**In one line:** record who asked what, which documents and model version produced the answer, and what action followed; document each model’s intended use and limits in a model card; delete on schedule.
-
-> **Analogy.** A ship’s logbook: every course change, who ordered it, and why. Model cards are the ship’s specification plate.
-
-```python
-import hashlib, json, time
-
-def audit_event(user, question, doc_ids, release, answer, action=None):
-    return {
-        "ts": time.time(),
-        "user_id": user["id"],
-        "roles": user["roles"],
-        "question_sha256": hashlib.sha256(question.encode()).hexdigest(),   # hash if content is sensitive
-        "doc_ids": doc_ids,
-        "release": release,                    # prompt/model/index versions
-        "answer_chars": len(answer),
-        "action": action,                      # e.g. "refund_approved_by:lead-7"
-    }
-
-line = json.dumps(audit_event({"id": "a-1042", "roles": ["agent"]}, "refund rules?", ["RF-12#3"],
-                              {"prompt": "answer_v3", "model": "gpt-4o-mini"}, "You can..."))
-# append to WORM storage (e.g. S3 Object Lock) with a retention period
-```
-
-Model card headings: intended use · out-of-scope uses · training/eval data · metrics (overall and by segment) · known limitations · ethical considerations · contact.
-
-| Data | Retention example |
-|---|---|
-| Raw prompts and answers | 30 days, then delete |
-| Audit events (hashed) | 1–7 years per regulation |
-| Eval datasets | Until superseded, PII-free |
-
-**Read:** [Model Cards for Model Reporting paper](https://arxiv.org/abs/1810.03993) · [Hugging Face model cards guide](https://huggingface.co/docs/hub/model-cards) · [S3 Object Lock](https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock.html)
-
-## 7.16 Human-in-the-loop gates for consequential actions {#m7-hitl}
-
-**In one line:** the AI drafts and recommends; a named human approves anything irreversible, costly, or affecting someone’s rights — and the approval is logged.
-
-> **Analogy.** Autopilot flies the plane; a pilot still decides to land.
-
-```mermaid
-flowchart LR
-  AI["Agent proposes: refund 18,000"] --> RISK{"Risk tier"}
-  RISK -->|low: under 2k| AUTO["Auto-execute + log"]
-  RISK -->|medium| ONE["One approver"]
-  RISK -->|high: over 50k or legal| TWO["Two approvers + reason"]
-  ONE --> EXEC["Execute"]
-  TWO --> EXEC
-  ONE -->|rejected| FB["Feedback to eval set"]
-```
-
-```python
-def risk_tier(action: str, amount: int) -> str:
-    if action in {"close_account", "deny_claim"}:
-        return "high"
-    if amount < 2_000:
-        return "low"
-    return "medium" if amount < 50_000 else "high"
-
-APPROVERS_NEEDED = {"low": 0, "medium": 1, "high": 2}
-```
-
-Design the reviewer UI for speed: show the proposed action, the evidence (retrieved docs, tool outputs), the model’s reasoning summary, and one-click approve / edit / reject with a reason.
-
-> **Trap.** Rubber-stamping. If reviewers approve 99.9% in two seconds, the gate is theatre. Track approval time and disagreement rate, and sample-audit approvals.
-
-**Read:** [LangGraph human-in-the-loop](https://langchain-ai.github.io/langgraph/concepts/human_in_the_loop/) · [EU AI Act: human oversight (Article 14)](https://artificialintelligenceact.eu/article/14/)
-
-## 7.17 Incident response when a live AI system fails {#m7-incident}
-
-**In one line:** detect, contain (kill switch or rollback), communicate, fix, and write a blameless postmortem — with AI-specific steps like rolling back prompts and checking for data exposure.
-
-> **Analogy.** A fire drill. Everyone knows where the extinguisher (kill switch) is before the fire.
-
-```mermaid
-flowchart LR
-  DET["Detect: alert or user report"] --> TRI["Triage severity"]
-  TRI --> CON["Contain: feature flag off, rollback prompt or model"]
-  CON --> COM["Communicate: client + users"]
-  COM --> FIX["Fix + add eval case"]
-  FIX --> PM["Blameless postmortem"]
-```
-
-AI-specific runbook items:
-- **Kill switch:** feature flag that routes to “a human will help you” instantly.
-- **Rollback:** prompt/model/index version pinned in config, not hard-coded.
-- **Exposure check:** search traces for leaked PII or other tenants’ data.
-- **Regression test:** add the failing case to the eval set so it can never silently return.
-
-```python
-import os
-def answer(q, user):
-    if os.environ.get("ASSISTANT_ENABLED", "true") != "true":
-        return "Our assistant is temporarily unavailable. A support agent will help you shortly."
-    ...
-```
-
-**Read:** [Google SRE: managing incidents](https://sre.google/sre-book/managing-incidents/) · [Google SRE: postmortem culture](https://sre.google/sre-book/postmortem-culture/) · [AI Incident Database](https://incidentdatabase.ai/)
-
-## 7.18 Presenting trade-offs to a hostile stakeholder panel {#m7-panel}
-
-**In one line:** lead with the decision and the number, show the options you rejected and why, name the risks before they do, and say “I don’t know, I’ll find out by Thursday” when true.
-
-> **Analogy.** A courtroom: you win with evidence and a clear argument, not volume.
-
-Structure (10 minutes):
-1. **Decision** in one sentence.
-2. **Why it matters:** the business metric.
-3. **Options considered** (table) with cost, quality, risk.
-4. **Recommendation** and the evidence (eval results).
-5. **Risks + mitigations** — say them first.
-6. **Ask:** what you need from them, by when.
-
-| Option | Accuracy | p95 | Monthly cost | Data leaves VPC | Verdict |
-|---|---|---|---|---|---|
-| A. Public API, large model | 93% | 2.1 s | $9.8k | Yes | Rejected by security |
-| B. Private endpoint, mid model | 91% | 1.4 s | $4.1k | Privately | **Recommended** |
-| C. Self-hosted 8B fine-tuned | 88% | 0.9 s | $6.5k + ops | No | Phase 2 option |
-
-Handling hostile questions: acknowledge (“That is a fair concern”), answer with evidence or a commitment, and bridge back to the decision. Never argue about feelings; argue about numbers.
-
-**Read:** [Barbara Minto: the Pyramid Principle (overview)](https://www.barbaraminto.com/) · [Amazon’s six-page memo approach (Writing at Amazon)](https://writingcooperative.com/the-anatomy-of-an-amazon-6-pager-fc79f31a41c9)
-
-## 7.19 Defending your design to the client’s architects {#m7-architects}
-
-**In one line:** architects probe failure modes, scaling limits, coupling, and operability; come with diagrams at two zoom levels, explicit non-functional requirements, and the ADRs behind each choice.
-
-> **Analogy.** A structural engineer reviewing your building: they do not care how pretty the lobby is; they ask what happens in an earthquake.
-
-Questions to pre-answer:
-- What happens when the LLM provider, vector DB, or IdP is down?
-- How does it scale 10×? Where is the first bottleneck?
-- How do you deploy, roll back, and monitor it — who is on call?
-- How is tenant data isolated? How is access enforced in retrieval?
-- What are the data flows and where is each piece stored and for how long?
-- What is coupled to a single vendor, and how hard is it to swap?
-
-```mermaid
-flowchart TB
-  subgraph Context["C4 level 1: context"]
-    AG["Support agents"] --> SYS["Policy Assistant"]
-    SYS --> IDP["Corporate IdP"]
-    SYS --> CRM["CRM"]
-    SYS --> LLMS["LLM service"]
-  end
-```
-
-```mermaid
-flowchart LR
+</code></pre></div>
+
+<div class="hl"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">faiss</span><span class="o">,</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="n">d</span><span class="p">,</span> <span class="n">nlist</span><span class="p">,</span> <span class="n">m</span> <span class="o">=</span> <span class="mi">768</span><span class="p">,</span> <span class="mi">4096</span><span class="p">,</span> <span class="mi">64</span>                    <span class="c1"># dims, clusters, PQ sub-vectors</span>
+<span class="n">quantizer</span> <span class="o">=</span> <span class="n">faiss</span><span class="o">.</span><span class="n">IndexFlatIP</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+<span class="n">index</span> <span class="o">=</span> <span class="n">faiss</span><span class="o">.</span><span class="n">IndexIVFPQ</span><span class="p">(</span><span class="n">quantizer</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">nlist</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
+<span class="n">train</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">200_000</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;float32&quot;</span><span class="p">)</span>
+<span class="n">index</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">train</span><span class="p">)</span>
+<span class="n">index</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">train</span><span class="p">)</span>
+<span class="n">index</span><span class="o">.</span><span class="n">nprobe</span> <span class="o">=</span> <span class="mi">32</span>                              <span class="c1"># recall vs speed knob</span>
+<span class="n">D</span><span class="p">,</span> <span class="n">I</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">train</span><span class="p">[:</span><span class="mi">5</span><span class="p">],</span> <span class="mi">10</span><span class="p">)</span>
+
+<span class="n">hnsw</span> <span class="o">=</span> <span class="n">faiss</span><span class="o">.</span><span class="n">IndexHNSWFlat</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>              <span class="c1"># M=32 links per node</span>
+<span class="n">hnsw</span><span class="o">.</span><span class="n">hnsw</span><span class="o">.</span><span class="n">efSearch</span> <span class="o">=</span> <span class="mi">64</span>                        <span class="c1"># higher = better recall, slower</span>
+</code></pre></div>
+
+<pre class="mermaid">flowchart TB
+  Q["Query + tenant filter"] --&gt; R["Router by tenant or date"]
+  R --&gt; S1["Shard 1: HNSW"]
+  R --&gt; S2["Shard 2: HNSW"]
+  R --&gt; S3["Shard 3: HNSW"]
+  S1 --&gt; M["Merge top-k"]
+  S2 --&gt; M
+  S3 --&gt; M
+  M --&gt; RR["Rerank top 50"]</pre>
+
+<p><strong>Reading the code.</strong> IVF-PQ clusters vectors (<code>nlist</code>) and compresses them (<code>m</code> sub-vectors) to save memory; <code>nprobe</code> is how many clusters to search, the main recall-versus-speed dial. HNSW’s <code>efSearch</code> plays the same role. Always measure recall against an exact search on a sample.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Restrictive metadata filters can wreck HNSW recall (most neighbours get filtered out). Check that your database supports filtered search well, or partition by the filter key.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://arxiv.org/abs/1603.09320">HNSW paper</a> · <a href="https://www.pinecone.io/learn/series/faiss/hnsw/">Pinecone: HNSW explained</a> · <a href="https://github.com/facebookresearch/faiss/wiki/Guidelines-to-choose-an-index">FAISS: guidelines to choose an index</a> · <a href="https://qdrant.tech/documentation/concepts/filtering/">Qdrant: filtering</a></div>
+<h2 id="m7-rollout"><span class="chnum">7.12</span>Model versioning, staged rollout, fleet-wide observability</h2>
+<p class="oneline"><strong>In one line:</strong> every response is tagged with model + prompt + index version; new versions go to a small canary slice first; compare quality, latency, and cost before widening.</p>
+
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> A new recipe goes on the menu at one branch for a week before the whole chain adopts it.</p>
+</blockquote>
+<pre class="mermaid">flowchart LR
+  V2["New version: prompt v4 + model B"] --&gt; SH["Shadow: run silently, compare offline"]
+  SH --&gt; C5["Canary: 5 percent of users"]
+  C5 --&gt; C25["25 percent"]
+  C25 --&gt; ALL["100 percent"]
+  C5 --&gt;|quality or cost worse| RB["Roll back to v3"]
+  C25 --&gt;|regression| RB</pre>
+
+<div class="hl"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
+
+<span class="n">RELEASES</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;stable&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;prompt&quot;</span><span class="p">:</span> <span class="s2">&quot;answer_v3&quot;</span><span class="p">,</span> <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="s2">&quot;gpt-4o-mini&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="s2">&quot;2026-10-28&quot;</span><span class="p">},</span>
+            <span class="s2">&quot;canary&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;prompt&quot;</span><span class="p">:</span> <span class="s2">&quot;answer_v4&quot;</span><span class="p">,</span> <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="s2">&quot;gpt-4.1-mini&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="s2">&quot;2026-10-31&quot;</span><span class="p">}}</span>
+<span class="n">CANARY_PCT</span> <span class="o">=</span> <span class="mi">5</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">pick_release</span><span class="p">(</span><span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="n">bucket</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">user_id</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">(),</span> <span class="mi">16</span><span class="p">)</span> <span class="o">%</span> <span class="mi">100</span>   <span class="c1"># sticky per user</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;canary&quot;</span> <span class="k">if</span> <span class="n">bucket</span> <span class="o">&lt;</span> <span class="n">CANARY_PCT</span> <span class="k">else</span> <span class="s2">&quot;stable&quot;</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;release&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">RELEASES</span><span class="p">[</span><span class="n">name</span><span class="p">]}</span>
+
+<span class="n">release</span> <span class="o">=</span> <span class="n">pick_release</span><span class="p">(</span><span class="s2">&quot;agent-1042&quot;</span><span class="p">)</span>
+<span class="c1"># log release fields with every request and trace, then compare dashboards by release</span>
+</code></pre></div>
+
+<p><strong>Reading the code.</strong> Hashing the user id makes assignment <em>sticky</em>: the same person always lands in the same group, so their experience is consistent and your comparison is fair. Shadow mode runs the new version silently on real traffic without showing users its answers.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Comparing canary vs stable on different traffic mixes. Use sticky hashing and segment metrics by release on comparable cohorts.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://martinfowler.com/bliki/CanaryRelease.html">Martin Fowler: canary release</a> · <a href="https://sre.google/workbook/canarying-releases/">Google SRE: canarying releases</a> · <a href="https://mlflow.org/docs/latest/ml/model-registry/">MLflow model registry</a></div>
+<h2 id="m7-cost"><span class="chnum">7.13</span>Cost modelling and the token-economics talk with a CTO</h2>
+<p class="oneline"><strong>In one line:</strong> translate tokens into business units (cost per ticket, per agent per month, per resolved query), show the levers, and compare against the cost of the problem you are solving.</p>
+
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> The CTO does not care about litres of fuel; they care about cost per delivery and whether a bigger truck pays off.</p>
+</blockquote>
+<div class="hl"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">cost_per_query</span><span class="p">(</span><span class="n">tok_in</span><span class="o">=</span><span class="mi">2500</span><span class="p">,</span> <span class="n">tok_out</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">price_in</span><span class="o">=</span><span class="mf">0.40</span><span class="p">,</span> <span class="n">price_out</span><span class="o">=</span><span class="mf">1.60</span><span class="p">,</span>
+                   <span class="n">cache_hit</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span> <span class="n">cache_discount</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">rerank</span><span class="o">=</span><span class="mf">0.0002</span><span class="p">,</span> <span class="n">embed</span><span class="o">=</span><span class="mf">0.00002</span><span class="p">):</span>
+    <span class="n">effective_in</span> <span class="o">=</span> <span class="n">tok_in</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">cache_hit</span> <span class="o">*</span> <span class="n">cache_discount</span><span class="p">)</span>
+    <span class="n">llm</span> <span class="o">=</span> <span class="p">(</span><span class="n">effective_in</span> <span class="o">*</span> <span class="n">price_in</span> <span class="o">+</span> <span class="n">tok_out</span> <span class="o">*</span> <span class="n">price_out</span><span class="p">)</span> <span class="o">/</span> <span class="mf">1e6</span>
+    <span class="k">return</span> <span class="n">llm</span> <span class="o">+</span> <span class="n">rerank</span> <span class="o">+</span> <span class="n">embed</span>
+
+<span class="n">q</span> <span class="o">=</span> <span class="n">cost_per_query</span><span class="p">()</span>
+<span class="n">queries_per_agent_day</span><span class="p">,</span> <span class="n">agents</span><span class="p">,</span> <span class="n">workdays</span> <span class="o">=</span> <span class="mi">60</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span> <span class="mi">22</span>
+<span class="n">monthly</span> <span class="o">=</span> <span class="n">q</span> <span class="o">*</span> <span class="n">queries_per_agent_day</span> <span class="o">*</span> <span class="n">agents</span> <span class="o">*</span> <span class="n">workdays</span>
+<span class="n">saved_minutes</span> <span class="o">=</span> <span class="mf">4.5</span> <span class="o">*</span> <span class="n">queries_per_agent_day</span> <span class="o">*</span> <span class="n">agents</span> <span class="o">*</span> <span class="n">workdays</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;$</span><span class="si">{</span><span class="n">q</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">/query  $</span><span class="si">{</span><span class="n">monthly</span><span class="si">:</span><span class="s2">,.0f</span><span class="si">}</span><span class="s2">/month  </span><span class="si">{</span><span class="n">saved_minutes</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">60</span><span class="si">:</span><span class="s2">,.0f</span><span class="si">}</span><span class="s2"> agent-hours saved/month&quot;</span><span class="p">)</span>
+</code></pre></div>
+
+<table>
+<thead>
+<tr>
+<th>Lever</th>
+<th>Typical saving</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Smaller model for easy queries (routing)</td>
+<td>50–90% on routed traffic</td>
+</tr>
+<tr>
+<td>Prompt caching of system + docs</td>
+<td>Large on repeated prefixes</td>
+</tr>
+<tr>
+<td>Trim retrieved context (rerank top 5, not 20)</td>
+<td>30–60% input tokens</td>
+</tr>
+<tr>
+<td>Cap output length</td>
+<td>Direct, output tokens cost more</td>
+</tr>
+<tr>
+<td>Cache answers to frequent questions</td>
+<td>Near 100% on hits</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Reading the code.</strong> Prices are per million tokens, so divide by 1e6. Caching reduces <em>effective input</em> tokens. The last lines convert the bill into agent-hours saved, which is the sentence the CTO actually repeats upstairs.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Presenting only the LLM bill. Include vector DB, GPUs, observability tools, and engineering time, and the value side (hours saved, errors avoided).</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://openai.com/api/pricing/">OpenAI pricing</a> · <a href="https://www.anthropic.com/pricing">Anthropic pricing</a> · <a href="https://a16z.com/navigating-the-high-cost-of-ai-compute/">a16z: Navigating the high cost of AI compute</a></div>
+<h2 id="m7-privacy"><span class="chnum">7.14</span>India’s DPDP Act, GDPR, data residency</h2>
+<p class="oneline"><strong>In one line:</strong> process personal data only for a stated purpose with a lawful basis (often consent), collect the minimum, keep it secure, honour user rights, and respect where data must be stored and processed.</p>
+
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> Borrowing someone’s car: ask first (consent), use it only for the trip you said (purpose limitation), do not copy the keys (minimisation), and return it when asked (erasure).</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>DPDP Act 2023 (India)</th>
+<th>GDPR (EU)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Who</td>
+<td>Data fiduciary / data principal</td>
+<td>Controller / data subject</td>
+</tr>
+<tr>
+<td>Lawful basis</td>
+<td>Consent or certain “legitimate uses”</td>
+<td>Six lawful bases</td>
+</tr>
+<tr>
+<td>Rights</td>
+<td>Access, correction, erasure, grievance</td>
+<td>Access, rectification, erasure, portability, objection</td>
+</tr>
+<tr>
+<td>Cross-border</td>
+<td>Allowed except to countries the government restricts</td>
+<td>Adequacy, SCCs, and similar safeguards</td>
+</tr>
+<tr>
+<td>Penalties</td>
+<td>Up to ₹250 crore per breach category</td>
+<td>Up to €20M or 4% of global turnover</td>
+</tr>
+</tbody>
+</table>
+<pre class="mermaid">flowchart LR
+  C["Collect with notice + consent"] --&gt; P["Process for stated purpose only"]
+  P --&gt; S["Store: encrypted, in approved region"]
+  S --&gt; R["Retain only as long as needed"]
+  R --&gt; D["Delete or anonymise"]
+  U["User request: access or erase"] --&gt; S</pre>
+
+<p><strong>Engineering checklist.</strong> Purpose recorded per dataset; PII masked before LLM calls where possible; region-pinned storage and model endpoints; deletion that also covers vector stores, caches, logs and backups; a DPIA (impact assessment) for high-risk uses.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Deleting a record from the main database but leaving its embedding, cache entry and log line behind. Erasure must reach every copy.</p>
+</blockquote>
+<p><em>Not legal advice; involve the client’s DPO and counsel.</em></p>
+<div class="read"><strong>Read:</strong> <a href="https://www.meity.gov.in/data-protection-framework">MeitY: data protection framework (DPDP)</a> · <a href="https://eur-lex.europa.eu/eli/reg/2016/679/oj">GDPR full text (EUR-Lex)</a> · <a href="https://gdpr.eu/what-is-gdpr/">GDPR.eu overview</a> · <a href="https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/">ICO: guide to data protection</a></div>
+<h2 id="m7-audit"><span class="chnum">7.15</span>Audit logging, model cards, retention policy</h2>
+<p class="oneline"><strong>In one line:</strong> record who asked what, which documents and model version produced the answer, and what action followed; document each model’s intended use and limits in a model card; delete on schedule.</p>
+
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> A ship’s logbook: every course change, who ordered it, and why. Model cards are the ship’s specification plate.</p>
+</blockquote>
+<div class="hl"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span><span class="o">,</span><span class="w"> </span><span class="nn">json</span><span class="o">,</span><span class="w"> </span><span class="nn">time</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">audit_event</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">question</span><span class="p">,</span> <span class="n">doc_ids</span><span class="p">,</span> <span class="n">release</span><span class="p">,</span> <span class="n">answer</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">&quot;ts&quot;</span><span class="p">:</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">(),</span>
+        <span class="s2">&quot;user_id&quot;</span><span class="p">:</span> <span class="n">user</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;roles&quot;</span><span class="p">:</span> <span class="n">user</span><span class="p">[</span><span class="s2">&quot;roles&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;question_sha256&quot;</span><span class="p">:</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">question</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">(),</span>   <span class="c1"># hash if content is sensitive</span>
+        <span class="s2">&quot;doc_ids&quot;</span><span class="p">:</span> <span class="n">doc_ids</span><span class="p">,</span>
+        <span class="s2">&quot;release&quot;</span><span class="p">:</span> <span class="n">release</span><span class="p">,</span>                    <span class="c1"># prompt/model/index versions</span>
+        <span class="s2">&quot;answer_chars&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">answer</span><span class="p">),</span>
+        <span class="s2">&quot;action&quot;</span><span class="p">:</span> <span class="n">action</span><span class="p">,</span>                      <span class="c1"># e.g. &quot;refund_approved_by:lead-7&quot;</span>
+    <span class="p">}</span>
+
+<span class="n">line</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">audit_event</span><span class="p">({</span><span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="s2">&quot;a-1042&quot;</span><span class="p">,</span> <span class="s2">&quot;roles&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;agent&quot;</span><span class="p">]},</span> <span class="s2">&quot;refund rules?&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;RF-12#3&quot;</span><span class="p">],</span>
+                              <span class="p">{</span><span class="s2">&quot;prompt&quot;</span><span class="p">:</span> <span class="s2">&quot;answer_v3&quot;</span><span class="p">,</span> <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="s2">&quot;gpt-4o-mini&quot;</span><span class="p">},</span> <span class="s2">&quot;You can...&quot;</span><span class="p">))</span>
+<span class="c1"># append to WORM storage (e.g. S3 Object Lock) with a retention period</span>
+</code></pre></div>
+
+<p><strong>Model card headings:</strong> intended use · out-of-scope uses · training/eval data · metrics (overall and by segment) · known limitations · ethical considerations · contact.</p>
+<table>
+<thead>
+<tr>
+<th>Data</th>
+<th>Retention example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Raw prompts and answers</td>
+<td>30 days, then delete</td>
+</tr>
+<tr>
+<td>Audit events (hashed)</td>
+<td>1–7 years per regulation</td>
+</tr>
+<tr>
+<td>Eval datasets</td>
+<td>Until superseded, PII-free</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Reading the code.</strong> The event stores a <em>hash</em> of the question, so you can prove what was asked without keeping sensitive text. WORM (write once, read many) storage makes the log tamper-evident, which is what auditors want.</p>
+<div class="read"><strong>Read:</strong> <a href="https://arxiv.org/abs/1810.03993">Model Cards for Model Reporting paper</a> · <a href="https://huggingface.co/docs/hub/model-cards">Hugging Face model cards guide</a> · <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock.html">S3 Object Lock</a></div>
+<h2 id="m7-hitl"><span class="chnum">7.16</span>Human-in-the-loop gates for consequential actions</h2>
+<p class="oneline"><strong>In one line:</strong> the AI drafts and recommends; a named human approves anything irreversible, costly, or affecting someone’s rights, and the approval is logged.</p>
+
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> Autopilot flies the plane; a pilot still decides to land.</p>
+</blockquote>
+<pre class="mermaid">flowchart LR
+  AI["Agent proposes: refund 18,000"] --&gt; RISK{"Risk tier"}
+  RISK --&gt;|low: under 2k| AUTO["Auto-execute + log"]
+  RISK --&gt;|medium| ONE["One approver"]
+  RISK --&gt;|high: over 50k or legal| TWO["Two approvers + reason"]
+  ONE --&gt; EXEC["Execute"]
+  TWO --&gt; EXEC
+  ONE --&gt;|rejected| FB["Feedback to eval set"]</pre>
+
+<div class="hl"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">risk_tier</span><span class="p">(</span><span class="n">action</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">amount</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">action</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;close_account&quot;</span><span class="p">,</span> <span class="s2">&quot;deny_claim&quot;</span><span class="p">}:</span>
+        <span class="k">return</span> <span class="s2">&quot;high&quot;</span>
+    <span class="k">if</span> <span class="n">amount</span> <span class="o">&lt;</span> <span class="mi">2_000</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;low&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;medium&quot;</span> <span class="k">if</span> <span class="n">amount</span> <span class="o">&lt;</span> <span class="mi">50_000</span> <span class="k">else</span> <span class="s2">&quot;high&quot;</span>
+
+<span class="n">APPROVERS_NEEDED</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;low&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;medium&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;high&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">}</span>
+</code></pre></div>
+
+<p><strong>Reviewer UI.</strong> Design for speed: show the proposed action, the evidence (retrieved docs, tool outputs), the model’s reasoning summary, and one-click approve / edit / reject with a reason. Feed rejections back into the eval set.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Rubber-stamping. If reviewers approve 99.9% in two seconds, the gate is theatre. Track approval time and disagreement rate, and sample-audit approvals.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://langchain-ai.github.io/langgraph/concepts/human_in_the_loop/">LangGraph human-in-the-loop</a> · <a href="https://artificialintelligenceact.eu/article/14/">EU AI Act: human oversight (Article 14)</a></div>
+<h2 id="m7-incident"><span class="chnum">7.17</span>Incident response when a live AI system fails</h2>
+<p class="oneline"><strong>In one line:</strong> detect, contain (kill switch or rollback), communicate, fix, and write a blameless postmortem, with AI-specific steps like rolling back prompts and checking for data exposure.</p>
+
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> A fire drill. Everyone knows where the extinguisher (kill switch) is before the fire.</p>
+</blockquote>
+<pre class="mermaid">flowchart LR
+  DET["Detect: alert or user report"] --&gt; TRI["Triage severity"]
+  TRI --&gt; CON["Contain: feature flag off, rollback prompt or model"]
+  CON --&gt; COM["Communicate: client + users"]
+  COM --&gt; FIX["Fix + add eval case"]
+  FIX --&gt; PM["Blameless postmortem"]</pre>
+
+<p><strong>AI-specific runbook items.</strong></p>
+<ul>
+<li><strong>Kill switch:</strong> a feature flag that routes to “a human will help you” instantly.</li>
+<li><strong>Rollback:</strong> prompt, model and index versions pinned in config, not hard-coded.</li>
+<li><strong>Exposure check:</strong> search traces for leaked PII or other tenants’ data.</li>
+<li><strong>Regression test:</strong> add the failing case to the eval set so it can never silently return.</li>
+</ul>
+<div class="hl"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">answer</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">user</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ASSISTANT_ENABLED&quot;</span><span class="p">,</span> <span class="s2">&quot;true&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;true&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;Our assistant is temporarily unavailable. A support agent will help you shortly.&quot;</span>
+    <span class="o">...</span>
+</code></pre></div>
+
+<p><strong>Reading the code.</strong> A single environment flag lets an on-call engineer disable the feature in seconds, without a deployment. Test the kill switch regularly, like a fire alarm.</p>
+<div class="read"><strong>Read:</strong> <a href="https://sre.google/sre-book/managing-incidents/">Google SRE: managing incidents</a> · <a href="https://sre.google/sre-book/postmortem-culture/">Google SRE: postmortem culture</a> · <a href="https://incidentdatabase.ai/">AI Incident Database</a></div>
+<h2 id="m7-panel"><span class="chnum">7.18</span>Presenting trade-offs to a hostile stakeholder panel</h2>
+<p class="oneline"><strong>In one line:</strong> lead with the decision and the number, show the options you rejected and why, name the risks before they do, and say “I don’t know, I’ll find out by Thursday” when true.</p>
+
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> A courtroom: you win with evidence and a clear argument, not volume.</p>
+</blockquote>
+<p><strong>Structure (10 minutes).</strong></p>
+<ol>
+<li><strong>Decision</strong> in one sentence.</li>
+<li><strong>Why it matters:</strong> the business metric.</li>
+<li><strong>Options considered</strong> (table) with cost, quality, risk.</li>
+<li><strong>Recommendation</strong> and the evidence (eval results).</li>
+<li><strong>Risks + mitigations</strong>: say them first.</li>
+<li><strong>Ask:</strong> what you need from them, by when.</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Accuracy</th>
+<th>p95</th>
+<th>Monthly cost</th>
+<th>Data leaves VPC</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A. Public API, large model</td>
+<td>93%</td>
+<td>2.1 s</td>
+<td>$9.8k</td>
+<td>Yes</td>
+<td>Rejected by security</td>
+</tr>
+<tr>
+<td>B. Private endpoint, mid model</td>
+<td>91%</td>
+<td>1.4 s</td>
+<td>$4.1k</td>
+<td>Privately</td>
+<td><strong>Recommended</strong></td>
+</tr>
+<tr>
+<td>C. Self-hosted 8B fine-tuned</td>
+<td>88%</td>
+<td>0.9 s</td>
+<td>$6.5k + ops</td>
+<td>No</td>
+<td>Phase 2 option</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Handling hostile questions.</strong> Acknowledge (“That is a fair concern”), answer with evidence or a commitment, and bridge back to the decision. Never argue about feelings; argue about numbers.</p>
+<blockquote class="callout trap">
+<p><strong>Trap.</strong> Defending the option you built instead of the option that fits their constraints. In the table, option A has the best accuracy and still loses.</p>
+</blockquote>
+<div class="read"><strong>Read:</strong> <a href="https://www.barbaraminto.com/">Barbara Minto: the Pyramid Principle (overview)</a> · <a href="https://writingcooperative.com/the-anatomy-of-an-amazon-6-pager-fc79f31a41c9">Amazon’s six-page memo approach (Writing at Amazon)</a></div>
+<h2 id="m7-architects"><span class="chnum">7.19</span>Defending your design to the client’s architects</h2>
+<p class="oneline"><strong>In one line:</strong> architects probe failure modes, scaling limits, coupling, and operability; come with diagrams at two zoom levels, explicit non-functional requirements, and the ADRs behind each choice.</p>
+
+<blockquote class="callout analogy">
+<p><strong>Analogy.</strong> A structural engineer reviewing your building: they do not care how pretty the lobby is; they ask what happens in an earthquake.</p>
+</blockquote>
+<p><strong>Questions to pre-answer.</strong></p>
+<ul>
+<li>What happens when the LLM provider, vector DB, or IdP is down?</li>
+<li>How does it scale 10×? Where is the first bottleneck?</li>
+<li>How do you deploy, roll back, and monitor it, and who is on call?</li>
+<li>How is tenant data isolated? How is access enforced in retrieval?</li>
+<li>What are the data flows and where is each piece stored and for how long?</li>
+<li>What is coupled to a single vendor, and how hard is it to swap?</li>
+</ul>
+<pre class="mermaid">flowchart LR
   subgraph Containers["C4 level 2: containers"]
-    UI["Web UI"] --> API["FastAPI service"]
-    API --> RET["Retrieval service"]
-    RET --> VDB[("Vector DB")]
-    API --> GW["LLM gateway: LiteLLM"]
-    ING["Ingestion workers"] --> VDB
-    API --> AUD[("Audit log")]
-  end
-```
+    UI["Web UI"] --&gt; API["FastAPI service"]
+    API --&gt; RET["Retrieval service"]
+    RET --&gt; VDB[("Vector DB")]
+    API --&gt; GW["LLM gateway: LiteLLM"]
+    ING["Ingestion workers"] --&gt; VDB
+    API --&gt; AUD[("Audit log")]
+  end</pre>
 
-**Read:** [C4 model](https://c4model.com/) · [AWS Well-Architected Framework](https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html) · [AWS Well-Architected: Generative AI lens](https://docs.aws.amazon.com/wellarchitected/latest/generative-ai-lens/generative-ai-lens.html)
+<p><strong>Two zoom levels.</strong> C4 <em>level 1 (context)</em> shows the system among its users and neighbours: support agents, the corporate IdP, the CRM and the LLM service. <em>Level 2 (containers)</em>, above, shows the deployable parts. Present level 1 first, then zoom in only where they ask.</p>
+<div class="read"><strong>Read:</strong> <a href="https://c4model.com/">C4 model</a> · <a href="https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html">AWS Well-Architected Framework</a> · <a href="https://docs.aws.amazon.com/wellarchitected/latest/generative-ai-lens/generative-ai-lens.html">AWS Well-Architected: Generative AI lens</a></div>
+<h2 id="m7-boss" class="special">Boss level — The Retrieval Bake-Off</h2>
+<blockquote class="callout boss">
+<p><strong>Boss level.</strong> “The Discovery Engagement” + “The Data Excavation”: role-play a discovery call, write the PRD-lite, SOW, and three ADRs, then reverse-engineer a messy legacy database with CDC and RapidFuzz entity resolution into a clean sync pipeline.</p>
+</blockquote>
+<p><strong>Suggested steps.</strong></p>
+<ol>
+<li>Run a 30-minute discovery call using the question bank; write the problem statement with a baseline and target (7.1).</li>
+<li>Draw the stakeholder map and pick the first slice on the effort/value chart (7.2).</li>
+<li>Write the PRD-lite, the SOW with assumptions and a change process, and three ADRs (7.3).</li>
+<li>Profile the legacy schema, verify joins with match-rate queries, and write the data dictionary (7.5).</li>
+<li>Stream changes with CDC from a replica, masking PII at extraction (7.4, 7.6).</li>
+<li>Use RapidFuzz to resolve duplicate customers, and report precision and recall on a hand-labelled sample.</li>
+<li>Present the final options table to a mock hostile panel (7.18).</li>
+</ol>
+<h2 id="m7-glossary" class="special">Appendix A — Glossary</h2>
+<div class="tblwrap"><table><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody><tr><td><strong>Discovery</strong></td><td>Structured conversations to uncover the real problem and its metric.</td></tr><tr><td><strong>PRD-lite / SOW / ADR</strong></td><td>One-page requirements, the delivery contract, and a record of a design decision.</td></tr><tr><td><strong>Gatekeeper</strong></td><td>A stakeholder, such as security or legal, who can block a launch.</td></tr><tr><td><strong>CDC</strong></td><td>Change data capture: streaming database changes as events.</td></tr><tr><td><strong>Read replica</strong></td><td>A copy of a database used for reads so production is not loaded.</td></tr><tr><td><strong>PII</strong></td><td>Personal data such as names, phone numbers, PAN and Aadhaar numbers.</td></tr><tr><td><strong>Private endpoint</strong></td><td>A private network path to a cloud service that avoids the public internet.</td></tr><tr><td><strong>Air-gapped</strong></td><td>A system with no connection to external networks.</td></tr><tr><td><strong>SSO / OIDC / SAML</strong></td><td>Single sign-on through the client’s identity provider, using these protocols.</td></tr><tr><td><strong>RBAC</strong></td><td>Role-based access control.</td></tr><tr><td><strong>KV cache</strong></td><td>Stored attention state that lets an LLM server handle many requests.</td></tr><tr><td><strong>IVF-PQ / HNSW</strong></td><td>Approximate vector indexes for very large collections.</td></tr><tr><td><strong>Canary release</strong></td><td>Rolling out a new version to a small slice of users first.</td></tr><tr><td><strong>DPDP / GDPR</strong></td><td>India’s and the EU’s personal data protection laws.</td></tr><tr><td><strong>WORM storage</strong></td><td>Write once, read many: tamper-evident storage for audit logs.</td></tr><tr><td><strong>Kill switch</strong></td><td>A flag that disables a feature instantly.</td></tr></tbody></table></div>
+<h2 id="m7-debug" class="special">Appendix B — Debugging checklist for a failing RAG answer</h2>
+<p>Work down the list in order; most problems are in the first four items.</p><ol><li><strong>Can you state the problem as a metric?</strong> If not, go back to discovery (7.1).</li><li><strong>Is the scope one slice a sponsor can see in weeks?</strong> Shrink it using the effort/value chart (7.2).</li><li><strong>Are assumptions written in the SOW?</strong> Late data access is only your risk if it is undocumented (7.3).</li><li><strong>Is anything touching production directly?</strong> Move to a replica or CDC (7.4).</li><li><strong>Do your joins have match rates?</strong> Verify them; never trust column names (7.5).</li><li><strong>Is PII masked before it leaves the source?</strong> Check recall on a labelled sample (7.6).</li><li><strong>Can security see every data flow?</strong> Bring the annotated data-flow diagram (7.7, 7.9).</li><li><strong>Is access control in the retrieval query?</strong> Never filter after generation (7.8).</li><li><strong>Do you have a cost-per-query number and value?</strong> Show the levers and agent-hours saved (7.13).</li><li><strong>Does deletion reach vectors, caches and logs?</strong> Test an erasure request end to end (7.14).</li><li><strong>Is there a tested kill switch and rollback?</strong> Practise before launch (7.12, 7.17).</li></ol>
+<h2 id="m7-quiz" class="special">Appendix C — Final self-assessment</h2>
+<p>Answer without looking. Anything you cannot explain in two sentences is a chapter to revisit.</p>
+<details>
+<summary>1. Why ask about the past, not hypotheticals?</summary>
+<p>Past behaviour is evidence; hypotheticals get polite yeses. (7.1)</p>
+</details>
+<details>
+<summary>2. Who are gatekeepers, and when should you meet them?</summary>
+<p>Security, legal and data owners who can block; meet them early. (7.2)</p>
+</details>
+<details>
+<summary>3. What does an ADR record?</summary>
+<p>Why one option was chosen over alternatives, with consequences. (7.3)</p>
+</details>
+<details>
+<summary>4. Why use a replica and CDC?</summary>
+<p>To avoid loading production and to stream changes as events. (7.4)</p>
+</details>
+<details>
+<summary>5. How do you verify an undocumented join?</summary>
+<p>Run match-rate queries rather than trusting names. (7.5)</p>
+</details>
+<details>
+<summary>6. Where should PII be masked?</summary>
+<p>At extraction, before it leaves the source boundary. (7.6)</p>
+</details>
+<details>
+<summary>7. Name the four network patterns.</summary>
+<p>Public API, private endpoint, self-hosted in VPC, air-gapped. (7.7)</p>
+</details>
+<details>
+<summary>8. Why apply RBAC in the retrieval query?</summary>
+<p>Otherwise the model may see and leak restricted text. (7.8)</p>
+</details>
+<details>
+<summary>9. What is the first artefact security asks for?</summary>
+<p>A data-flow diagram. (7.9)</p>
+</details>
+<details>
+<summary>10. How do you estimate GPUs needed?</summary>
+<p>Peak RPS times output tokens, divided by measured tokens per second, plus a spare. (7.10)</p>
+</details>
+<details>
+<summary>11. What hurts HNSW recall?</summary>
+<p>Very restrictive metadata filters. (7.11)</p>
+</details>
+<details>
+<summary>12. Why use sticky hashing in a canary?</summary>
+<p>The same user always gets the same version, so comparisons are fair. (7.12)</p>
+</details>
+<details>
+<summary>13. What should a cost talk include besides the LLM bill?</summary>
+<p>Vector DB, GPUs, tooling, engineering time and the value saved. (7.13)</p>
+</details>
+<details>
+<summary>14. Must erasure cover embeddings?</summary>
+<p>Yes: vectors, caches, logs and backups. (7.14)</p>
+</details>
+<details>
+<summary>15. Why store a hash of the question in audit logs?</summary>
+<p>To prove what was asked without keeping sensitive text. (7.15)</p>
+</details>
+<details>
+<summary>16. How do you spot a rubber-stamp review?</summary>
+<p>Near-100% approval in seconds; track time and disagreement. (7.16)</p>
+</details>
+<details>
+<summary>17. Name two AI-specific incident steps.</summary>
+<p>Roll back prompts or models, and check traces for data exposure. (7.17)</p>
+</details>
+<details>
+<summary>18. Why can the most accurate option lose?</summary>
+<p>It may break constraints such as data leaving the VPC. (7.18)</p>
+</details>
+<details>
+<summary>19. What are the two C4 levels to present first?</summary>
+<p>Context, then containers. (7.19)</p>
+</details>
+<p><a href="m6.html">← Module 6</a> · <a href="sd.html">Next: System design elective →</a></p>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+(function(){
+  // mermaid (needs internet; falls back to showing the diagram source)
+  try{
+    var dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    if(window.mermaid){ mermaid.initialize({startOnLoad:true, theme: dark ? "dark" : "default", securityLevel:"strict"}); }
+  }catch(e){}
 
-> **Boss level.** “The Discovery Engagement” + “The Data Excavation”: role-play a discovery call, write the PRD-lite, SOW, and three ADRs, then reverse-engineer a messy legacy database with CDC and RapidFuzz entity resolution into a clean sync pipeline.
+  // wrap tables for horizontal scroll
+  document.querySelectorAll("main table").forEach(function(t){
+    var w=document.createElement("div"); w.className="tblwrap"; t.parentNode.insertBefore(w,t); w.appendChild(t);
+  });
 
-[← Module 6](m6.html) · [Next: System design elective →](sd.html)
+  // reading progress
+  var bar=document.getElementById("progress");
+  function prog(){var h=document.documentElement; var p=h.scrollTop/(h.scrollHeight-h.clientHeight||1); bar.style.width=(p*100)+"%";}
+  window.addEventListener("scroll",prog,{passive:true}); prog();
+
+  // scroll-spy
+  var links={}; document.querySelectorAll("#toc a").forEach(function(a){links[a.dataset.id]=a;});
+  var obs=new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if(e.isIntersecting){
+        Object.values(links).forEach(function(l){l.classList.remove("active");});
+        var a=links[e.target.id]; if(a){a.classList.add("active"); a.scrollIntoView({block:"nearest"});}
+      }
+    });
+  },{rootMargin:"-10% 0px -80% 0px"});
+  document.querySelectorAll("main h2[id]").forEach(function(h){obs.observe(h);});
+
+  // buttons
+  var all=false, ex=document.getElementById("expand");
+  ex.addEventListener("click",function(){
+    all=!all; document.querySelectorAll("main details").forEach(function(d){d.open=all;});
+    ex.textContent= all ? "Hide all answers" : "Show all answers";
+  });
+  document.getElementById("theme").addEventListener("click",function(){
+    var r=document.documentElement, cur=r.getAttribute("data-theme");
+    var isDark = cur ? cur==="dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    r.setAttribute("data-theme", isDark ? "light" : "dark");
+  });
+  document.getElementById("print").addEventListener("click",function(){window.print();});
+  window.addEventListener("beforeprint",function(){document.querySelectorAll("main details").forEach(function(d){d.open=true;});});
+})();
 </script>
-<script src="notes.js"></script>
 </body>
 </html>
