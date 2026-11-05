@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Building MCP Servers with FastMCP — Course Notes</title>
+<style>
+:root{--bg:#fbfaf7;--card:#fff;--ink:#1f2328;--mute:#5d6570;--line:#e3e0d8;--acc:#c2552d;--acc2:#2f6f8f;--acc3:#4a7c4e;--code:#f3f1ea;--warn:#fff4e0;--warnb:#e0a030;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17181a;--card:#202225;--ink:#e8e6e1;--mute:#a1a6ad;--line:#33363a;--acc:#f0875f;--acc2:#6bb3d4;--acc3:#86c08a;--code:#14151a;--warn:#2d2616;--warnb:#a27a24}}
+:root[data-theme="dark"]{--bg:#17181a;--card:#202225;--ink:#e8e6e1;--mute:#a1a6ad;--line:#33363a;--acc:#f0875f;--acc2:#6bb3d4;--acc3:#86c08a;--code:#14151a;--warn:#2d2616;--warnb:#a27a24}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 Georgia,"Times New Roman",serif}
+main{max-width:860px;margin:0 auto;padding:20px 18px 60px}
+h1{font:700 2rem/1.2 system-ui,-apple-system,"Segoe UI",sans-serif;margin:.3em 0 .2em}
+h2{font:700 1.4rem/1.3 system-ui,sans-serif;margin:2.2em 0 .6em;padding-top:.6em;border-top:2px solid var(--line);color:var(--acc)}
+h3{font:600 1.05rem system-ui,sans-serif;margin:1.4em 0 .4em;color:var(--acc2)}
+.sub{color:var(--mute);margin:0 0 1em}
+nav{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 0}
+nav a{font:13px system-ui,sans-serif;padding:4px 10px;border:1px solid var(--line);border-radius:99px;color:var(--ink);text-decoration:none;background:var(--card)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:12px 0}
+.fig{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;margin:14px 0;overflow-x:auto}
+.fig svg{width:100%;height:auto;min-width:560px;display:block}
+.fig figcaption,.cap{font:13px system-ui,sans-serif;color:var(--mute);text-align:center;margin-top:4px}
+pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:12px;overflow-x:auto;font:13px/1.5 ui-monospace,Menlo,Consolas,monospace;margin:10px 0}
+code{font:0.88em ui-monospace,Menlo,Consolas,monospace;background:var(--code);padding:1px 5px;border-radius:4px}
+pre code{background:none;padding:0}
+.tip,.warn{border-left:4px solid var(--acc3);background:var(--card);padding:8px 14px;border-radius:0 8px 8px 0;margin:12px 0;font-size:.95rem}
+.warn{border-color:var(--warnb);background:var(--warn)}
+table{border-collapse:collapse;width:100%;font:14px/1.5 system-ui,sans-serif;margin:10px 0}
+.tw{overflow-x:auto}
+th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--code)}
+ul,ol{padding-left:1.3em}li{margin:.25em 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+/* svg tokens */
+.b{fill:var(--card);stroke:var(--line);stroke-width:1.5}
+.ba{fill:none;stroke:var(--acc);stroke-width:2}
+.bb{fill:none;stroke:var(--acc2);stroke-width:2}
+.bc{fill:none;stroke:var(--acc3);stroke-width:2}
+.t{fill:var(--ink);font:600 13px system-ui,sans-serif}
+.s{fill:var(--mute);font:11.5px system-ui,sans-serif}
+.ln{stroke:var(--mute);stroke-width:1.6;fill:none}
+.lna{stroke:var(--acc);stroke-width:2;fill:none}
+</style>
+</head>
+<body>
+<main>
+<p class="sub">Course notes · freeCodeCamp · Carlos Leon</p>
+<h1>Building MCP Servers with FastMCP</h1>
+<p class="sub">What MCP is, STDIO vs HTTP transports, three hands-on scenarios (calculator, API→MCP, RSS feed search), VS Code integration and cloud deployment.</p>
+<nav>
+<a href="#what">1 · What is MCP</a><a href="#transports">2 · Transports</a><a href="#tools">3 · Libraries &amp; Inspector</a><a href="#s1">4 · Scenario 1</a><a href="#s2">5 · Scenario 2</a><a href="#s3">6 · Scenario 3</a><a href="#vscode">7 · VS Code</a><a href="#deploy">8 · Deploy</a><a href="#cheat">9 · Cheat-sheet</a>
+</nav>
+
+<h2 id="what">1 · What is MCP?</h2>
+<p><b>Model Context Protocol (MCP)</b> is a standard rule set that lets AI agents (GitHub Copilot, Gemini, Claude Desktop, ChatGPT, Mistral…) securely and predictably interact with your databases, functions and applications. The speaker’s framing: it is like <i>teaching an agent to interact with things in your own way</i>.</p>
+<p>Well-known examples: the <b>GitHub MCP</b> (manage branches), a <b>WhatsApp MCP</b> (read and send messages), plus many community-built servers listed on unofficial directories.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 760 250" role="img" aria-label="MCP architecture: client, protocol, server, resources">
+<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--acc)"/></marker></defs>
+<rect class="b ba" x="20" y="40" width="190" height="150" rx="12"/>
+<text class="t" x="115" y="68" text-anchor="middle">MCP CLIENT (agent)</text>
+<text class="s" x="115" y="92" text-anchor="middle">GitHub Copilot (VS Code)</text>
+<text class="s" x="115" y="110" text-anchor="middle">Claude Desktop</text>
+<text class="s" x="115" y="128" text-anchor="middle">Gemini · ChatGPT · Mistral</text>
+<text class="s" x="115" y="146" text-anchor="middle">+ MCP Inspector (testing)</text>
+<line class="lna" x1="212" y1="100" x2="298" y2="100" marker-end="url(#ar)"/>
+<line class="lna" x1="298" y1="130" x2="212" y2="130" marker-end="url(#ar)"/>
+<text class="s" x="255" y="90" text-anchor="middle">request</text>
+<text class="s" x="255" y="150" text-anchor="middle">result</text>
+<rect class="b bb" x="300" y="40" width="190" height="150" rx="12"/>
+<text class="t" x="395" y="68" text-anchor="middle">MCP SERVER</text>
+<text class="s" x="395" y="92" text-anchor="middle">Tools (functions)</text>
+<text class="s" x="395" y="110" text-anchor="middle">Resources (data / info)</text>
+<text class="s" x="395" y="128" text-anchor="middle">Prompts (behaviour hints)</text>
+<text class="s" x="395" y="146" text-anchor="middle">built with FastMCP</text>
+<line class="ln" x1="492" y1="115" x2="548" y2="115" marker-end="url(#ar)"/>
+<rect class="b bc" x="550" y="40" width="190" height="150" rx="12"/>
+<text class="t" x="645" y="68" text-anchor="middle">YOUR WORLD</text>
+<text class="s" x="645" y="92" text-anchor="middle">Databases</text>
+<text class="s" x="645" y="110" text-anchor="middle">Functions / scripts</text>
+<text class="s" x="645" y="128" text-anchor="middle">APIs &amp; RSS feeds</text>
+<text class="s" x="645" y="146" text-anchor="middle">Files &amp; apps</text>
+<text class="s" x="380" y="228" text-anchor="middle">The agent reads each tool’s name + description, then decides when to call it</text>
+</svg>
+<figcaption>Fig 1 — Client ↔ MCP server ↔ your systems</figcaption>
+</figure>
+
+<div class="tip"><b>Key idea:</b> every MCP server needs a <b>client</b> (an agent). The agent only knows what a tool does from its <b>name, description / docstring and tags</b> — so those are written for the AI, not just for developers.</div>
+
+<h2 id="transports">2 · The two transport types</h2>
+<figure class="fig">
+<svg viewBox="0 0 760 230" role="img" aria-label="STDIO versus HTTP transport">
+<rect class="b bb" x="20" y="20" width="340" height="190" rx="12"/>
+<text class="t" x="190" y="46" text-anchor="middle">STDIO (local)</text>
+<rect class="b" x="40" y="70" width="120" height="60" rx="8"/><text class="t" x="100" y="96" text-anchor="middle">Agent</text><text class="s" x="100" y="114" text-anchor="middle">e.g. Copilot</text>
+<rect class="b" x="220" y="70" width="120" height="60" rx="8"/><text class="t" x="280" y="96" text-anchor="middle">Subprocess</text><text class="s" x="280" y="114" text-anchor="middle">python file.py</text>
+<line class="lna" x1="162" y1="90" x2="218" y2="90" marker-end="url(#ar)"/><line class="lna" x1="218" y1="112" x2="162" y2="112" marker-end="url(#ar)"/>
+<text class="s" x="190" y="160" text-anchor="middle">stdin / stdout on your own machine</text>
+<text class="s" x="190" y="180" text-anchor="middle">Default for FastMCP · great for dev</text>
+<rect class="b ba" x="400" y="20" width="340" height="190" rx="12"/>
+<text class="t" x="570" y="46" text-anchor="middle">HTTP stream (remote)</text>
+<rect class="b" x="420" y="70" width="120" height="60" rx="8"/><text class="t" x="480" y="96" text-anchor="middle">Any client</text><text class="s" x="480" y="114" text-anchor="middle">ChatGPT · Mistral…</text>
+<rect class="b" x="600" y="70" width="120" height="60" rx="8"/><text class="t" x="660" y="96" text-anchor="middle">Server</text><text class="s" x="660" y="114" text-anchor="middle">host:port/mcp</text>
+<line class="lna" x1="542" y1="90" x2="598" y2="90" marker-end="url(#ar)"/><line class="lna" x1="598" y1="112" x2="542" y2="112" marker-end="url(#ar)"/>
+<text class="s" x="570" y="160" text-anchor="middle">Network connection to a URL</text>
+<text class="s" x="570" y="180" text-anchor="middle">For external apps &amp; production</text>
+</svg>
+<figcaption>Fig 2 — Where the server runs decides the transport</figcaption>
+</figure>
+<div class="tw"><table>
+<tr><th></th><th>STDIO</th><th>HTTP (streamable)</th><th>SSE</th></tr>
+<tr><td>Runs</td><td>Locally, as a process the agent launches</td><td>Remote / deployed at an address</td><td>Remote (legacy)</td></tr>
+<tr><td>Use for</td><td>Development, local tools</td><td>Production, external clients</td><td><b>Deprecated</b> — avoid</td></tr>
+<tr><td>Inspector input</td><td>Command <code>python file.py</code></td><td>URL <code>http://localhost:PORT/mcp</code></td><td>URL, type “SSE”</td></tr>
+</table></div>
+
+<h2 id="tools">3 · Libraries &amp; testing</h2>
+<div class="grid">
+<div class="card"><h3 style="margin-top:0">FastMCP</h3>Build an MCP <b>from scratch</b>. Easy; supports STDIO and HTTP. <code>pip install fastmcp</code></div>
+<div class="card"><h3 style="margin-top:0">FastAPI-MCP</h3>Start from an <b>existing API</b> and convert it. Needs FastAPI + uvicorn. <code>pip install fastapi fastapi-mcp uvicorn</code></div>
+<div class="card"><h3 style="margin-top:0">MCP Inspector</h3>Visual test UI so you don’t just “code and see what happens”.<pre><code>npx @modelcontextprotocol/inspector python file.py</code></pre></div>
+</div>
+<p>Inspector tabs: <b>Tools</b> (most used — list &amp; run), <b>Resources</b> / <b>Prompts</b> (advanced), <b>Notifications</b> (matters more for HTTP), plus sidebar settings for transport type, URL and environment variables (tokens/auth). A virtual environment is recommended for the Python install.</p>
+
+<h2 id="s1">4 · Scenario 1 — Calculator with FastMCP (STDIO)</h2>
+<p>Create <code>fastmcp_calculator.py</code>. Each function becomes a <b>tool</b> via the <code>@mcp.tool</code> decorator.</p>
+<pre><code>from fastmcp import FastMCP
+
+mcp = FastMCP("calculator")            # name of the server
+
+@mcp.tool
+def multiply(a: float, b: float) -&gt; float:
+    """Multiply two numbers."""         # docstring = description for the agent
+    return a * b
+
+# Alternative: name, description and tags set in the decorator
+@mcp.tool(name="addition",
+          description="Add some numbers",
+          tags={"math", "arithmetic"})
+def add(a: float, b: float) -&gt; float:
+    return a + b
+
+@mcp.tool
+def subtract(a: float, b: float) -&gt; float:
+    """Subtract b from a."""
+    return a - b
+
+@mcp.tool
+def divide(a: float, b: float) -&gt; float:
+    """Divide a by b."""
+    assert b != 0, "Cannot divide by zero"
+    return a / b
+
+if __name__ == "__main__":
+    mcp.run()                           # STDIO by default</code></pre>
+<ul>
+<li><b>Type hints</b> (<code>float</code>) define the input/output schema — optional but recommended.</li>
+<li><b>Docstring vs decorator:</b> if the decorator gives a description, it wins over the docstring (visible in the Inspector as a different description for <code>add</code>). Pick one style.</li>
+<li><b>Tags</b> are keywords that help categorise a tool (e.g. “math”, “arithmetic”).</li>
+<li>Sync is fine for now; async is better for non-blocking work (left as homework).</li>
+</ul>
+<h3>Test it</h3>
+<ol>
+<li>Open a terminal in the scenario folder.</li>
+<li>Run <code>npx @modelcontextprotocol/inspector python fastmcp_calculator.py</code></li>
+<li>Click <b>Connect</b> → <b>Tools → List tools</b> → run <code>multiply</code> and friends.</li>
+</ol>
+
+<h2 id="s2">5 · Scenario 2 — API first, then convert to MCP</h2>
+<figure class="fig">
+<svg viewBox="0 0 760 150" role="img" aria-label="FastAPI app converted to MCP">
+<rect class="b" x="20" y="40" width="150" height="70" rx="10"/><text class="t" x="95" y="70" text-anchor="middle">FastAPI app</text><text class="s" x="95" y="90" text-anchor="middle">POST endpoints</text>
+<line class="lna" x1="172" y1="75" x2="228" y2="75" marker-end="url(#ar)"/>
+<rect class="b ba" x="230" y="40" width="170" height="70" rx="10"/><text class="t" x="315" y="70" text-anchor="middle">FastApiMCP(app)</text><text class="s" x="315" y="90" text-anchor="middle">wraps endpoints as tools</text>
+<line class="lna" x1="402" y1="75" x2="458" y2="75" marker-end="url(#ar)"/>
+<rect class="b bb" x="460" y="40" width="130" height="70" rx="10"/><text class="t" x="525" y="70" text-anchor="middle">mount_http()</text><text class="s" x="525" y="90" text-anchor="middle">serves /mcp</text>
+<line class="lna" x1="592" y1="75" x2="628" y2="75" marker-end="url(#ar)"/>
+<rect class="b bc" x="630" y="40" width="110" height="70" rx="10"/><text class="t" x="685" y="70" text-anchor="middle">Inspector</text><text class="s" x="685" y="90" text-anchor="middle">streamable HTTP</text>
+</svg>
+<figcaption>Fig 3 — API → MCP pipeline</figcaption>
+</figure>
+<h3>Step 1: the plain API (<code>api_mcp.py</code>)</h3>
+<pre><code>from fastapi import FastAPI
+import uvicorn
+
+app = FastAPI(title="Calculator API")
+
+@app.post("/multiply")
+def multiply(a: float, b: float):
+    return {"result": a * b}
+# ...same pattern for /add, /subtract, /divide
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="localhost", port=8080)</code></pre>
+<ul>
+<li>Use <code>localhost</code>, <b>not</b> <code>0.0.0.0</code>, when testing locally (<code>0.0.0.0</code> means “reachable by everyone” and isn’t a browsable address).</li>
+<li>Visit <code>/docs</code> for the Swagger UI and try each endpoint (e.g. 10 + 2 = 12).</li>
+<li>At this point there’s <b>no MCP yet</b> — it’s only an API.</li>
+</ul>
+<h3>Step 2: convert to MCP</h3>
+<pre><code>from fastapi_mcp import FastApiMCP     # watch the capitalisation: FastApiMCP
+
+mcp = FastApiMCP(app, name="calculator MCP")
+mcp.mount_http()                       # modern: HTTP stream  (mcp.mount() = deprecated SSE)</code></pre>
+<div class="warn"><b>Common mistake:</b> starting the Inspector as <code>python file.py</code> (STDIO). This server is HTTP — point the Inspector at <code>http://localhost:8080/mcp</code> and set transport to <b>Streamable HTTP</b> (SSE only if you mounted with the deprecated method). After changing code, stop the server, restart it, and refresh the Inspector.</div>
+<p><b>Limitation noted:</b> tool descriptions are less customisable than with FastMCP, and resources/prompts aren’t supported here — the main appeal is reusing an API you already have.</p>
+<h3>Variant: HTTP with FastMCP alone</h3>
+<p>Copy Scenario 1 into <code>calculator_v2.py</code> and change only the run line:</p>
+<pre><code>mcp.run(transport="http", host="localhost", port=8083)</code></pre>
+<p>Run it from any folder, then connect the Inspector to <code>http://localhost:8083/mcp</code>. Resources, templates and prompts tabs are empty — fine, tools are active.</p>
+
+<h2 id="s3">6 · Scenario 3 — Feed search (RSS) tools</h2>
+<p><b>RSS</b> is an XML feed that announces new content (title, description, link). Instead of scraping a whole site, the MCP reads the feed and lets an agent search it. Used here for the freeCodeCamp news site and the freeCodeCamp YouTube channel.</p>
+<figure class="fig">
+<svg viewBox="0 0 760 270" role="img" aria-label="Feed search flow">
+<rect class="b ba" x="20" y="100" width="130" height="64" rx="10"/><text class="t" x="85" y="128" text-anchor="middle">Agent</text><text class="s" x="85" y="146" text-anchor="middle">“python courses?”</text>
+<line class="lna" x1="152" y1="132" x2="208" y2="132" marker-end="url(#ar)"/>
+<rect class="b bb" x="210" y="80" width="170" height="104" rx="10"/><text class="t" x="295" y="104" text-anchor="middle">MCP tools</text><text class="s" x="295" y="126" text-anchor="middle">search_fcc_news(query)</text><text class="s" x="295" y="144" text-anchor="middle">search_youtube(query)</text><text class="s" x="295" y="162" text-anchor="middle">secret_message()</text>
+<line class="ln" x1="382" y1="105" x2="458" y2="60" marker-end="url(#ar)"/>
+<line class="ln" x1="382" y1="160" x2="458" y2="205" marker-end="url(#ar)"/>
+<rect class="b bc" x="460" y="25" width="150" height="64" rx="10"/><text class="t" x="535" y="52" text-anchor="middle">Site RSS feed</text><text class="s" x="535" y="70" text-anchor="middle">XML · title/desc/link</text>
+<rect class="b bc" x="460" y="175" width="150" height="64" rx="10"/><text class="t" x="535" y="202" text-anchor="middle">YouTube feed</text><text class="s" x="535" y="220" text-anchor="middle">channel_id → XML</text>
+<line class="ln" x1="612" y1="57" x2="658" y2="132" marker-end="url(#ar)"/>
+<line class="ln" x1="612" y1="207" x2="658" y2="150" marker-end="url(#ar)"/>
+<rect class="b" x="660" y="100" width="90" height="64" rx="10"/><text class="t" x="705" y="128" text-anchor="middle">feedparser</text><text class="s" x="705" y="146" text-anchor="middle">filter by query</text>
+</svg>
+<figcaption>Fig 4 — Tools fetch a feed, filter entries by keyword, return title + link</figcaption>
+</figure>
+<pre><code>import feedparser
+from fastmcp import FastMCP
+
+mcp = FastMCP("feed search")
+
+@mcp.tool
+def search_news(query: str, max_results: int = 5) -&gt; str:
+    """Search freeCodeCamp news feed by KEYWORD (not full sentences)."""
+    feed = feedparser.parse("https://www.freecodecamp.org/news/rss/")  # RSS URL
+    results, q = [], query.lower()
+    for entry in feed.entries:
+        if q in entry.title.lower() or q in entry.description.lower():
+            results.append(f"{entry.title} - {entry.link}")
+            if len(results) &gt;= max_results:
+                break
+    return "\n".join(results) or "No results found."
+
+@mcp.tool
+def search_youtube(query: str, max_results: int = 5) -&gt; str:
+    """Search the channel's recent videos by KEYWORD in the title."""
+    url = "https://www.youtube.com/feeds/videos.xml?channel_id=CHANNEL_ID"
+    feed = feedparser.parse(url)
+    # same filter, title only
+    ...
+
+@mcp.tool
+def secret_message() -&gt; str:
+    """Return the secret message of freeCodeCamp."""
+    return "There is no recipe to code. Keep exploring and happy coding!"
+
+if __name__ == "__main__":
+    mcp.run()</code></pre>
+<p class="cap">Code reconstructed from the walkthrough — check the course’s GitHub repo for the exact version.</p>
+<ul>
+<li><b>YouTube:</b> get the <i>channel ID</i> from the channel page, then use the feed URL pattern above.</li>
+<li>The loop lower-cases the query; a match in <b>title or description</b> (news) / <b>title only</b> (YouTube) is appended with its link; stops at <code>max_results</code>; returns a friendly message when empty.</li>
+<li>Feeds only hold <b>recent</b> items — that’s a feature (latest updates) but limits history.</li>
+<li>Test: <code>search_youtube("AI")</code> returned two recent videos; the news search found Python/prompt-engineering items. Improvement ideas: make it async, add more fields.</li>
+<li><b>Prompt-engineering the tool:</b> long sentence queries returned nothing, so “search by keyword” was added to the docstring — the docstring steers the agent.</li>
+</ul>
+
+<h2 id="vscode">7 · Connecting servers to VS Code (Copilot agent mode)</h2>
+<figure class="fig">
+<svg viewBox="0 0 760 170" role="img" aria-label="VS Code mcp.json flow">
+<rect class="b" x="20" y="50" width="160" height="70" rx="10"/><text class="t" x="100" y="78" text-anchor="middle">.vscode/mcp.json</text><text class="s" x="100" y="98" text-anchor="middle">"servers": { … }</text>
+<line class="lna" x1="182" y1="85" x2="238" y2="85" marker-end="url(#ar)"/>
+<rect class="b ba" x="240" y="50" width="160" height="70" rx="10"/><text class="t" x="320" y="78" text-anchor="middle">Start / trust server</text><text class="s" x="320" y="98" text-anchor="middle">server icon in agent mode</text>
+<line class="lna" x1="402" y1="85" x2="458" y2="85" marker-end="url(#ar)"/>
+<rect class="b bb" x="460" y="50" width="130" height="70" rx="10"/><text class="t" x="525" y="78" text-anchor="middle">Configure</text><text class="s" x="525" y="98" text-anchor="middle">tools / model access</text>
+<line class="lna" x1="592" y1="85" x2="628" y2="85" marker-end="url(#ar)"/>
+<rect class="b bc" x="630" y="50" width="110" height="70" rx="10"/><text class="t" x="685" y="78" text-anchor="middle">Ask agent</text><text class="s" x="685" y="98" text-anchor="middle">“multiply 3×2”</text>
+</svg>
+<figcaption>Fig 5 — From config file to agent calling your tool</figcaption>
+</figure>
+<pre><code>// .vscode/mcp.json  — everything must sit inside "servers"
+{
+  "servers": {
+    "calculator": {                 // STDIO server
+      "command": "python",          // or full path to venv python
+      "args": ["scenario1/stdio.py"]
+    },
+    "calculator-http": {            // HTTP server already running
+      "command": "npx",
+      "args": ["mcp-remote", "http://localhost:8083/mcp"]
+    },
+    "feed": {
+      "command": "python",
+      "args": ["scenario3/feed_mcp.py"]
+    }
+  }
+}</code></pre>
+<ul>
+<li><b>Virtual environment?</b> Use the full path to its <code>python</code> executable as the command; otherwise plain <code>python</code> works.</li>
+<li><b>HTTP servers:</b> VS Code only <i>connects</i> — you must start the server in a terminal yourself, else you get a connection error. <code>mcp-remote</code> signals a remote endpoint (<code>…/mcp</code>).</li>
+<li>Putting a second server block outside <code>"servers"</code> produces errors — merge everything under one key.</li>
+<li>If a server appears “running” but silent, open the output/logs, stop and restart it.</li>
+<li><b>Tool access:</b> use <i>Configure Tools / model access</i> so the chosen model is allowed to use the MCP — missing this was why the first HTTP test didn’t call the tool.</li>
+<li>Demo prompts: “multiply three times two” → 6 (agent asks permission to run the tool); “find courses about Python” → news + YouTube results; “get the secret message”.</li>
+</ul>
+
+<h2 id="deploy">8 · Bonus — deploy on FastMCP Cloud (beta)</h2>
+<p>Alternatives mentioned: Cloudflare, Google Cloud, or FastMCP Cloud (from the same authors).</p>
+<figure class="fig">
+<svg viewBox="0 0 760 130" role="img" aria-label="Deployment steps">
+<rect class="b" x="10" y="35" width="130" height="60" rx="10"/><text class="t" x="75" y="60" text-anchor="middle">1 · Code</text><text class="s" x="75" y="78" text-anchor="middle">transport = http</text>
+<line class="lna" x1="142" y1="65" x2="168" y2="65" marker-end="url(#ar)"/>
+<rect class="b" x="170" y="35" width="130" height="60" rx="10"/><text class="t" x="235" y="60" text-anchor="middle">2 · GitHub repo</text><text class="s" x="235" y="78" text-anchor="middle">+ requirements</text>
+<line class="lna" x1="302" y1="65" x2="328" y2="65" marker-end="url(#ar)"/>
+<rect class="b" x="330" y="35" width="130" height="60" rx="10"/><text class="t" x="395" y="60" text-anchor="middle">3 · New server</text><text class="s" x="395" y="78" text-anchor="middle">entry point file</text>
+<line class="lna" x1="462" y1="65" x2="488" y2="65" marker-end="url(#ar)"/>
+<rect class="b ba" x="490" y="35" width="120" height="60" rx="10"/><text class="t" x="550" y="60" text-anchor="middle">4 · Deploy</text><text class="s" x="550" y="78" text-anchor="middle">get /mcp URL</text>
+<line class="lna" x1="612" y1="65" x2="638" y2="65" marker-end="url(#ar)"/>
+<rect class="b bc" x="640" y="35" width="110" height="60" rx="10"/><text class="t" x="695" y="60" text-anchor="middle">5 · Connect</text><text class="s" x="695" y="78" text-anchor="middle">Mistral · etc.</text>
+</svg>
+<figcaption>Fig 6 — Local file → remote MCP</figcaption>
+</figure>
+<ol>
+<li>Create an account (GitHub or email) and a workspace; connect your GitHub repo.</li>
+<li>Add the server file in a <code>deployment/</code> folder (here <code>feed_fine.py</code>) with the run call switched to <b>HTTP</b>: <code>mcp.run(transport="http")</code> (host/port are handled by the platform).</li>
+<li>Add a requirements file listing only <code>fastmcp</code> and <code>feedparser</code> (called <code>requirements_deploy.txt</code>).</li>
+<li>In the platform: name the server, set the <b>entry point</b> (the .py file) and the <b>requirements file name</b>. Default is <code>requirements.txt</code> — either rename your file or point the config to yours.</li>
+<li>Authentication was disabled for the demo only — <b>don’t do that in real deployments</b>.</li>
+<li>Test in the built-in chat, then connect externally: custom connector in <b>Mistral Le Chat</b> (name + server URL + description), or OpenAI SDK / Codex / Claude Desktop.</li>
+</ol>
+<div class="tip">Once connected, the agent returned richer descriptions than the raw tool did, and found the secret message. The idea: MCP = giving agents instructions to do things — custom encryption, special maths, business logic, “GPT wrappers”, etc.</div>
+
+<h2 id="cheat">9 · Cheat-sheet &amp; gotchas</h2>
+<div class="tw"><table>
+<tr><th>Task</th><th>Command / snippet</th></tr>
+<tr><td>Install</td><td><code>pip install fastmcp</code> · <code>pip install fastapi fastapi-mcp uvicorn</code> · <code>pip install feedparser</code></td></tr>
+<tr><td>Run STDIO server</td><td><code>mcp.run()</code></td></tr>
+<tr><td>Run HTTP server</td><td><code>mcp.run(transport="http", host="localhost", port=8083)</code></td></tr>
+<tr><td>Inspect STDIO</td><td><code>npx @modelcontextprotocol/inspector python file.py</code></td></tr>
+<tr><td>Inspect HTTP</td><td><code>npx @modelcontextprotocol/inspector</code> → Streamable HTTP → <code>http://localhost:PORT/mcp</code></td></tr>
+<tr><td>Define a tool</td><td><code>@mcp.tool</code> or <code>@mcp.tool(name=…, description=…, tags={…})</code></td></tr>
+</table></div>
+<div class="warn"><b>Gotchas from the course</b>
+<ul>
+<li>Docstrings/descriptions are read by the AI — write them clearly (e.g. “search by keyword”).</li>
+<li>FastAPI-MCP class name is <code>FastApiMCP</code>; prefer HTTP over deprecated SSE.</li>
+<li>Don’t use STDIO commands to inspect an HTTP server, and don’t forget to start the HTTP server before VS Code connects.</li>
+<li>Restart server + refresh Inspector after changes.</li>
+<li>Use <code>localhost</code> instead of <code>0.0.0.0</code> for local testing; match ports between server, Inspector and <code>mcp.json</code>.</li>
+<li>Grant the model access to the MCP in VS Code; keep auth on for real deployments.</li>
+</ul></div>
+<p class="cap">Next steps from the speaker: make tools async, add resources/prompts, read the FastMCP docs, deploy, and explore the community MCP directories.</p>
+</main>
+</body>
+</html>
