@@ -1,194 +1,139 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AI Engineering — FDE curriculum tutorials</title>
-  <style>
-    :root {
-      --ink: #1a1814;
-      --muted: #5c564c;
-      --line: #e4dccf;
-      --paper: #f3efe6;
-      --card: #fffdf8;
-      --forest: #1d5c45;
-      --forest-deep: #143d2e;
-      --copper: #9a4e2c;
-      --gold: #c4a15a;
-      --shadow: 0 10px 30px rgba(40, 28, 12, 0.06);
-    }
-    * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body {
-      margin: 0;
-      color: var(--ink);
-      background:
-        radial-gradient(1200px 500px at 100% -10%, rgba(196, 161, 90, 0.18), transparent 50%),
-        var(--paper);
-      font: 16px/1.5 "Avenir Next", "Segoe UI", sans-serif;
-    }
-    a { color: var(--forest); }
-    header.hero {
-      padding: 36px 28px 28px;
-      background: var(--forest-deep);
-      color: #f6f1e7;
-    }
-    header.hero h1 {
-      margin: 0 0 8px;
-      font-family: Palatino, "Iowan Old Style", Georgia, serif;
-      font-weight: 600;
-      font-size: clamp(2rem, 4vw, 3.2rem);
-      letter-spacing: -0.03em;
-    }
-    header.hero p { max-width: 68ch; margin: 0; color: #d9d0c2; }
-    .meta {
-      display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px;
-    }
-    .pill {
-      border: 1px solid rgba(246, 241, 231, 0.25);
-      border-radius: 999px;
-      padding: 4px 10px;
-      font-size: 0.82rem;
-      color: #f6f1e7;
-    }
-    .layout {
-      display: grid;
-      grid-template-columns: 250px 1fr;
-      gap: 28px;
-      max-width: 1180px;
-      margin: 0 auto;
-      padding: 24px 20px 80px;
-    }
-    nav.toc {
-      position: sticky;
-      top: 16px;
-      align-self: start;
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      padding: 14px;
-      box-shadow: var(--shadow);
-      max-height: calc(100vh - 32px);
-      overflow: auto;
-    }
-    nav.toc strong { display: block; font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
-    nav.toc a {
-      display: block;
-      text-decoration: none;
-      color: var(--ink);
-      padding: 7px 8px;
-      border-radius: 8px;
-      font-size: 0.92rem;
-    }
-    nav.toc a:hover, nav.toc a.active { background: #efe7d8; }
-    .toolbar {
-      display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
-      margin-bottom: 18px;
-    }
-    input[type="search"] {
-      flex: 1;
-      min-width: 220px;
-      border: 1px solid var(--line);
-      background: var(--card);
-      border-radius: 12px;
-      padding: 12px 14px;
-      font: inherit;
-    }
-    button.reset {
-      border: 1px solid var(--line);
-      background: var(--card);
-      border-radius: 12px;
-      padding: 12px 14px;
-      font: inherit;
-      cursor: pointer;
-    }
-    .progress-wrap { margin-bottom: 18px; }
-    .bar { height: 8px; background: #e7dfd2; border-radius: 99px; overflow: hidden; }
-    .bar > span { display: block; height: 100%; width: 0; background: var(--forest); }
-    .progress-wrap small { color: var(--muted); }
-    section.module { margin-bottom: 34px; }
-    section.module h2 {
-      font-family: Palatino, Georgia, serif;
-      font-size: 1.8rem;
-      margin: 0 0 4px;
-    }
-    .weeks { color: var(--copper); font-weight: 600; font-size: 0.9rem; }
-    .blurb { color: var(--muted); margin: 6px 0 14px; max-width: 75ch; }
-    .group-label {
-      margin: 16px 0 8px;
-      font-size: 0.78rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-    article.topic {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 14px 14px 12px;
-      margin-bottom: 10px;
-      box-shadow: var(--shadow);
-    }
-    article.topic.done { border-color: #b7d7c8; background: #f7fbf8; }
-    .topic-head { display: flex; gap: 10px; align-items: flex-start; }
-    .topic-head h3 { margin: 0; font-size: 1.02rem; font-weight: 650; }
-    .topic p { margin: 8px 0 10px; color: var(--muted); font-size: 0.94rem; }
-    .links { display: flex; flex-wrap: wrap; gap: 8px; }
-    .links a {
-      text-decoration: none;
-      background: var(--forest);
-      color: #f6f1e7;
-      border-radius: 999px;
-      padding: 6px 12px;
-      font-size: 0.86rem;
-    }
-    .links a.alt { background: transparent; color: var(--forest-deep); border: 1px solid #b7cfc4; }
-    .links a.notes { background: #f3e6d2; color: #7a3d22; border: 1px solid #e0c7a6; }
-    .meta a.pill { color: inherit; text-decoration: none; background: #c4a15a; color: #1a1814; font-weight: 600; }
-    input[type="checkbox"] { margin-top: 4px; width: 16px; height: 16px; accent-color: var(--forest); }
-    .hidden { display: none; }
-    footer { color: var(--muted); font-size: 0.85rem; margin-top: 20px; }
-    @media (max-width: 860px) {
-      .layout { grid-template-columns: 1fr; }
-      nav.toc { position: static; max-height: none; }
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI Engineering — FDE curriculum tutorials</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f3f5f8; --paper:#ffffff; --ink:#16202e; --muted:#5b6778; --line:#dde3ea;
+  --accent:#0a6c8f; --accent-soft:#e3f1f6;
+  --trap:#a4440b; --trap-soft:#fdf0e6;
+  --why:#4b3fa0; --why-soft:#eeecfa;
+  --tip:#12724a; --tip-soft:#e6f5ee;
+  --boss:#8a1c3a; --boss-soft:#fbe9ee;
+  --code-bg:#f6f8fa; --code-ink:#1f2933; --inline-bg:#e9eef3;
+  --head:"Space Grotesk","Segoe UI",system-ui,sans-serif;
+  --body:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e141c; --paper:#151d28; --ink:#e4e9f0; --muted:#97a3b4; --line:#27323f;
+    --accent:#52b8da; --accent-soft:#12303c;
+    --trap:#f2a066; --trap-soft:#2c1e14;
+    --why:#b3a8ff; --why-soft:#211e3a;
+    --tip:#6fd3a0; --tip-soft:#14291f;
+    --boss:#ff8fab; --boss-soft:#341822;
+    --code-bg:#0b1118; --code-ink:#e6edf3; --inline-bg:#202b38;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e141c; --paper:#151d28; --ink:#e4e9f0; --muted:#97a3b4; --line:#27323f;
+  --accent:#52b8da; --accent-soft:#12303c;
+  --trap:#f2a066; --trap-soft:#2c1e14;
+  --why:#b3a8ff; --why-soft:#211e3a;
+  --tip:#6fd3a0; --tip-soft:#14291f;
+  --boss:#ff8fab; --boss-soft:#341822;
+  --code-bg:#0b1118; --code-ink:#e6edf3; --inline-bg:#202b38;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:18px;line-height:1.7}
+.bar{position:sticky;top:0;z-index:20;display:flex;gap:16px;align-items:center;flex-wrap:wrap;
+  padding:10px 20px;background:var(--paper);border-bottom:1px solid var(--line);font-family:var(--head);font-size:14px}
+.bar a{color:var(--accent);text-decoration:none}
+.bar a:hover{text-decoration:underline}
+.bar .grow{flex:1}
+.bar button{font:inherit;background:none;border:1px solid var(--line);color:var(--ink);padding:4px 10px;border-radius:6px;cursor:pointer}
+.bar button:hover{border-color:var(--accent)}
+.hero-note{margin:18px 0 0;padding:14px 18px;background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:0 8px 8px 0;font-size:19px}
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1280px;margin:0 auto}
+nav.toc{position:sticky;top:52px;align-self:start;height:calc(100vh - 52px);overflow:auto;padding:24px 12px 40px 20px;font-family:var(--head);font-size:14px;border-right:1px solid var(--line)}
+nav.toc strong{display:block;margin:0 0 10px;font-size:13px;color:var(--muted);font-weight:600}
+nav.toc a{display:block;padding:7px 10px;border-radius:6px;color:var(--ink);text-decoration:none;line-height:1.35}
+nav.toc a:hover{background:var(--accent-soft)}
+nav.toc a.active{background:var(--accent-soft);color:var(--accent);font-weight:600}
+main{padding:30px 30px 90px;min-width:0}
+.cover{padding:4px 0 26px;border-bottom:2px solid var(--ink);margin-bottom:6px}
+.cover h1{font-family:var(--head);font-size:clamp(32px,4.6vw,52px);line-height:1.1;margin:0 0 12px;letter-spacing:-.02em}
+.cover .sub{font-family:var(--head);font-size:15px;color:var(--muted);margin:0}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;font-family:var(--head)}
+.pill{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:4px 12px;font-size:13px;color:var(--muted)}
+a.pill{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;text-decoration:none}
+a.pill:hover{filter:brightness(1.1)}
+.extra{display:flex;align-items:center;gap:12px;margin:18px 0 0;padding:12px 16px;border-radius:8px;border-left:4px solid var(--why);background:var(--why-soft);color:var(--ink);text-decoration:none;font-family:var(--head);font-weight:600}
+.extra span{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--why)}
+.extra:hover{filter:brightness(.97)}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:22px 0 14px}
+input[type="search"]{flex:1;min-width:220px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:8px;padding:11px 14px;font:15px var(--head)}
+input[type="search"]:focus{outline:2px solid var(--accent);border-color:transparent}
+button.reset{border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:8px;padding:11px 14px;font:14px var(--head);cursor:pointer}
+button.reset:hover{border-color:var(--trap);color:var(--trap)}
+.progress-wrap{margin-bottom:10px;font-family:var(--head)}
+.pbar{height:8px;background:var(--line);border-radius:99px;overflow:hidden}
+.pbar>span{display:block;height:100%;width:0;background:var(--tip);transition:width .3s}
+.progress-wrap small{display:block;margin-top:6px;color:var(--muted);font-size:13px}
+section.module{margin-bottom:46px;scroll-margin-top:70px}
+section.module h2{font-family:var(--head);font-size:1.6rem;line-height:1.2;margin:8px 0 6px;padding-bottom:6px;border-bottom:2px solid var(--accent);letter-spacing:-.01em}
+.weeks{display:inline-block;margin:22px 0 0;font-family:var(--head);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:2px 10px;border-radius:999px;font-weight:600}
+.blurb{color:var(--muted);margin:8px 0 6px;font-size:17px;max-width:75ch}
+.group-label{font-family:var(--head);margin:24px 0 10px;font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:600}
+article.topic{background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:14px 16px;margin-bottom:12px;transition:background .2s,border-color .2s}
+article.topic.done{border-left-color:var(--tip);background:var(--tip-soft)}
+.topic-head{display:flex;gap:12px;align-items:flex-start}
+.topic-head h3{font-family:var(--head);margin:0;font-size:1.04rem;line-height:1.35;font-weight:600}
+article.topic.done .topic-head h3{color:var(--tip)}
+.topic p{margin:8px 0 12px 28px;color:var(--muted);font-size:16px;line-height:1.55}
+.links{display:flex;flex-wrap:wrap;gap:8px;margin-left:28px;font-family:var(--head)}
+.links a{text-decoration:none;background:var(--accent);color:#fff;border:1px solid var(--accent);border-radius:999px;padding:5px 12px;font-size:13px;line-height:1.35}
+.links a:hover{filter:brightness(1.12)}
+.links a.alt{background:transparent;color:var(--accent);border-color:var(--line)}
+.links a.alt:hover{border-color:var(--accent);filter:none}
+.links a.notes{background:var(--why-soft);color:var(--why);border-color:var(--why)}
+input[type="checkbox"]{margin-top:3px;width:17px;height:17px;flex:none;accent-color:var(--tip);cursor:pointer}
+@media (max-width:860px){.layout{grid-template-columns:1fr}nav.toc{position:static;height:auto;max-height:220px;border-right:0;border-bottom:1px solid var(--line)}main{padding:22px 16px 70px}.topic p,.links{margin-left:0}}
+@media print{.bar,nav.toc,.toolbar{display:none}}
+</style>
 </head>
 <body>
-  <header class="hero">
-    <h1>AI Engineering</h1>
-    <p>
-      A self-study map of the Forward Deployed Engineering brochure:
-      seven modules, two electives, and the projects. Every syllabus topic links to a public YouTube tutorial.
-    </p>
-    <div class="meta">
-      <span class="pill">7 phases</span>
-      <span class="pill">About 6 months</span>
-      <span class="pill">LLM to client deployment</span>
-      <span class="pill">Checkboxes save in this browser</span>
-      <a class="pill" href="notes/index.html">Open the detailed notes</a>
+<header class="bar">
+  <a href="notes/index.html">All notes</a>
+  <a href="#m1">Start with Module 1 →</a>
+  <span class="grow"></span>
+  <button id="theme" type="button">Theme</button>
+</header>
+<div class="layout">
+  <nav class="toc" id="toc"></nav>
+  <main>
+    <div class="cover">
+      <h1>AI Engineering</h1>
+      <p class="sub">FDE curriculum tutorials · 7 phases · about 6 months · LLM to client deployment</p>
+      <p class="hero-note">A self-study map of the Forward Deployed Engineering brochure: seven modules, two electives, and the projects. Every syllabus topic links to a public YouTube tutorial.</p>
+      <div class="meta">
+        <span class="pill">7 phases</span>
+        <span class="pill">About 6 months</span>
+        <span class="pill">LLM to client deployment</span>
+        <span class="pill">Checkboxes save in this browser</span>
+        <a class="pill" href="notes/index.html">Open the detailed notes</a>
+      </div>
+      <a class="extra" href="/AI-Notes/mcp.html"><span>Extra guide</span>1.MCP Server</a>
     </div>
-  </header>
-  <div class="layout">
-    <nav class="toc" id="toc"></nav>
-    <main>
-      <div class="toolbar">
-        <input id="q" type="search" placeholder="Filter topics, for example RAG, LangGraph, Docker" />
-        <button class="reset" id="reset" type="button">Reset progress</button>
-      </div>
-      <div class="progress-wrap">
-        <div class="bar"><span id="bar"></span></div>
-        <small id="count"></small>
-      </div>
-      <div>
-        <a href="/AI-Notes/mcp.html">
-          1.MCP Server
-        </a>
-      </div>
-      <div id="root"></div>
-    </main>
-  </div>
-  <script id="data" type="application/json">
+    <div class="toolbar">
+      <input id="q" type="search" placeholder="Filter topics, for example RAG, LangGraph, Docker" />
+      <button class="reset" id="reset" type="button">Reset progress</button>
+    </div>
+    <div class="progress-wrap">
+      <div class="pbar"><span id="bar"></span></div>
+      <small id="count"></small>
+    </div>
+    <div id="root"></div>
+  </main>
+</div>
+<script id="data" type="application/json">
 {
   "modules": [
     {
@@ -1967,5 +1912,23 @@
     });
     render();
   </script>
+<script>
+(function(){
+  var r=document.documentElement;
+  document.getElementById("theme").addEventListener("click",function(){
+    var cur=r.getAttribute("data-theme");
+    var isDark=cur?cur==="dark":window.matchMedia("(prefers-color-scheme: dark)").matches;
+    r.setAttribute("data-theme",isDark?"light":"dark");
+  });
+  function spy(){
+    var cur=null;
+    document.querySelectorAll("section.module").forEach(function(s){ if(s.getBoundingClientRect().top<120) cur=s.id; });
+    document.querySelectorAll("nav.toc a").forEach(function(a){ a.classList.toggle("active",a.getAttribute("href")==="#"+cur); });
+  }
+  window.addEventListener("scroll",spy,{passive:true});
+  document.getElementById("q").addEventListener("input",function(){ setTimeout(spy,0); });
+  spy();
+})();
+</script>
 </body>
 </html>

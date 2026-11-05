@@ -1,63 +1,135 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AI Engineering — All notes</title>
-  <link rel="stylesheet" href="notes.css" />
-  <style>
-    .hub { max-width: 1100px; margin: 0 auto; padding: 34px 22px 90px; }
-    .hub h1 { font-family: Palatino, "Iowan Old Style", Georgia, serif; font-size: clamp(2rem, 4vw, 3rem); margin: 0 0 8px; letter-spacing: -0.02em; }
-    .hub h2 { font-family: Palatino, Georgia, serif; margin: 40px 0 12px; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
-    .card { display: block; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; color: var(--ink); text-decoration: none; transition: transform .15s, box-shadow .15s; }
-    .card:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(20, 61, 46, .12); }
-    .card small { display: block; color: var(--copper); text-transform: uppercase; letter-spacing: .08em; font-size: .72rem; margin-bottom: 4px; }
-    .card strong { display: block; font-family: Palatino, Georgia, serif; font-size: 1.15rem; margin-bottom: 6px; }
-    .card span { color: var(--muted); font-size: .92rem; }
-    .legend { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0 0; }
-    .legend blockquote { margin: 0; flex: 1 1 220px; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI Engineering — All notes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f3f5f8; --paper:#ffffff; --ink:#16202e; --muted:#5b6778; --line:#dde3ea;
+  --accent:#0a6c8f; --accent-soft:#e3f1f6;
+  --trap:#a4440b; --trap-soft:#fdf0e6;
+  --why:#4b3fa0; --why-soft:#eeecfa;
+  --tip:#12724a; --tip-soft:#e6f5ee;
+  --boss:#8a1c3a; --boss-soft:#fbe9ee;
+  --code-bg:#f6f8fa; --code-ink:#1f2933; --inline-bg:#e9eef3;
+  --head:"Space Grotesk","Segoe UI",system-ui,sans-serif;
+  --body:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e141c; --paper:#151d28; --ink:#e4e9f0; --muted:#97a3b4; --line:#27323f;
+    --accent:#52b8da; --accent-soft:#12303c;
+    --trap:#f2a066; --trap-soft:#2c1e14;
+    --why:#b3a8ff; --why-soft:#211e3a;
+    --tip:#6fd3a0; --tip-soft:#14291f;
+    --boss:#ff8fab; --boss-soft:#341822;
+    --code-bg:#0b1118; --code-ink:#e6edf3; --inline-bg:#202b38;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e141c; --paper:#151d28; --ink:#e4e9f0; --muted:#97a3b4; --line:#27323f;
+  --accent:#52b8da; --accent-soft:#12303c;
+  --trap:#f2a066; --trap-soft:#2c1e14;
+  --why:#b3a8ff; --why-soft:#211e3a;
+  --tip:#6fd3a0; --tip-soft:#14291f;
+  --boss:#ff8fab; --boss-soft:#341822;
+  --code-bg:#0b1118; --code-ink:#e6edf3; --inline-bg:#202b38;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:18px;line-height:1.7}
+.bar{position:sticky;top:0;z-index:20;display:flex;gap:16px;align-items:center;flex-wrap:wrap;
+  padding:10px 20px;background:var(--paper);border-bottom:1px solid var(--line);font-family:var(--head);font-size:14px}
+.bar a{color:var(--accent);text-decoration:none}
+.bar a:hover{text-decoration:underline}
+.bar .grow{flex:1}
+.bar button{font:inherit;background:none;border:1px solid var(--line);color:var(--ink);padding:4px 10px;border-radius:6px;cursor:pointer}
+.bar button:hover{border-color:var(--accent)}
+.hero-note{margin:18px 0 0;padding:14px 18px;background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:0 8px 8px 0;font-size:19px}
+blockquote.callout{margin:18px 0;padding:12px 18px;border-radius:8px;border-left:4px solid var(--accent);background:var(--accent-soft)}
+blockquote.callout p{margin:0}
+blockquote.callout.trap{border-color:var(--trap);background:var(--trap-soft)}
+blockquote.callout.trap strong:first-child{color:var(--trap)}
+blockquote.callout.why{border-color:var(--why);background:var(--why-soft)}
+blockquote.callout.why strong:first-child{color:var(--why)}
+blockquote.callout.tip{border-color:var(--tip);background:var(--tip-soft)}
+blockquote.callout.tip strong:first-child{color:var(--tip)}
+blockquote.callout.boss{border-color:var(--boss);background:var(--boss-soft)}
+blockquote.callout.boss strong:first-child{color:var(--boss)}
+blockquote.callout.analogy strong:first-child{color:var(--accent)}
+.hub{max-width:1120px;margin:0 auto;padding:36px 22px 90px}
+.cover{padding:8px 0 28px;border-bottom:2px solid var(--ink);margin-bottom:8px}
+.cover h1{font-family:var(--head);font-size:clamp(30px,4.6vw,50px);line-height:1.1;margin:0 0 14px;letter-spacing:-.02em}
+.cover .sub{font-family:var(--head);font-size:15px;color:var(--muted);margin:0}
+.legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:22px 0 6px}
+.legend blockquote.callout{margin:0;font-size:16px}
+.hub h2{font-family:var(--head);font-size:1.5rem;margin:44px 0 6px;padding-bottom:6px;border-bottom:2px solid var(--accent);letter-spacing:-.01em}
+.hub h2 small{font-size:.8rem;font-weight:500;color:var(--muted);margin-left:8px}
+.path{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-family:var(--head);font-size:13px;color:var(--muted);margin:10px 0 0}
+.path span{background:var(--accent-soft);color:var(--accent);padding:3px 9px;border-radius:999px;font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:16px;margin-top:16px}
+.card{display:flex;flex-direction:column;gap:6px;background:var(--paper);border:1px solid var(--line);border-top:4px solid var(--accent);border-radius:12px;padding:16px 18px 18px;color:var(--ink);text-decoration:none;transition:transform .15s,box-shadow .15s,border-color .15s}
+.card:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(10,60,90,.14);border-color:var(--accent)}
+.card.elective{border-top-color:var(--why)}
+.card.build{border-top-color:var(--tip)}
+.card .top{display:flex;justify-content:space-between;align-items:center;font-family:var(--head)}
+.card .num{display:inline-grid;place-items:center;min-width:34px;height:34px;padding:0 8px;border-radius:8px;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:14px}
+.card.elective .num{background:var(--why-soft);color:var(--why)}
+.card.build .num{background:var(--tip-soft);color:var(--tip)}
+.card .count{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.card strong{font-family:var(--head);font-size:1.12rem;line-height:1.25;margin-top:4px}
+.card .desc{color:var(--muted);font-size:15.5px;line-height:1.55}
+.card .go{margin-top:auto;padding-top:6px;font-family:var(--head);font-size:13px;color:var(--accent);font-weight:600}
+@media print{.bar{display:none}}
+</style>
 </head>
 <body>
-  <header class="bar">
-    <a href="../index.html">← Video tutorials</a>
-    <a href="m1.html">Start with Module 1 →</a>
-    <span>AI Engineering · Notes</span>
-  </header>
-  <main class="hub">
+<header class="bar">
+  <a href="../index.html">← Video tutorials</a>
+  <a href="m1.html">Start with Module 1 →</a>
+  <span class="grow"></span>
+  <button id="theme" type="button">Theme</button>
+</header>
+<main class="hub">
+  <div class="cover">
     <h1>Field notes for the Forward Deployed Engineer</h1>
+    <p class="sub">AI Engineering · 7 modules, 2 electives, 14 project blueprints, 1 tool cheat sheet</p>
     <p class="hero-note">One page per module, with every topic from the brochure. Each topic has a one-line summary, an analogy, a diagram, runnable code, a common trap, and links to official docs and articles. Topic cards on the tutorials page link straight to the matching section here.</p>
-
-    <div class="legend">
-      <blockquote class="analogy"><p><strong>Analogy.</strong> The idea explained with everyday things.</p></blockquote>
-      <blockquote class="trap"><p><strong>Trap.</strong> The mistake most people make.</p></blockquote>
-      <blockquote class="boss"><p><strong>Boss level.</strong> A challenge that pulls the module together.</p></blockquote>
-      <blockquote class="try"><p><strong>Try it.</strong> A small exercise to do right now.</p></blockquote>
-    </div>
-
-    <h2>Core modules</h2>
-    <div class="grid">
-      <a class="card" href="m1.html"><small>Module 1 · 17 topics</small><strong>Prompt Engineering &amp; LLM Mastery</strong><span>Transformers, chain of thought, tool calling, structured outputs, injection, tokens, DSPy.</span></a>
-      <a class="card" href="m2.html"><small>Module 2 · 18 topics</small><strong>Python &amp; API Foundations for AI</strong><span>OOP, decorators, typing, pytest, async, HTTP, retries, webhooks, provider SDKs.</span></a>
-      <a class="card" href="m3.html"><small>Module 3 · 15 topics</small><strong>RAG Systems &amp; Vector Intelligence</strong><span>Cosine similarity, vector DBs, chunking, LCEL, BM25, HyDE, RRF, reranking, RAGAS.</span></a>
-      <a class="card" href="m4.html"><small>Module 4 · 13 topics</small><strong>Advanced RAG &amp; LLM Fine-Tuning</strong><span>Multi-hop, corrective RAG, QLoRA, PEFT, Axolotl, alignment, Ollama, GGUF.</span></a>
-      <a class="card" href="m5.html"><small>Module 5 · 12 topics</small><strong>Agentic AI Systems</strong><span>ReAct, arbiters, MCP, LangGraph, CrewAI, memory, orchestration, evals, guardrails.</span></a>
-      <a class="card" href="m6.html"><small>Module 6 · 16 topics</small><strong>Cloud &amp; DevOps</strong><span>FastAPI, Docker, GitHub Actions, Kubernetes, Helm, Terraform, AWS, LangSmith, load tests.</span></a>
-      <a class="card" href="m7.html"><small>Module 7 · 19 topics</small><strong>Forward Deployed AI Engineering</strong><span>Discovery, scoping, CDC, VPC, SSO, security reviews, rollouts, cost, incidents.</span></a>
-    </div>
-
-    <h2>Electives</h2>
-    <div class="grid">
-      <a class="card" href="sd.html"><small>Elective · 10 topics</small><strong>System design</strong><span>Caching, sharding, CAP, queues, circuit breakers, estimation, classic designs.</span></a>
-      <a class="card" href="dsa.html"><small>Elective · 11 topics</small><strong>Data structures and algorithms</strong><span>Python templates for two pointers, stacks, trees, heaps, backtracking, graphs, DP.</span></a>
-    </div>
-
-    <h2>Build and reference</h2>
-    <div class="grid">
-      <a class="card" href="projects.html"><small>14 blueprints</small><strong>Project blueprints</strong><span>Architecture, starter code, milestones, and a definition of done for every project.</span></a>
-      <a class="card" href="stack.html"><small>29 tools</small><strong>Tool stack cheat sheet</strong><span>What each tool is for, a short snippet, and where its docs live.</span></a>
-    </div>
-  </main>
+  </div>
+  <div class="legend">
+    <blockquote class="callout analogy"><p><strong>Analogy.</strong> The idea explained with everyday things.</p></blockquote>
+    <blockquote class="callout trap"><p><strong>Trap.</strong> The mistake most people make.</p></blockquote>
+    <blockquote class="callout boss"><p><strong>Boss level.</strong> A challenge that pulls the module together.</p></blockquote>
+    <blockquote class="callout tip"><p><strong>Try it.</strong> A small exercise to do right now.</p></blockquote>
+  </div>
+  <h2>Core modules <small>work through them in order</small></h2>
+  <div class="path"><span>1 Prompts</span>→<span>2 Python</span>→<span>3 RAG</span>→<span>4 Advanced + tuning</span>→<span>5 Agents</span>→<span>6 Cloud</span>→<span>7 Client work</span></div>
+  <div class="grid">
+    <a class="card " href="m1.html"><div class="top"><span class="num">1</span><span class="count">17 topics</span></div><strong>Prompt Engineering &amp; LLM Mastery</strong><span class="desc">Transformers, chain of thought, tool calling, structured outputs, injection, tokens, DSPy.</span><span class="go">Open notes →</span></a><a class="card " href="m2.html"><div class="top"><span class="num">2</span><span class="count">18 topics</span></div><strong>Python &amp; API Foundations for AI</strong><span class="desc">OOP, decorators, typing, pytest, async, HTTP, retries, webhooks, provider SDKs.</span><span class="go">Open notes →</span></a><a class="card " href="m3.html"><div class="top"><span class="num">3</span><span class="count">15 topics</span></div><strong>RAG Systems &amp; Vector Intelligence</strong><span class="desc">Cosine similarity, vector DBs, chunking, LCEL, BM25, HyDE, RRF, reranking, RAGAS.</span><span class="go">Open notes →</span></a><a class="card " href="m4.html"><div class="top"><span class="num">4</span><span class="count">13 topics</span></div><strong>Advanced RAG &amp; LLM Fine-Tuning</strong><span class="desc">Multi-hop, corrective RAG, QLoRA, PEFT, Axolotl, alignment, Ollama, GGUF.</span><span class="go">Open notes →</span></a><a class="card " href="m5.html"><div class="top"><span class="num">5</span><span class="count">12 topics</span></div><strong>Agentic AI Systems</strong><span class="desc">ReAct, arbiters, MCP, LangGraph, CrewAI, memory, orchestration, evals, guardrails.</span><span class="go">Open notes →</span></a><a class="card " href="m6.html"><div class="top"><span class="num">6</span><span class="count">16 topics</span></div><strong>Cloud &amp; DevOps</strong><span class="desc">FastAPI, Docker, GitHub Actions, Kubernetes, Helm, Terraform, AWS, LangSmith, load tests.</span><span class="go">Open notes →</span></a><a class="card " href="m7.html"><div class="top"><span class="num">7</span><span class="count">19 topics</span></div><strong>Forward Deployed AI Engineering</strong><span class="desc">Discovery, scoping, CDC, VPC, SSO, security reviews, rollouts, cost, incidents.</span><span class="go">Open notes →</span></a>
+  </div>
+  <h2>Electives</h2>
+  <div class="grid">
+    <a class="card elective" href="sd.html"><div class="top"><span class="num">SD</span><span class="count">Elective · 10 topics</span></div><strong>System design</strong><span class="desc">Caching, sharding, CAP, queues, circuit breakers, estimation, classic designs.</span><span class="go">Open notes →</span></a><a class="card elective" href="dsa.html"><div class="top"><span class="num">DSA</span><span class="count">Elective · 11 topics</span></div><strong>Data structures and algorithms</strong><span class="desc">Python templates for two pointers, stacks, trees, heaps, backtracking, graphs, DP.</span><span class="go">Open notes →</span></a>
+  </div>
+  <h2>Build and reference</h2>
+  <div class="grid">
+    <a class="card build" href="projects.html"><div class="top"><span class="num">14</span><span class="count">14 blueprints</span></div><strong>Project blueprints</strong><span class="desc">Architecture, starter code, milestones, and a definition of done for every project.</span><span class="go">Open notes →</span></a><a class="card build" href="stack.html"><div class="top"><span class="num">29</span><span class="count">29 tools</span></div><strong>Tool stack cheat sheet</strong><span class="desc">What each tool is for, a short snippet, and where its docs live.</span><span class="go">Open notes →</span></a>
+  </div>
+</main>
+<script>
+(function(){
+  var r=document.documentElement;
+  document.getElementById("theme").addEventListener("click",function(){
+    var cur=r.getAttribute("data-theme");
+    var isDark=cur?cur==="dark":window.matchMedia("(prefers-color-scheme: dark)").matches;
+    r.setAttribute("data-theme",isDark?"light":"dark");
+  });
+})();
+</script>
 </body>
 </html>
