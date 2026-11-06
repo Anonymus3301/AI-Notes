@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Learning Resources — curated roadmap</title>
+<style>
+:root{
+  --bg:#f7f8fa; --surface:#ffffff; --text:#14181f; --muted:#5b6472;
+  --line:#dde1e8; --accent:#2457d6; --accent-soft:#e6edfb; --done:#1c7c54;
+}
+:root[data-theme="dark"]{
+  --bg:#0f1319; --surface:#171d26; --text:#e8ecf2; --muted:#98a2b3;
+  --line:#2a3340; --accent:#7ea4ff; --accent-soft:#1d2a44; --done:#5fd0a0;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1319; --surface:#171d26; --text:#e8ecf2; --muted:#98a2b3;
+    --line:#2a3340; --accent:#7ea4ff; --accent-soft:#1d2a44; --done:#5fd0a0;
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);
+  font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--accent)}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:860px;margin:0 auto;padding:0 20px}
+.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding-top:10px;padding-bottom:10px}
+.top a.nav{text-decoration:none;font-size:.92rem}
+.spacer{flex:1}
+button{font:inherit;cursor:pointer;color:var(--text);background:var(--surface);
+  border:1px solid var(--line);border-radius:8px;padding:5px 12px}
+button:hover{border-color:var(--accent)}
+header.hero{padding:44px 0 24px}
+h1{font-size:clamp(2rem,6vw,2.8rem);line-height:1.15;margin:0 0 10px;letter-spacing:-.02em}
+.sub{color:var(--muted);margin:0 0 14px}
+.lead{max-width:62ch;margin:0 0 18px}
+.stats{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px;padding:0;list-style:none}
+.stats li{background:var(--accent-soft);border-radius:999px;padding:3px 12px;font-size:.9rem}
+.progress{height:8px;background:var(--line);border-radius:99px;overflow:hidden;margin:6px 0 4px}
+.progress i{display:block;height:100%;width:0;background:var(--done);transition:width .25s}
+.pcount{font-size:.88rem;color:var(--muted)}
+.jump{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 8px}
+.jump a{border:1px solid var(--line);background:var(--surface);color:var(--text);
+  border-radius:999px;padding:3px 12px;font-size:.88rem;text-decoration:none}
+.jump a:hover{border-color:var(--accent)}
+section{padding:26px 0 6px;scroll-margin-top:60px}
+h2{font-size:1.35rem;margin:0 0 4px}
+.sd{color:var(--muted);margin:0 0 14px;font-size:.95rem}
+.item{display:flex;gap:12px;background:var(--surface);border:1px solid var(--line);
+  border-radius:10px;padding:14px 16px;margin:0 0 10px}
+.item input{width:18px;height:18px;margin-top:4px;flex:none;accent-color:var(--done)}
+.item.done{opacity:.68}
+.item.done h3{text-decoration:line-through}
+.body{min-width:0;flex:1}
+h3{font-size:1.02rem;margin:0 0 2px}
+.type{font-size:.8rem;color:var(--muted);margin:0 0 4px}
+.desc{margin:0 0 8px;font-size:.94rem}
+.url{display:block;font-size:.84rem;word-break:break-all}
+footer{padding:36px 0 56px;color:var(--muted);font-size:.9rem}
+@media (max-width:520px){.item{padding:12px}}
+</style>
+</head>
+<body>
+
+<div class="top"><div class="wrap">
+  <a class="nav" href="index.html">← AI Engineering</a>
+  <a class="nav" href="notes/index.html">All notes</a>
+  <span class="spacer"></span>
+  <button id="theme" type="button" aria-label="Toggle theme">Theme</button>
+</div></div>
+
+<main class="wrap">
+<header class="hero">
+  <h1>AI Learning Resources</h1>
+  <p class="sub">Curated learning roadmap by Divyam Dawar</p>
+  <p class="lead">An ordered set of 25 tutorials, playlists and guides, from Python and machine learning through agents, LLMOps and cloud. Every link below is copied from the original PDF.</p>
+  <ul class="stats">
+    <li>25 resources</li>
+    <li>7 groups</li>
+    <li>Checkboxes save in this browser</li>
+  </ul>
+  <div class="progress" aria-hidden="true"><i id="bar"></i></div>
+  <div class="pcount" id="pcount">0 of 25 done</div>
+  <nav class="jump" id="jump" aria-label="Sections"></nav>
+  <button id="reset" type="button">Reset progress</button>
+</header>
+
+<div id="app"></div>
+
+<footer>
+  Source: <em>AI Learning Resources</em> PDF by Divyam Dawar. Links open on YouTube or Medium.
+</footer>
+</main>
+
+<script>
+const GROUPS = [
+{ id:"community", title:"Join the communities", desc:"Updates, learning resources and professional content.", items:[
+ {c:true, t:"WhatsApp Channel", d:"Follow the updates and learning resources.", u:"https://whatsapp.com/channel/0029VbCSeyRLtOj6pxooNr2e", k:"Channel"},
+ {c:true, t:"LinkedIn Profile", d:"Professional content and updates.", u:"https://www.linkedin.com/in/divyam-dawar-435a9a147/", k:"Profile"}
+]},
+{ id:"foundations", title:"Foundations", desc:"Programming, data and core machine learning.", items:[
+ {n:1, t:"Python Learning Playlist", d:"An ordered Python learning resource for building programming fundamentals and practical development skills.", u:"https://youtube.com/playlist?list=PLKnIA16_Rmvb1RYR-iTA_hzckhdONtSW4&si=iFUVwQ-i9arYMjEz", k:"Playlist"},
+ {n:2, t:"Data Analyst Bootcamp with SQL, Power BI, Python, Excel, and Projects", d:"A long-form bootcamp covering SQL, Excel, Tableau, Power BI, Python, Pandas, projects, portfolio creation, and job preparation.", u:"https://youtu.be/PSNXoAs2FtQ?si=f9h-4FP2dONbqhYg", k:"Video"},
+ {n:3, t:"Machine Learning Learning Playlist", d:"A structured playlist intended to develop core machine-learning concepts, workflows, and implementation skills.", u:"https://youtube.com/playlist?list=PLKnIA16_Rmvbr7zKYQuBfsVkjoLcJgxHH&si=AQ1td8bSZbnbYibt", k:"Playlist"},
+ {n:4, t:"Deep Learning Learning Playlist", d:"A deep-learning resource focused on neural-network foundations, training concepts, and practical AI understanding.", u:"https://youtube.com/playlist?list=PLKnIA16_RmvYuZauWaPlRTC54KxSNLtNn&si=TtWtWq-6UI2UCFij", k:"Playlist"}
+]},
+{ id:"genai", title:"Generative AI and LLMs", desc:"Transformers, GPT, RAG and the modern LLM stack.", items:[
+ {n:5, t:"Generative AI Learning Playlist", d:"A generative-AI learning resource covering LLM applications, prompting, RAG, agents, and modern development workflows.", u:"https://youtube.com/playlist?list=PLKnIA16_RmvaTbihpo4MtzVm4XOQa0ER0&si=oAEAd_fii3ECytsQ", k:"Playlist"},
+ {n:6, t:"NLP and Transformer Architecture", d:"A detailed explanation of Transformers, self-attention, positional encoding, encoder-decoder blocks, and decoding.", u:"https://youtu.be/3bPhDUSAUYI?si=rYlwxp4SY0Y3rTcG", k:"Video"},
+ {n:11, t:"Build GPT from Scratch", d:"Andrej Karpathy builds a small GPT-style Transformer from scratch, explaining tokenization, attention, training, and text generation in code.", u:"https://youtu.be/kCc8FmEb1nY?si=f09rOawS2c49yRdz", k:"Video"},
+ {n:12, t:"Retrieval-Augmented Generation (RAG) Explained", d:"A practical explanation of RAG, including indexing, retrieval, augmentation, generation, and its role in improving LLM responses.", u:"https://youtu.be/X0btK9X0Xnk?si=oG0-zvPapp63NuFK", k:"Video"},
+ {n:13, t:"Top 10 RAG Frameworks on GitHub — Medium Blog", d:"A data-driven ranking of popular open-source RAG frameworks and guidance on choosing frameworks for different use cases.", u:"https://florinelchis.medium.com/top-10-rag-frameworks-on-github-by-stars-january-2026-e6edff1e0d91", k:"Blog"}
+]},
+{ id:"agents", title:"Agents, MCP and agentic coding", desc:"Build agents, connect tools and ship with AI-assisted workflows.", items:[
+ {n:7, t:"Agentic AI Learning Playlist", d:"A playlist for understanding and building AI agents, including tools, reasoning workflows, orchestration, and implementations.", u:"https://youtube.com/playlist?list=PLKnIA16_RmvYsvB8qkUQuJmJNuiCUJFPL&si=fL8A99RLb0n7FRE5", k:"Playlist"},
+ {n:9, t:"Agentic Coding with Claude Code", d:"An introduction to production-oriented AI-assisted development with Claude Code, agentic workflows, testing, and deployment.", u:"https://youtu.be/K_KIQA849cs?si=ThscjLhxzB7pjblJ", k:"Video"},
+ {n:10, t:"Model Context Protocol (MCP) Learning Playlist", d:"A resource for learning MCP concepts and connecting models or coding agents with external tools and data.", u:"https://youtube.com/playlist?list=PLKnIA16_Rmva_oZ9F4ayUu9qcWgF7Fyc0&si=pzylTHxyGEh8OK29", k:"Playlist"},
+ {n:21, t:"Loop Engineering and Harness Engineering", d:"An explanation of reliable agent loops and the surrounding harness, including tools, memory, MCP, evaluation, observability, recovery, and cost optimization.", u:"https://youtu.be/3uO6V05LBjU?si=a3QEvjOF6wffIDoe", k:"Video"}
+]},
+{ id:"projects", title:"Projects and APIs", desc:"Turn concepts into working, portfolio-ready applications.", items:[
+ {n:8, t:"Practical AI Projects Playlist", d:"A project-focused collection for converting AI concepts into working applications and portfolio-ready systems.", u:"https://youtu.be/pEiq3sI8dYQ?si=AWAy0qw4yvHqeTW3", k:"Video"},
+ {n:14, t:"FastAPI Learning Playlist", d:"A FastAPI learning resource for creating production-ready Python APIs, validation, authentication, and deployment workflows.", u:"https://youtube.com/playlist?list=PLKnIA16_RmvZ41tjbKB2ZnwchfniNsMuQ&si=TYjhduFy1avM6v05", k:"Playlist"}
+]},
+{ id:"llmops", title:"LLM evaluation, operations and security", desc:"Measure, monitor, secure and run LLM systems in production.", items:[
+ {n:15, t:"LLM Evaluation Learning Playlist", d:"A playlist introducing systematic LLM evaluation across model quality, RAG, agents, safety, datasets, and operational metrics.", u:"https://youtu.be/6W92_t9FveA?si=aQ6HcDuRmLApEw1L", k:"Video"},
+ {n:16, t:"LLM Operations (LLMOps)", d:"An introduction to operating LLM-powered systems in production, including quality monitoring, guardrails, latency, and cost control.", u:"https://youtu.be/NuWRAiYnjxw?si=-7BTIv-CX4pkCCYH", k:"Video"},
+ {n:17, t:"LLM Gateway with LiteLLM", d:"A LiteLLM-based guide to unified APIs, fallbacks, routing, caching, load balancing, cost tracking, and observability.", u:"https://youtu.be/RN3baOpNA6w?si=CCzGqonE9FnFVswp", k:"Video"},
+ {n:18, t:"LLM Gateway with Mesh API", d:"A MeshAPI course covering multi-model access, RAG, multi-agent workflows, multimodal generation, MCP, and usage monitoring.", u:"https://youtu.be/yAczx0_NtyU?si=X1YsCaaEjYGjSkaG", k:"Video"},
+ {n:19, t:"AI Guardrails and Security", d:"An AI security masterclass covering prompt injection, jailbreaks, PII protection, guardrails, evaluations, memory, AgentOps, and scaling.", u:"https://youtu.be/rQE3w8Qjx98?si=5x9gCpgAzcw8vihT", k:"Video"},
+ {n:20, t:"Tracing and Observability with Arize AI", d:"An OpenTelemetry and OpenInference guide for tracing AI applications through instrumentation, spans, context propagation, sampling, and collectors.", u:"https://youtu.be/fHGSxOhWO-g?si=axuOUf8t1GIGWBhl", k:"Video"}
+]},
+{ id:"career", title:"FDE roadmap and cloud", desc:"The career path and the cloud platforms behind client deployments.", items:[
+ {n:22, t:"Forward Deployed Engineer (FDE) Roadmap", d:"A roadmap for becoming an FDE by combining Python, APIs, SQL, Docker, cloud, RAG, enterprise integrations, and customer-focused delivery.", u:"https://youtu.be/SOU28VT-Ns4?si=9TyREkV0S7G72Q0p", k:"Video"},
+ {n:23, t:"GCP Zero to Hero Course", d:"A practical GCP roadmap covering IAM, storage, compute, networking, databases, containers, GKE, CI/CD, Terraform, serverless, and cost optimization.", u:"https://youtu.be/N5rXROueKhw?si=S6A8Ruq238LxCGGz", k:"Video"},
+ {n:24, t:"Azure Zero to Hero Course", d:"An Azure roadmap covering fundamentals, compute, networking, storage, identity, Azure DevOps, AKS, security, serverless, Terraform, AZ-900, and AZ-104.", u:"https://youtu.be/10jm7Waan8M?si=cx-Uu8hxovhQaf5h", k:"Video"},
+ {n:25, t:"AWS Zero to Hero Course", d:"A DevOps-focused AWS roadmap covering IAM, EC2, networking, security, S3, infrastructure as code, CI/CD, monitoring, Lambda, containers, scaling, databases, and interviews.", u:"https://youtu.be/GkKNxyLp_V0?si=dLbrKOY-q7WaCb9A", k:"Video"}
+]}
+];
+
+const KEY = "ai-resources-progress-v1";
+let state = {};
+try { state = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { state = {}; }
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+
+const app = document.getElementById("app");
+const jump = document.getElementById("jump");
+let total = 0;
+
+GROUPS.forEach(g => {
+  const a = document.createElement("a");
+  a.href = "#" + g.id; a.textContent = g.title; jump.appendChild(a);
+
+  const sec = document.createElement("section");
+  sec.id = g.id;
+  sec.innerHTML = `<h2></h2><p class="sd"></p>`;
+  sec.querySelector("h2").textContent = g.title;
+  sec.querySelector(".sd").textContent = g.desc;
+
+  g.items.forEach(it => {
+    const id = it.c ? "c-" + it.t : "r" + it.n;
+    const trackable = !it.c;
+    if (trackable) total++;
+    const label = document.createElement("label");
+    label.className = "item" + (state[id] ? " done" : "");
+    label.innerHTML = `<input type="checkbox"><div class="body"><h3></h3><p class="type"></p><p class="desc"></p><a class="url" target="_blank" rel="noopener noreferrer"></a></div>`;
+    const cb = label.querySelector("input");
+    if (!trackable) { cb.remove(); label.style.cursor = "default"; }
+    label.querySelector("h3").textContent = (it.n ? it.n + ". " : "") + it.t;
+    label.querySelector(".type").textContent = it.k;
+    label.querySelector(".desc").textContent = it.d;
+    const link = label.querySelector(".url");
+    link.href = it.u; link.textContent = it.u;
+    link.addEventListener("click", e => e.stopPropagation());
+    if (trackable) {
+      cb.checked = !!state[id];
+      cb.addEventListener("change", () => {
+        state[id] = cb.checked;
+        if (!cb.checked) delete state[id];
+        label.classList.toggle("done", cb.checked);
+        save(); update();
+      });
+    }
+    sec.appendChild(label);
+  });
+  app.appendChild(sec);
+});
+
+function update(){
+  const done = Object.keys(state).filter(k => state[k] && k[0] === "r").length;
+  document.getElementById("bar").style.width = (done / total * 100) + "%";
+  document.getElementById("pcount").textContent = done + " of " + total + " done";
+}
+update();
+
+document.getElementById("reset").addEventListener("click", () => {
+  if (!confirm("Reset all progress on this page?")) return;
+  state = {}; save();
+  document.querySelectorAll(".item").forEach(l => {
+    l.classList.remove("done");
+    const c = l.querySelector("input"); if (c) c.checked = false;
+  });
+  update();
+});
+
+const root = document.documentElement;
+try { const t = localStorage.getItem("ai-resources-theme"); if (t) root.setAttribute("data-theme", t); } catch (e) {}
+document.getElementById("theme").addEventListener("click", () => {
+  const dark = root.getAttribute("data-theme") === "dark" ||
+    (!root.getAttribute("data-theme") && matchMedia("(prefers-color-scheme: dark)").matches);
+  const next = dark ? "light" : "dark";
+  root.setAttribute("data-theme", next);
+  try { localStorage.setItem("ai-resources-theme", next); } catch (e) {}
+});
+</script>
+</body>
+</html>
