@@ -235,6 +235,7 @@ function pageShell({ title, body, toc = "", isIndex = false, previous, next }) {
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../agent-fundamentals.css">
+<script src="../site-nav.js" defer></script>
 </head>
 <body>
 <header class="bar">

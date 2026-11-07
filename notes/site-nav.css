@@ -1,0 +1,52 @@
+.site-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-right: 10px;
+}
+.site-navigation a {
+  display: inline-block;
+  padding: 5px 9px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+header.bar .site-navigation a {
+  color: inherit;
+  text-decoration: none;
+}
+header.bar .site-navigation a:hover {
+  background: rgba(127, 127, 127, 0.18);
+  text-decoration: underline;
+}
+.site-nav-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--paper, var(--surface, var(--card, #fff)));
+  color: var(--ink, var(--text, #16202e));
+  border-bottom: 1px solid var(--line, #dde3ea);
+  font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.site-nav-header .site-navigation { margin: 0; }
+.site-nav-header .site-navigation a {
+  color: var(--accent, var(--acc, #0a6c8f));
+  text-decoration: none;
+}
+.site-nav-header .site-navigation a:hover {
+  background: var(--accent-soft, #e3f1f6);
+  text-decoration: underline;
+}
+@media (max-width: 600px) {
+  .site-navigation { gap: 2px; margin-right: 0; }
+  .site-navigation a { padding: 5px 7px; font-size: 13px; }
+  .site-nav-header { padding: 8px 12px; }
+}
+@media print {
+  .site-nav-header { display: none; }
+}
