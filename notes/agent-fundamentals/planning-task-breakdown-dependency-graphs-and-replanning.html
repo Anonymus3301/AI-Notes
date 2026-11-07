@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Planning: Task Breakdown, Dependency Graphs, and Replanning — Agent Fundamentals notes">
+<title>Planning: Task Breakdown, Dependency Graphs, and Replanning | Agent Fundamentals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../agent-fundamentals.css">
+</head>
+<body>
+<header class="bar">
+  <nav class="bar-links" aria-label="Main navigation">
+    <a href="./index.html">← Agent Fundamentals</a>
+    <a href="../m5.html">Module 5: Agentic AI Systems</a>
+  </nav>
+  <nav class="bar-pages" aria-label="Adjacent notes">
+    <a href="./llm-workflows-vs-autonomous-agents-when-each-is-appropriate.html" aria-label="Previous note: LLM Workflows vs. Autonomous Agents" title="LLM Workflows vs. Autonomous Agents">← Previous</a>
+    <a href="./reasoning-and-acting-patterns-e-g-react-and-tool-use-loops.html" aria-label="Next note: ReAct and Reasoning-and-Acting Tool-Use Loops" title="ReAct and Reasoning-and-Acting Tool-Use Loops">Next →</a>
+  </nav>
+  <span class="grow"></span>
+  <button type="button" onclick="window.print()">Print / PDF</button>
+</header>
+<div class="layout"><nav class="toc" aria-label="Contents"><strong>On this page</strong><a class="" href="#1-mental-model-in-60-seconds">1. Mental model in 60 seconds</a>
+<a class="sub" href="#vocabulary-to-know">Vocabulary to know</a>
+<a class="" href="#2-architecture-and-execution-flow">2. Architecture and execution flow</a>
+<a class="" href="#3-learn-each-building-block-from-scratch">3. Learn each building block from scratch</a>
+<a class="sub" href="#3-1-goal-decomposition">3.1 Goal decomposition</a>
+<a class="sub" href="#3-2-task-dependencies">3.2 Task dependencies</a>
+<a class="sub" href="#3-3-critical-path">3.3 Critical path</a>
+<a class="sub" href="#3-4-resource-constraints">3.4 Resource constraints</a>
+<a class="sub" href="#3-5-plan-granularity">3.5 Plan granularity</a>
+<a class="sub" href="#3-6-replanning-triggers">3.6 Replanning triggers</a>
+<a class="sub" href="#3-7-plan-validation">3.7 Plan validation</a>
+<a class="sub" href="#3-8-partial-completion">3.8 Partial completion</a>
+<a class="sub" href="#3-9-branching-and-joins">3.9 Branching and joins</a>
+<a class="sub" href="#3-10-plan-versus-execution-state">3.10 Plan versus execution state</a>
+<a class="" href="#4-reference-implementation-framework-agnostic">4. Reference implementation (framework-agnostic)</a>
+<a class="sub" href="#why-each-boundary-matters">Why each boundary matters</a>
+<a class="" href="#5-end-to-end-example-and-walkthrough">5. End-to-end example and walkthrough</a>
+<a class="sub" href="#running-example-supplier-material-validation">Running example: supplier/material validation</a>
+<a class="" href="#6-design-trade-offs-you-should-discuss">6. Design trade-offs you should discuss</a>
+<a class="" href="#7-production-readiness-failure-modes-mitigations-and-metrics">7. Production readiness: failure modes, mitigations, and metrics</a>
+<a class="" href="#8-practice-whiteboard-coding-behavioral-articulation">8. Practice: whiteboard, coding, behavioral articulation</a>
+<a class="" href="#further-reading">Further reading</a>
+<a class="" href="#9-frequently-asked-interview-questions-with-answers">9. Frequently asked interview questions (with answers)</a>
+<a class="sub" href="#q1-what-is-goal-decomposition-and-why-does-it-matter">Q1. What is goal decomposition, and why does it matter?</a>
+<a class="sub" href="#q2-give-a-practical-example-of-goal-decomposition">Q2. Give a practical example of goal decomposition.</a>
+<a class="sub" href="#q3-what-can-go-wrong-when-implementing-goal-decomposition">Q3. What can go wrong when implementing goal decomposition?</a>
+<a class="sub" href="#q4-how-would-you-test-or-measure-goal-decomposition">Q4. How would you test or measure goal decomposition?</a>
+<a class="sub" href="#q5-what-is-task-dependencies-and-why-does-it-matter">Q5. What is task dependencies, and why does it matter?</a>
+<a class="sub" href="#q6-give-a-practical-example-of-task-dependencies">Q6. Give a practical example of task dependencies.</a>
+<a class="sub" href="#q7-what-can-go-wrong-when-implementing-task-dependencies">Q7. What can go wrong when implementing task dependencies?</a>
+<a class="sub" href="#q8-how-would-you-test-or-measure-task-dependencies">Q8. How would you test or measure task dependencies?</a>
+<a class="sub" href="#q9-what-is-critical-path-and-why-does-it-matter">Q9. What is critical path, and why does it matter?</a>
+<a class="sub" href="#q10-give-a-practical-example-of-critical-path">Q10. Give a practical example of critical path.</a>
+<a class="sub" href="#q11-what-can-go-wrong-when-implementing-critical-path">Q11. What can go wrong when implementing critical path?</a>
+<a class="sub" href="#q12-how-would-you-test-or-measure-critical-path">Q12. How would you test or measure critical path?</a>
+<a class="sub" href="#q13-what-is-resource-constraints-and-why-does-it-matter">Q13. What is resource constraints, and why does it matter?</a>
+<a class="sub" href="#q14-give-a-practical-example-of-resource-constraints">Q14. Give a practical example of resource constraints.</a>
+<a class="sub" href="#q15-what-can-go-wrong-when-implementing-resource-constraints">Q15. What can go wrong when implementing resource constraints?</a>
+<a class="sub" href="#q16-how-would-you-test-or-measure-resource-constraints">Q16. How would you test or measure resource constraints?</a>
+<a class="sub" href="#q17-what-is-plan-granularity-and-why-does-it-matter">Q17. What is plan granularity, and why does it matter?</a>
+<a class="sub" href="#q18-give-a-practical-example-of-plan-granularity">Q18. Give a practical example of plan granularity.</a>
+<a class="sub" href="#q19-what-can-go-wrong-when-implementing-plan-granularity">Q19. What can go wrong when implementing plan granularity?</a>
+<a class="sub" href="#q20-how-would-you-test-or-measure-plan-granularity">Q20. How would you test or measure plan granularity?</a>
+<a class="sub" href="#q21-what-is-replanning-triggers-and-why-does-it-matter">Q21. What is replanning triggers, and why does it matter?</a>
+<a class="sub" href="#q22-give-a-practical-example-of-replanning-triggers">Q22. Give a practical example of replanning triggers.</a>
+<a class="sub" href="#q23-what-can-go-wrong-when-implementing-replanning-triggers">Q23. What can go wrong when implementing replanning triggers?</a>
+<a class="sub" href="#q24-how-would-you-test-or-measure-replanning-triggers">Q24. How would you test or measure replanning triggers?</a>
+<a class="sub" href="#q25-what-is-plan-validation-and-why-does-it-matter">Q25. What is plan validation, and why does it matter?</a>
+<a class="sub" href="#q26-give-a-practical-example-of-plan-validation">Q26. Give a practical example of plan validation.</a>
+<a class="sub" href="#q27-what-can-go-wrong-when-implementing-plan-validation">Q27. What can go wrong when implementing plan validation?</a>
+<a class="sub" href="#q28-how-would-you-test-or-measure-plan-validation">Q28. How would you test or measure plan validation?</a>
+<a class="sub" href="#q29-what-is-partial-completion-and-why-does-it-matter">Q29. What is partial completion, and why does it matter?</a>
+<a class="sub" href="#q30-give-a-practical-example-of-partial-completion">Q30. Give a practical example of partial completion.</a>
+<a class="sub" href="#q31-what-can-go-wrong-when-implementing-partial-completion">Q31. What can go wrong when implementing partial completion?</a>
+<a class="sub" href="#q32-how-would-you-test-or-measure-partial-completion">Q32. How would you test or measure partial completion?</a>
+<a class="sub" href="#q33-what-is-branching-and-joins-and-why-does-it-matter">Q33. What is branching and joins, and why does it matter?</a>
+<a class="sub" href="#q34-give-a-practical-example-of-branching-and-joins">Q34. Give a practical example of branching and joins.</a>
+<a class="sub" href="#q35-what-can-go-wrong-when-implementing-branching-and-joins">Q35. What can go wrong when implementing branching and joins?</a>
+<a class="sub" href="#q36-how-would-you-test-or-measure-branching-and-joins">Q36. How would you test or measure branching and joins?</a>
+<a class="sub" href="#q37-what-is-plan-versus-execution-state-and-why-does-it-matter">Q37. What is plan versus execution state, and why does it matter?</a>
+<a class="sub" href="#q38-give-a-practical-example-of-plan-versus-execution-state">Q38. Give a practical example of plan versus execution state.</a>
+<a class="sub" href="#q39-what-can-go-wrong-when-implementing-plan-versus-execution-state">Q39. What can go wrong when implementing plan versus execution state?</a>
+<a class="sub" href="#q40-how-would-you-test-or-measure-plan-versus-execution-state">Q40. How would you test or measure plan versus execution state?</a></nav>
+<main>
+<header class="cover"><h1>Planning: Task Breakdown, Dependency Graphs, and Replanning</h1><p class="sub">Agent Fundamentals and Decision-Making · Note 6 of 10</p></header>
+<article><h2 id="1-mental-model-in-60-seconds">1. Mental model in 60 seconds</h2>
+<p>Planning: Task Breakdown, Dependency Graphs, and Replanning is best understood as a <strong>system-design choice</strong>, not a magic model feature. The LLM may propose interpretations and actions; the <strong>application</strong> owns permissions, control flow, durability, verified outcomes, and failure behavior. When interviewing, begin with the goal and risk, then show how the architecture enforces boundaries.</p>
+<h3 id="vocabulary-to-know">Vocabulary to know</h3>
+<div class="table-wrap"><table><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody><tr><td><strong>Goal decomposition</strong></td><td>Translate vague goals into observable deliverables and subgoals.</td></tr><tr><td><strong>Task dependencies</strong></td><td>Represent required-before relationships as a directed acyclic graph where possible.</td></tr><tr><td><strong>Critical path</strong></td><td>The longest dependency chain sets a lower bound on completion time.</td></tr><tr><td><strong>Resource constraints</strong></td><td>Plan for tool quotas, rate limits, token budget, and concurrency limits.</td></tr><tr><td><strong>Plan granularity</strong></td><td>Keep steps actionable without over-fragmenting a straightforward task.</td></tr><tr><td><strong>Replanning triggers</strong></td><td>Replan on a material new observation, failure, changed objective, or invalidated assumption.</td></tr><tr><td><strong>Plan validation</strong></td><td>Check preconditions, forbidden actions, missing information, and dependency consistency before execution.</td></tr><tr><td><strong>Partial completion</strong></td><td>Report completed items and blocked branches honestly instead of inventing completion.</td></tr><tr><td><strong>Branching and joins</strong></td><td>Use explicit gates when parallel branches feed downstream actions.</td></tr><tr><td><strong>Plan versus execution state</strong></td><td>Preserve both intended tasks and observed results to detect divergence.</td></tr></tbody></table></div>
+<h2 id="2-architecture-and-execution-flow">2. Architecture and execution flow</h2>
+<pre><code class="language-text">User goal
+   |
+   v
+[Authenticate + authorize + validate request]
+   |
+   v
+[Load bounded task state and relevant evidence]
+   |
+   v
+[Choose deterministic step OR constrained model decision]
+   |
+   v
+[Validate proposed action against schema + policy]
+   |
+   +--&gt; approval required? --&gt; [durable pause + human decision]
+   |
+   v
+[Execute authorized tool with timeout + idempotency]
+   |
+   v
+[Inspect result + update state + write trace]
+   |
+   +--&gt; success proven? --------&gt; [return verified result]
+   +--&gt; blocked / unsafe? ------&gt; [escalate / partial result]
+   +--&gt; budget exhausted? -----&gt; [safe fallback]
+   +--&gt; progress possible? -----&gt; [repeat]</code></pre>
+<p><strong>Important distinctions:</strong> <em>decision</em> is not <em>authorization</em>; an HTTP success is not business success; context is not durable memory; a plan is not evidence that actions succeeded.</p>
+<h2 id="3-learn-each-building-block-from-scratch">3. Learn each building block from scratch</h2>
+<h3 id="3-1-goal-decomposition">3.1 Goal decomposition</h3>
+<p><strong>What it means.</strong> Translate vague goals into observable deliverables and subgoals.</p>
+<p><strong>Concrete example.</strong> Replace improve supplier data with inspect, validate, propose corrections, approve.</p>
+<p><strong>Common mistake.</strong> Creating steps whose completion cannot be verified.</p>
+<p><strong>How to validate it.</strong> Require acceptance criteria for every subgoal.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-2-task-dependencies">3.2 Task dependencies</h3>
+<p><strong>What it means.</strong> Represent required-before relationships as a directed acyclic graph where possible.</p>
+<p><strong>Concrete example.</strong> Validate ERP ID before creating its mapping.</p>
+<p><strong>Common mistake.</strong> Executing dependent writes in parallel.</p>
+<p><strong>How to validate it.</strong> Topologically sort and reject dependency cycles.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-3-critical-path">3.3 Critical path</h3>
+<p><strong>What it means.</strong> The longest dependency chain sets a lower bound on completion time.</p>
+<p><strong>Concrete example.</strong> ERP lookup and PIM lookup are parallel, but approval waits for both.</p>
+<p><strong>Common mistake.</strong> Optimizing a non-critical task while bottleneck remains.</p>
+<p><strong>How to validate it.</strong> Estimate path durations and measure actual bottleneck.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-4-resource-constraints">3.4 Resource constraints</h3>
+<p><strong>What it means.</strong> Plan for tool quotas, rate limits, token budget, and concurrency limits.</p>
+<p><strong>Concrete example.</strong> Only five ERP API calls can be in flight at once.</p>
+<p><strong>Common mistake.</strong> Assuming unlimited parallel tool execution.</p>
+<p><strong>How to validate it.</strong> Load test under realistic quotas.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-5-plan-granularity">3.5 Plan granularity</h3>
+<p><strong>What it means.</strong> Keep steps actionable without over-fragmenting a straightforward task.</p>
+<p><strong>Concrete example.</strong> One validate CSV node rather than a step per cell.</p>
+<p><strong>Common mistake.</strong> Generating 100 microsteps that consume the whole context.</p>
+<p><strong>How to validate it.</strong> Compare plan overhead and execution outcome.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-6-replanning-triggers">3.6 Replanning triggers</h3>
+<p><strong>What it means.</strong> Replan on a material new observation, failure, changed objective, or invalidated assumption.</p>
+<p><strong>Concrete example.</strong> Supplier lookup returns merged accounts so switch mapping strategy.</p>
+<p><strong>Common mistake.</strong> Replanning after every harmless token or never replanning.</p>
+<p><strong>How to validate it.</strong> Test decision to replan on changed versus unchanged evidence.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-7-plan-validation">3.7 Plan validation</h3>
+<p><strong>What it means.</strong> Check preconditions, forbidden actions, missing information, and dependency consistency before execution.</p>
+<p><strong>Concrete example.</strong> Reject a plan that deletes records before backup.</p>
+<p><strong>Common mistake.</strong> Treating the model-generated plan as policy authority.</p>
+<p><strong>How to validate it.</strong> Static check plans against tool permissions.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-8-partial-completion">3.8 Partial completion</h3>
+<p><strong>What it means.</strong> Report completed items and blocked branches honestly instead of inventing completion.</p>
+<p><strong>Concrete example.</strong> Return 90 verified rows and 10 unresolved ERP IDs.</p>
+<p><strong>Common mistake.</strong> Marking task successful because most steps ran.</p>
+<p><strong>How to validate it.</strong> Check that outputs retain per-item statuses.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-9-branching-and-joins">3.9 Branching and joins</h3>
+<p><strong>What it means.</strong> Use explicit gates when parallel branches feed downstream actions.</p>
+<p><strong>Concrete example.</strong> Material creation waits for compliance and ERP checks.</p>
+<p><strong>Common mistake.</strong> Consuming one branch result before the other finishes.</p>
+<p><strong>How to validate it.</strong> Simulate delayed branches and check join logic.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-10-plan-versus-execution-state">3.10 Plan versus execution state</h3>
+<p><strong>What it means.</strong> Preserve both intended tasks and observed results to detect divergence.</p>
+<p><strong>Concrete example.</strong> Plan says create mapping; execution records conflict and skip.</p>
+<p><strong>Common mistake.</strong> Mutating the plan to hide execution errors.</p>
+<p><strong>How to validate it.</strong> Compare planned and executed steps in trace reports.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h2 id="4-reference-implementation-framework-agnostic">4. Reference implementation (framework-agnostic)</h2>
+<p>This pseudocode sketches <strong>control-plane</strong> responsibilities rather than working library APIs; adapt the decision and persistence interfaces to your stack. The outer application enforces tool schema and authorization even if the model ignores its prompt.</p>
+<pre><code class="language-python"># Illustrative framework-agnostic pseudocode. All authorization is server-side.
+def run_agent(goal, user, tools, state_store, max_steps=8):
+    state = state_store.load_or_create(goal=goal, user=user)
+    for step in range(max_steps):
+        if verified_success(state):
+            return {&quot;status&quot;: &quot;succeeded&quot;, &quot;evidence&quot;: state.evidence}
+        if deadline_exceeded(state) or no_progress(state):
+            return fallback_with_partial_evidence(state)
+
+        choice = choose_next_step(state)  # rule-based OR model-selected
+        validated = validate_schema(choice, tools.allowed_schemas)
+        authorize(user, validated.action, validated.arguments)
+
+        if needs_approval(validated):
+            state_store.checkpoint(state, pending_action=validated)
+            return {&quot;status&quot;: &quot;awaiting_approval&quot;, &quot;run_id&quot;: state.id}
+
+        # Idempotency key must be stable across retries of the same side effect.
+        result = tools.execute(
+            validated, timeout_seconds=10,
+            idempotency_key=state.stable_operation_id(validated)
+        )
+        state.record_observation(result)  # provenance + timestamp + outcome
+        state_store.checkpoint(state)
+
+    return fallback_with_partial_evidence(state)</code></pre>
+<h3 id="why-each-boundary-matters">Why each boundary matters</h3>
+<ol><li><strong>Before execution:</strong> validate input, identity, allowed tools, and action-specific business policies.</li><li><strong>During execution:</strong> use deadlines, limited budgets, stable idempotency keys, durable progress updates, and restricted credentials.</li><li><strong>After execution:</strong> inspect the <em>business outcome</em>, capture source evidence, and classify partial or unknown results.</li><li><strong>At completion:</strong> return only verified claims, with unresolved items and the next safe action.</li></ol>
+<h2 id="5-end-to-end-example-and-walkthrough">5. End-to-end example and walkthrough</h2>
+<h3 id="running-example-supplier-material-validation">Running example: supplier/material validation</h3>
+<p>You are building an assistant that validates a spreadsheet of materials before creating records. Inputs include a CSV, product-catalog metadata, ERP identifiers, and plant permissions. The <strong>safe design</strong> is to parse the CSV with code, fetch ERP and catalog facts with typed read tools, compare required attributes with deterministic checks, ask a model only to interpret genuinely ambiguous descriptions, and produce a row-by-row report. Creation is a separate, gated action after approval. In an interview, explain why you separated <strong>evidence gathering</strong>, <strong>judgment</strong>, and <strong>side effects</strong>.</p>
+<p><strong>Acceptance criteria:</strong> every row has a stable ID, source evidence, a pass/fail/unknown outcome, reason codes, and no writes occur without explicit authority. A report with 399 processed rows is not automatically 399 validated rows.</p>
+<p><strong>Walkthrough:</strong> the input is parsed → rows receive stable IDs → metadata is fetched from trusted tools → missing records are marked <code>unknown</code>, not <code>pass</code> → ambiguous fields may use model interpretation with recorded evidence → inconsistent rows are flagged → a reviewer approves any proposed updates → a write service enforces the approved diff and version check → the final report distinguishes verified, skipped, failed, and pending records.</p>
+<h2 id="6-design-trade-offs-you-should-discuss">6. Design trade-offs you should discuss</h2>
+<div class="table-wrap"><table><thead><tr><th>Choice</th><th>Good fit</th><th>Trade-off or failure</th></tr></thead><tbody><tr><td>Deterministic rule</td><td>Stable business invariant</td><td>Brittle for open-ended semantic ambiguity</td></tr><tr><td>LLM judgment</td><td>Ambiguous text or uncertain next investigative step</td><td>Variable outputs, token cost, eval burden</td></tr><tr><td>Human gate</td><td>High-impact or irreversible write</td><td>Human latency and review fatigue</td></tr><tr><td>Durable checkpoint</td><td>Long-running and resumable actions</td><td>Additional persistence/consistency requirements</td></tr><tr><td>Retrieval/memory</td><td>Relevant evidence outside current input</td><td>Stale, irrelevant, or unauthorized evidence</td></tr><tr><td>Bounded autonomous loop</td><td>Unpredictable path with useful tools</td><td>Loops, expense, larger operational surface</td></tr></tbody></table></div>
+<h2 id="7-production-readiness-failure-modes-mitigations-and-metrics">7. Production readiness: failure modes, mitigations, and metrics</h2>
+<div class="table-wrap"><table><thead><tr><th>Failure</th><th>Mitigation</th><th>Measure</th></tr></thead><tbody><tr><td>Tool times out after side effect</td><td>Idempotency key, query operation status, avoid blind replay</td><td>Duplicate action rate</td></tr><tr><td>Tool response contains hostile instructions</td><td>Treat result as data, isolate permissions, enforce tool policies</td><td>Injection success rate in adversarial tests</td></tr><tr><td>Agent repeats itself</td><td>No-progress detector + step budget</td><td>Repeat-action rate</td></tr><tr><td>Source systems disagree</td><td>Mark unknown, record provenance, escalate</td><td>False-pass rate</td></tr><tr><td>Reviewer approves stale diff</td><td>Version checks + approval expiry</td><td>Stale-approval rejection rate</td></tr><tr><td>Model output breaks schema</td><td>Structured generation + server validation</td><td>Schema failure rate</td></tr><tr><td>High latency / model cost</td><td>Simpler baseline, caching, caps, parallel independent reads</td><td>p50/p95 latency and cost per verified task</td></tr><tr><td>Partial failure hidden as success</td><td>Row-level status and verifiable success predicate</td><td>Outcome misclassification</td></tr></tbody></table></div>
+<p><strong>Metric definitions:</strong> task success = verified goal achieved / eligible runs; false-pass rate = invalid outputs accepted / outputs accepted; escalation rate = runs sent for human review / total runs; tool error rate = failed calls / total calls; cost per verified task = total inference + tool expense / verified tasks. Use representative, held-out workloads; report both quality and the percentage of cases the system declines.</p>
+<h2 id="8-practice-whiteboard-coding-behavioral-articulation">8. Practice: whiteboard, coding, behavioral articulation</h2>
+<p><strong>Whiteboard drill (15 minutes):</strong> Draw trusted services, model decisions, tool adapters, checkpoint database, approval UI, and audit logs. Mark the <em>trust boundary</em> between untrusted tool text and authorized actions. Explain how an interrupted write is recovered.</p>
+<p><strong>Coding drill (30 minutes):</strong> Implement a typed state object, action schema validator, loop with max steps, no-progress detector, fake tool responses, and unit tests for timeout, approval wait, duplicate retry, and conflicting sources.</p>
+<p><strong>Interview delivery pattern:</strong> (1) state the simple baseline; (2) describe why complexity is justified; (3) show data/control flow; (4) call out security + correctness; (5) explain failure behavior; (6) provide specific evaluation metrics. Avoid claiming an agent is reliable because its prompt asks it to be.</p>
+<h2 id="further-reading">Further reading</h2>
+<ul><li><a href="https://resources.anthropic.com/building-effective-ai-agents" target="_blank" rel="noopener noreferrer">Anthropic — Building Effective AI Agents</a></li><li><a href="https://claude.com/resources/guides/building-effective-ai-agents/common-architecture-patterns" target="_blank" rel="noopener noreferrer">Anthropic — Common architecture patterns</a></li><li><a href="https://docs.langchain.com/oss/python/langgraph/overview" target="_blank" rel="noopener noreferrer">LangGraph documentation</a></li><li><a href="https://arxiv.org/abs/2210.03629" target="_blank" rel="noopener noreferrer">ReAct paper (Yao et al., 2022)</a></li><li><a href="https://genai.owasp.org/llm-top-10/" target="_blank" rel="noopener noreferrer">OWASP Top 10 for LLM Applications</a></li></ul>
+<blockquote><p>These are learning references, not a claim that all examples in this guide are taken from a specific framework.</p></blockquote>
+<h2 id="9-frequently-asked-interview-questions-with-answers">9. Frequently asked interview questions (with answers)</h2>
+<p>These answers are intentionally concise enough to say aloud. For senior-level rounds, add a diagram, a failure scenario, and a measurable trade-off.</p>
+<h3 id="q1-what-is-goal-decomposition-and-why-does-it-matter">Q1. What is goal decomposition, and why does it matter?</h3>
+<p><strong>Answer:</strong> Translate vague goals into observable deliverables and subgoals. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q2-give-a-practical-example-of-goal-decomposition">Q2. Give a practical example of goal decomposition.</h3>
+<p><strong>Answer:</strong> Replace improve supplier data with inspect, validate, propose corrections, approve. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q3-what-can-go-wrong-when-implementing-goal-decomposition">Q3. What can go wrong when implementing goal decomposition?</h3>
+<p><strong>Answer:</strong> Creating steps whose completion cannot be verified. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q4-how-would-you-test-or-measure-goal-decomposition">Q4. How would you test or measure goal decomposition?</h3>
+<p><strong>Answer:</strong> Require acceptance criteria for every subgoal. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q5-what-is-task-dependencies-and-why-does-it-matter">Q5. What is task dependencies, and why does it matter?</h3>
+<p><strong>Answer:</strong> Represent required-before relationships as a directed acyclic graph where possible. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q6-give-a-practical-example-of-task-dependencies">Q6. Give a practical example of task dependencies.</h3>
+<p><strong>Answer:</strong> Validate ERP ID before creating its mapping. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q7-what-can-go-wrong-when-implementing-task-dependencies">Q7. What can go wrong when implementing task dependencies?</h3>
+<p><strong>Answer:</strong> Executing dependent writes in parallel. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q8-how-would-you-test-or-measure-task-dependencies">Q8. How would you test or measure task dependencies?</h3>
+<p><strong>Answer:</strong> Topologically sort and reject dependency cycles. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q9-what-is-critical-path-and-why-does-it-matter">Q9. What is critical path, and why does it matter?</h3>
+<p><strong>Answer:</strong> The longest dependency chain sets a lower bound on completion time. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q10-give-a-practical-example-of-critical-path">Q10. Give a practical example of critical path.</h3>
+<p><strong>Answer:</strong> ERP lookup and PIM lookup are parallel, but approval waits for both. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q11-what-can-go-wrong-when-implementing-critical-path">Q11. What can go wrong when implementing critical path?</h3>
+<p><strong>Answer:</strong> Optimizing a non-critical task while bottleneck remains. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q12-how-would-you-test-or-measure-critical-path">Q12. How would you test or measure critical path?</h3>
+<p><strong>Answer:</strong> Estimate path durations and measure actual bottleneck. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q13-what-is-resource-constraints-and-why-does-it-matter">Q13. What is resource constraints, and why does it matter?</h3>
+<p><strong>Answer:</strong> Plan for tool quotas, rate limits, token budget, and concurrency limits. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q14-give-a-practical-example-of-resource-constraints">Q14. Give a practical example of resource constraints.</h3>
+<p><strong>Answer:</strong> Only five ERP API calls can be in flight at once. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q15-what-can-go-wrong-when-implementing-resource-constraints">Q15. What can go wrong when implementing resource constraints?</h3>
+<p><strong>Answer:</strong> Assuming unlimited parallel tool execution. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q16-how-would-you-test-or-measure-resource-constraints">Q16. How would you test or measure resource constraints?</h3>
+<p><strong>Answer:</strong> Load test under realistic quotas. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q17-what-is-plan-granularity-and-why-does-it-matter">Q17. What is plan granularity, and why does it matter?</h3>
+<p><strong>Answer:</strong> Keep steps actionable without over-fragmenting a straightforward task. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q18-give-a-practical-example-of-plan-granularity">Q18. Give a practical example of plan granularity.</h3>
+<p><strong>Answer:</strong> One validate CSV node rather than a step per cell. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q19-what-can-go-wrong-when-implementing-plan-granularity">Q19. What can go wrong when implementing plan granularity?</h3>
+<p><strong>Answer:</strong> Generating 100 microsteps that consume the whole context. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q20-how-would-you-test-or-measure-plan-granularity">Q20. How would you test or measure plan granularity?</h3>
+<p><strong>Answer:</strong> Compare plan overhead and execution outcome. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q21-what-is-replanning-triggers-and-why-does-it-matter">Q21. What is replanning triggers, and why does it matter?</h3>
+<p><strong>Answer:</strong> Replan on a material new observation, failure, changed objective, or invalidated assumption. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q22-give-a-practical-example-of-replanning-triggers">Q22. Give a practical example of replanning triggers.</h3>
+<p><strong>Answer:</strong> Supplier lookup returns merged accounts so switch mapping strategy. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q23-what-can-go-wrong-when-implementing-replanning-triggers">Q23. What can go wrong when implementing replanning triggers?</h3>
+<p><strong>Answer:</strong> Replanning after every harmless token or never replanning. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q24-how-would-you-test-or-measure-replanning-triggers">Q24. How would you test or measure replanning triggers?</h3>
+<p><strong>Answer:</strong> Test decision to replan on changed versus unchanged evidence. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q25-what-is-plan-validation-and-why-does-it-matter">Q25. What is plan validation, and why does it matter?</h3>
+<p><strong>Answer:</strong> Check preconditions, forbidden actions, missing information, and dependency consistency before execution. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q26-give-a-practical-example-of-plan-validation">Q26. Give a practical example of plan validation.</h3>
+<p><strong>Answer:</strong> Reject a plan that deletes records before backup. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q27-what-can-go-wrong-when-implementing-plan-validation">Q27. What can go wrong when implementing plan validation?</h3>
+<p><strong>Answer:</strong> Treating the model-generated plan as policy authority. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q28-how-would-you-test-or-measure-plan-validation">Q28. How would you test or measure plan validation?</h3>
+<p><strong>Answer:</strong> Static check plans against tool permissions. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q29-what-is-partial-completion-and-why-does-it-matter">Q29. What is partial completion, and why does it matter?</h3>
+<p><strong>Answer:</strong> Report completed items and blocked branches honestly instead of inventing completion. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q30-give-a-practical-example-of-partial-completion">Q30. Give a practical example of partial completion.</h3>
+<p><strong>Answer:</strong> Return 90 verified rows and 10 unresolved ERP IDs. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q31-what-can-go-wrong-when-implementing-partial-completion">Q31. What can go wrong when implementing partial completion?</h3>
+<p><strong>Answer:</strong> Marking task successful because most steps ran. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q32-how-would-you-test-or-measure-partial-completion">Q32. How would you test or measure partial completion?</h3>
+<p><strong>Answer:</strong> Check that outputs retain per-item statuses. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q33-what-is-branching-and-joins-and-why-does-it-matter">Q33. What is branching and joins, and why does it matter?</h3>
+<p><strong>Answer:</strong> Use explicit gates when parallel branches feed downstream actions. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q34-give-a-practical-example-of-branching-and-joins">Q34. Give a practical example of branching and joins.</h3>
+<p><strong>Answer:</strong> Material creation waits for compliance and ERP checks. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q35-what-can-go-wrong-when-implementing-branching-and-joins">Q35. What can go wrong when implementing branching and joins?</h3>
+<p><strong>Answer:</strong> Consuming one branch result before the other finishes. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q36-how-would-you-test-or-measure-branching-and-joins">Q36. How would you test or measure branching and joins?</h3>
+<p><strong>Answer:</strong> Simulate delayed branches and check join logic. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q37-what-is-plan-versus-execution-state-and-why-does-it-matter">Q37. What is plan versus execution state, and why does it matter?</h3>
+<p><strong>Answer:</strong> Preserve both intended tasks and observed results to detect divergence. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q38-give-a-practical-example-of-plan-versus-execution-state">Q38. Give a practical example of plan versus execution state.</h3>
+<p><strong>Answer:</strong> Plan says create mapping; execution records conflict and skip. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q39-what-can-go-wrong-when-implementing-plan-versus-execution-state">Q39. What can go wrong when implementing plan versus execution state?</h3>
+<p><strong>Answer:</strong> Mutating the plan to hide execution errors. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q40-how-would-you-test-or-measure-plan-versus-execution-state">Q40. How would you test or measure plan versus execution state?</h3>
+<p><strong>Answer:</strong> Compare planned and executed steps in trace reports. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<hr>
+<p><strong>Final self-check:</strong> Can you explain this topic without relying on a framework name? Can you name the control-plane owner, the most serious failure, a safe fallback, and one metric proving it works?</p></article>
+<nav class="page-nav" aria-label="Note navigation"><a href="./llm-workflows-vs-autonomous-agents-when-each-is-appropriate.html">← LLM Workflows vs. Autonomous Agents</a><a href="./reasoning-and-acting-patterns-e-g-react-and-tool-use-loops.html">ReAct and Reasoning-and-Acting Tool-Use Loops →</a></nav>
+</main>
+</div>
+<script>
+const links = [...document.querySelectorAll(".toc a")];
+const observer = new IntersectionObserver(entries => {
+  for (const entry of entries) {
+    if (!entry.isIntersecting) continue;
+    links.forEach(link => link.classList.toggle("active", link.hash === "#" + entry.target.id));
+  }
+}, { rootMargin: "-15% 0px -72% 0px" });
+document.querySelectorAll("main h2[id], main h3[id]").forEach(heading => observer.observe(heading));
+</script>
+</body>
+</html>

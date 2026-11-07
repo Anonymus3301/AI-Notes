@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Core Agent Loop: Observe, Decide, Act, Inspect, Stop — Agent Fundamentals notes">
+<title>Core Agent Loop: Observe, Decide, Act, Inspect, Stop | Agent Fundamentals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../agent-fundamentals.css">
+</head>
+<body>
+<header class="bar">
+  <nav class="bar-links" aria-label="Main navigation">
+    <a href="./index.html">← Agent Fundamentals</a>
+    <a href="../m5.html">Module 5: Agentic AI Systems</a>
+  </nav>
+  <nav class="bar-pages" aria-label="Adjacent notes">
+    <a href="./agent-autonomy-levels-and-choosing-the-minimum-sufficient-autonomy.html" aria-label="Previous note: Agent Autonomy Levels and Minimum Sufficient Autonomy" title="Agent Autonomy Levels and Minimum Sufficient Autonomy">← Previous</a>
+    <a href="./deterministic-workflow-nodes-vs-model-selected-actions.html" aria-label="Next note: Deterministic Workflow Nodes vs. Model-Selected Actions" title="Deterministic Workflow Nodes vs. Model-Selected Actions">Next →</a>
+  </nav>
+  <span class="grow"></span>
+  <button type="button" onclick="window.print()">Print / PDF</button>
+</header>
+<div class="layout"><nav class="toc" aria-label="Contents"><strong>On this page</strong><a class="" href="#1-mental-model-in-60-seconds">1. Mental model in 60 seconds</a>
+<a class="sub" href="#vocabulary-to-know">Vocabulary to know</a>
+<a class="" href="#2-architecture-and-execution-flow">2. Architecture and execution flow</a>
+<a class="" href="#3-learn-each-building-block-from-scratch">3. Learn each building block from scratch</a>
+<a class="sub" href="#3-1-state-and-observations">3.1 State and observations</a>
+<a class="sub" href="#3-2-decision-stage">3.2 Decision stage</a>
+<a class="sub" href="#3-3-tool-execution">3.3 Tool execution</a>
+<a class="sub" href="#3-4-inspect-results">3.4 Inspect results</a>
+<a class="sub" href="#3-5-explicit-stopping">3.5 Explicit stopping</a>
+<a class="sub" href="#3-6-error-handling">3.6 Error handling</a>
+<a class="sub" href="#3-7-idempotency">3.7 Idempotency</a>
+<a class="sub" href="#3-8-progress-detection">3.8 Progress detection</a>
+<a class="sub" href="#3-9-structured-outputs">3.9 Structured outputs</a>
+<a class="sub" href="#3-10-observability">3.10 Observability</a>
+<a class="" href="#4-reference-implementation-framework-agnostic">4. Reference implementation (framework-agnostic)</a>
+<a class="sub" href="#why-each-boundary-matters">Why each boundary matters</a>
+<a class="" href="#5-end-to-end-example-and-walkthrough">5. End-to-end example and walkthrough</a>
+<a class="sub" href="#running-example-supplier-material-validation">Running example: supplier/material validation</a>
+<a class="" href="#6-design-trade-offs-you-should-discuss">6. Design trade-offs you should discuss</a>
+<a class="" href="#7-production-readiness-failure-modes-mitigations-and-metrics">7. Production readiness: failure modes, mitigations, and metrics</a>
+<a class="" href="#8-practice-whiteboard-coding-behavioral-articulation">8. Practice: whiteboard, coding, behavioral articulation</a>
+<a class="" href="#further-reading">Further reading</a>
+<a class="" href="#9-frequently-asked-interview-questions-with-answers">9. Frequently asked interview questions (with answers)</a>
+<a class="sub" href="#q1-what-is-state-and-observations-and-why-does-it-matter">Q1. What is state and observations, and why does it matter?</a>
+<a class="sub" href="#q2-give-a-practical-example-of-state-and-observations">Q2. Give a practical example of state and observations.</a>
+<a class="sub" href="#q3-what-can-go-wrong-when-implementing-state-and-observations">Q3. What can go wrong when implementing state and observations?</a>
+<a class="sub" href="#q4-how-would-you-test-or-measure-state-and-observations">Q4. How would you test or measure state and observations?</a>
+<a class="sub" href="#q5-what-is-decision-stage-and-why-does-it-matter">Q5. What is decision stage, and why does it matter?</a>
+<a class="sub" href="#q6-give-a-practical-example-of-decision-stage">Q6. Give a practical example of decision stage.</a>
+<a class="sub" href="#q7-what-can-go-wrong-when-implementing-decision-stage">Q7. What can go wrong when implementing decision stage?</a>
+<a class="sub" href="#q8-how-would-you-test-or-measure-decision-stage">Q8. How would you test or measure decision stage?</a>
+<a class="sub" href="#q9-what-is-tool-execution-and-why-does-it-matter">Q9. What is tool execution, and why does it matter?</a>
+<a class="sub" href="#q10-give-a-practical-example-of-tool-execution">Q10. Give a practical example of tool execution.</a>
+<a class="sub" href="#q11-what-can-go-wrong-when-implementing-tool-execution">Q11. What can go wrong when implementing tool execution?</a>
+<a class="sub" href="#q12-how-would-you-test-or-measure-tool-execution">Q12. How would you test or measure tool execution?</a>
+<a class="sub" href="#q13-what-is-inspect-results-and-why-does-it-matter">Q13. What is inspect results, and why does it matter?</a>
+<a class="sub" href="#q14-give-a-practical-example-of-inspect-results">Q14. Give a practical example of inspect results.</a>
+<a class="sub" href="#q15-what-can-go-wrong-when-implementing-inspect-results">Q15. What can go wrong when implementing inspect results?</a>
+<a class="sub" href="#q16-how-would-you-test-or-measure-inspect-results">Q16. How would you test or measure inspect results?</a>
+<a class="sub" href="#q17-what-is-explicit-stopping-and-why-does-it-matter">Q17. What is explicit stopping, and why does it matter?</a>
+<a class="sub" href="#q18-give-a-practical-example-of-explicit-stopping">Q18. Give a practical example of explicit stopping.</a>
+<a class="sub" href="#q19-what-can-go-wrong-when-implementing-explicit-stopping">Q19. What can go wrong when implementing explicit stopping?</a>
+<a class="sub" href="#q20-how-would-you-test-or-measure-explicit-stopping">Q20. How would you test or measure explicit stopping?</a>
+<a class="sub" href="#q21-what-is-error-handling-and-why-does-it-matter">Q21. What is error handling, and why does it matter?</a>
+<a class="sub" href="#q22-give-a-practical-example-of-error-handling">Q22. Give a practical example of error handling.</a>
+<a class="sub" href="#q23-what-can-go-wrong-when-implementing-error-handling">Q23. What can go wrong when implementing error handling?</a>
+<a class="sub" href="#q24-how-would-you-test-or-measure-error-handling">Q24. How would you test or measure error handling?</a>
+<a class="sub" href="#q25-what-is-idempotency-and-why-does-it-matter">Q25. What is idempotency, and why does it matter?</a>
+<a class="sub" href="#q26-give-a-practical-example-of-idempotency">Q26. Give a practical example of idempotency.</a>
+<a class="sub" href="#q27-what-can-go-wrong-when-implementing-idempotency">Q27. What can go wrong when implementing idempotency?</a>
+<a class="sub" href="#q28-how-would-you-test-or-measure-idempotency">Q28. How would you test or measure idempotency?</a>
+<a class="sub" href="#q29-what-is-progress-detection-and-why-does-it-matter">Q29. What is progress detection, and why does it matter?</a>
+<a class="sub" href="#q30-give-a-practical-example-of-progress-detection">Q30. Give a practical example of progress detection.</a>
+<a class="sub" href="#q31-what-can-go-wrong-when-implementing-progress-detection">Q31. What can go wrong when implementing progress detection?</a>
+<a class="sub" href="#q32-how-would-you-test-or-measure-progress-detection">Q32. How would you test or measure progress detection?</a>
+<a class="sub" href="#q33-what-is-structured-outputs-and-why-does-it-matter">Q33. What is structured outputs, and why does it matter?</a>
+<a class="sub" href="#q34-give-a-practical-example-of-structured-outputs">Q34. Give a practical example of structured outputs.</a>
+<a class="sub" href="#q35-what-can-go-wrong-when-implementing-structured-outputs">Q35. What can go wrong when implementing structured outputs?</a>
+<a class="sub" href="#q36-how-would-you-test-or-measure-structured-outputs">Q36. How would you test or measure structured outputs?</a>
+<a class="sub" href="#q37-what-is-observability-and-why-does-it-matter">Q37. What is observability, and why does it matter?</a>
+<a class="sub" href="#q38-give-a-practical-example-of-observability">Q38. Give a practical example of observability.</a>
+<a class="sub" href="#q39-what-can-go-wrong-when-implementing-observability">Q39. What can go wrong when implementing observability?</a>
+<a class="sub" href="#q40-how-would-you-test-or-measure-observability">Q40. How would you test or measure observability?</a></nav>
+<main>
+<header class="cover"><h1>Core Agent Loop: Observe, Decide, Act, Inspect, Stop</h1><p class="sub">Agent Fundamentals and Decision-Making · Note 2 of 10</p></header>
+<article><h2 id="1-mental-model-in-60-seconds">1. Mental model in 60 seconds</h2>
+<p>Core Agent Loop: Observe, Decide, Act, Inspect, Stop is best understood as a <strong>system-design choice</strong>, not a magic model feature. The LLM may propose interpretations and actions; the <strong>application</strong> owns permissions, control flow, durability, verified outcomes, and failure behavior. When interviewing, begin with the goal and risk, then show how the architecture enforces boundaries.</p>
+<h3 id="vocabulary-to-know">Vocabulary to know</h3>
+<div class="table-wrap"><table><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody><tr><td><strong>State and observations</strong></td><td>Maintain explicit task state with goal, evidence, actions taken, outstanding questions, and budgets.</td></tr><tr><td><strong>Decision stage</strong></td><td>Determine the next action from the current observation and goal, subject to allowed tools.</td></tr><tr><td><strong>Tool execution</strong></td><td>Execute validated tool requests with schema checks, authorization, and timeouts.</td></tr><tr><td><strong>Inspect results</strong></td><td>Check whether tool output proves progress; distinguish success, partial success, and error.</td></tr><tr><td><strong>Explicit stopping</strong></td><td>Stop when success is verified, a refusal is required, human input is needed, or budget expires.</td></tr><tr><td><strong>Error handling</strong></td><td>Separate transient failures, permanent failures, and unknown outcomes before deciding on retries.</td></tr><tr><td><strong>Idempotency</strong></td><td>Repeating a tool operation should not duplicate a business side effect when retries occur.</td></tr><tr><td><strong>Progress detection</strong></td><td>Track meaningful state changes and avoid repeated futile calls.</td></tr><tr><td><strong>Structured outputs</strong></td><td>Use typed actions and observations, not ambiguous strings, for control flow.</td></tr><tr><td><strong>Observability</strong></td><td>Record step traces, correlation IDs, durations, tokens, tool errors, and final outcome.</td></tr></tbody></table></div>
+<h2 id="2-architecture-and-execution-flow">2. Architecture and execution flow</h2>
+<pre><code class="language-text">User goal
+   |
+   v
+[Authenticate + authorize + validate request]
+   |
+   v
+[Load bounded task state and relevant evidence]
+   |
+   v
+[Choose deterministic step OR constrained model decision]
+   |
+   v
+[Validate proposed action against schema + policy]
+   |
+   +--&gt; approval required? --&gt; [durable pause + human decision]
+   |
+   v
+[Execute authorized tool with timeout + idempotency]
+   |
+   v
+[Inspect result + update state + write trace]
+   |
+   +--&gt; success proven? --------&gt; [return verified result]
+   +--&gt; blocked / unsafe? ------&gt; [escalate / partial result]
+   +--&gt; budget exhausted? -----&gt; [safe fallback]
+   +--&gt; progress possible? -----&gt; [repeat]</code></pre>
+<p><strong>Important distinctions:</strong> <em>decision</em> is not <em>authorization</em>; an HTTP success is not business success; context is not durable memory; a plan is not evidence that actions succeeded.</p>
+<h2 id="3-learn-each-building-block-from-scratch">3. Learn each building block from scratch</h2>
+<h3 id="3-1-state-and-observations">3.1 State and observations</h3>
+<p><strong>What it means.</strong> Maintain explicit task state with goal, evidence, actions taken, outstanding questions, and budgets.</p>
+<p><strong>Concrete example.</strong> A lookup step records that ERP returned no supplier match.</p>
+<p><strong>Common mistake.</strong> Letting conversational prose be the only source of truth.</p>
+<p><strong>How to validate it.</strong> Replay a run from the stored state.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-2-decision-stage">3.2 Decision stage</h3>
+<p><strong>What it means.</strong> Determine the next action from the current observation and goal, subject to allowed tools.</p>
+<p><strong>Concrete example.</strong> After a product lookup, select validation rather than immediately updating.</p>
+<p><strong>Common mistake.</strong> Selecting actions from stale tool output.</p>
+<p><strong>How to validate it.</strong> Unit test decision branches using fixture observations.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-3-tool-execution">3.3 Tool execution</h3>
+<p><strong>What it means.</strong> Execute validated tool requests with schema checks, authorization, and timeouts.</p>
+<p><strong>Concrete example.</strong> A read_material tool accepts one well-formed material ID.</p>
+<p><strong>Common mistake.</strong> Passing arbitrary model text into shell commands.</p>
+<p><strong>How to validate it.</strong> Fuzz arguments and assert invalid calls never execute.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-4-inspect-results">3.4 Inspect results</h3>
+<p><strong>What it means.</strong> Check whether tool output proves progress; distinguish success, partial success, and error.</p>
+<p><strong>Concrete example.</strong> HTTP 200 with zero rows is not evidence that the desired record exists.</p>
+<p><strong>Common mistake.</strong> Treating any successful API response as task completion.</p>
+<p><strong>How to validate it.</strong> Use outcome assertions and business invariants.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-5-explicit-stopping">3.5 Explicit stopping</h3>
+<p><strong>What it means.</strong> Stop when success is verified, a refusal is required, human input is needed, or budget expires.</p>
+<p><strong>Concrete example.</strong> Stop after verified mapping validation, not after the tenth identical search.</p>
+<p><strong>Common mistake.</strong> Infinite loops and premature final answers.</p>
+<p><strong>How to validate it.</strong> Simulate no-progress sequences and assert bounded termination.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-6-error-handling">3.6 Error handling</h3>
+<p><strong>What it means.</strong> Separate transient failures, permanent failures, and unknown outcomes before deciding on retries.</p>
+<p><strong>Concrete example.</strong> Retry a rate-limited GET with jitter; verify state before repeating a POST.</p>
+<p><strong>Common mistake.</strong> Blindly retrying a non-idempotent payment request.</p>
+<p><strong>How to validate it.</strong> Inject 429, timeout, and partial-write faults.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-7-idempotency">3.7 Idempotency</h3>
+<p><strong>What it means.</strong> Repeating a tool operation should not duplicate a business side effect when retries occur.</p>
+<p><strong>Concrete example.</strong> Use an idempotency key for purchase-order creation.</p>
+<p><strong>Common mistake.</strong> Assuming a network timeout means the server did nothing.</p>
+<p><strong>How to validate it.</strong> Call a command twice with the same key and compare results.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-8-progress-detection">3.8 Progress detection</h3>
+<p><strong>What it means.</strong> Track meaningful state changes and avoid repeated futile calls.</p>
+<p><strong>Concrete example.</strong> Hash normalized retrieval results to detect no-new-information loops.</p>
+<p><strong>Common mistake.</strong> Repeatedly querying an empty index.</p>
+<p><strong>How to validate it.</strong> Test cycle detection and no-progress thresholds.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-9-structured-outputs">3.9 Structured outputs</h3>
+<p><strong>What it means.</strong> Use typed actions and observations, not ambiguous strings, for control flow.</p>
+<p><strong>Concrete example.</strong> Model emits {action: &quot;lookup&quot;, material_id: &quot;...&quot;} against a JSON schema.</p>
+<p><strong>Common mistake.</strong> Parsing free-form model explanations with fragile regex.</p>
+<p><strong>How to validate it.</strong> Validate both happy and malformed responses.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-10-observability">3.10 Observability</h3>
+<p><strong>What it means.</strong> Record step traces, correlation IDs, durations, tokens, tool errors, and final outcome.</p>
+<p><strong>Concrete example.</strong> A trace identifies an approval wait as the latency bottleneck.</p>
+<p><strong>Common mistake.</strong> Keeping only final answers, making failures irreproducible.</p>
+<p><strong>How to validate it.</strong> Reconstruct a sampled production run from its trace.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h2 id="4-reference-implementation-framework-agnostic">4. Reference implementation (framework-agnostic)</h2>
+<p>This pseudocode sketches <strong>control-plane</strong> responsibilities rather than working library APIs; adapt the decision and persistence interfaces to your stack. The outer application enforces tool schema and authorization even if the model ignores its prompt.</p>
+<pre><code class="language-python"># Illustrative framework-agnostic pseudocode. All authorization is server-side.
+def run_agent(goal, user, tools, state_store, max_steps=8):
+    state = state_store.load_or_create(goal=goal, user=user)
+    for step in range(max_steps):
+        if verified_success(state):
+            return {&quot;status&quot;: &quot;succeeded&quot;, &quot;evidence&quot;: state.evidence}
+        if deadline_exceeded(state) or no_progress(state):
+            return fallback_with_partial_evidence(state)
+
+        choice = choose_next_step(state)  # rule-based OR model-selected
+        validated = validate_schema(choice, tools.allowed_schemas)
+        authorize(user, validated.action, validated.arguments)
+
+        if needs_approval(validated):
+            state_store.checkpoint(state, pending_action=validated)
+            return {&quot;status&quot;: &quot;awaiting_approval&quot;, &quot;run_id&quot;: state.id}
+
+        # Idempotency key must be stable across retries of the same side effect.
+        result = tools.execute(
+            validated, timeout_seconds=10,
+            idempotency_key=state.stable_operation_id(validated)
+        )
+        state.record_observation(result)  # provenance + timestamp + outcome
+        state_store.checkpoint(state)
+
+    return fallback_with_partial_evidence(state)</code></pre>
+<h3 id="why-each-boundary-matters">Why each boundary matters</h3>
+<ol><li><strong>Before execution:</strong> validate input, identity, allowed tools, and action-specific business policies.</li><li><strong>During execution:</strong> use deadlines, limited budgets, stable idempotency keys, durable progress updates, and restricted credentials.</li><li><strong>After execution:</strong> inspect the <em>business outcome</em>, capture source evidence, and classify partial or unknown results.</li><li><strong>At completion:</strong> return only verified claims, with unresolved items and the next safe action.</li></ol>
+<h2 id="5-end-to-end-example-and-walkthrough">5. End-to-end example and walkthrough</h2>
+<h3 id="running-example-supplier-material-validation">Running example: supplier/material validation</h3>
+<p>You are building an assistant that validates a spreadsheet of materials before creating records. Inputs include a CSV, product-catalog metadata, ERP identifiers, and plant permissions. The <strong>safe design</strong> is to parse the CSV with code, fetch ERP and catalog facts with typed read tools, compare required attributes with deterministic checks, ask a model only to interpret genuinely ambiguous descriptions, and produce a row-by-row report. Creation is a separate, gated action after approval. In an interview, explain why you separated <strong>evidence gathering</strong>, <strong>judgment</strong>, and <strong>side effects</strong>.</p>
+<p><strong>Acceptance criteria:</strong> every row has a stable ID, source evidence, a pass/fail/unknown outcome, reason codes, and no writes occur without explicit authority. A report with 399 processed rows is not automatically 399 validated rows.</p>
+<p><strong>Walkthrough:</strong> the input is parsed → rows receive stable IDs → metadata is fetched from trusted tools → missing records are marked <code>unknown</code>, not <code>pass</code> → ambiguous fields may use model interpretation with recorded evidence → inconsistent rows are flagged → a reviewer approves any proposed updates → a write service enforces the approved diff and version check → the final report distinguishes verified, skipped, failed, and pending records.</p>
+<h2 id="6-design-trade-offs-you-should-discuss">6. Design trade-offs you should discuss</h2>
+<div class="table-wrap"><table><thead><tr><th>Choice</th><th>Good fit</th><th>Trade-off or failure</th></tr></thead><tbody><tr><td>Deterministic rule</td><td>Stable business invariant</td><td>Brittle for open-ended semantic ambiguity</td></tr><tr><td>LLM judgment</td><td>Ambiguous text or uncertain next investigative step</td><td>Variable outputs, token cost, eval burden</td></tr><tr><td>Human gate</td><td>High-impact or irreversible write</td><td>Human latency and review fatigue</td></tr><tr><td>Durable checkpoint</td><td>Long-running and resumable actions</td><td>Additional persistence/consistency requirements</td></tr><tr><td>Retrieval/memory</td><td>Relevant evidence outside current input</td><td>Stale, irrelevant, or unauthorized evidence</td></tr><tr><td>Bounded autonomous loop</td><td>Unpredictable path with useful tools</td><td>Loops, expense, larger operational surface</td></tr></tbody></table></div>
+<h2 id="7-production-readiness-failure-modes-mitigations-and-metrics">7. Production readiness: failure modes, mitigations, and metrics</h2>
+<div class="table-wrap"><table><thead><tr><th>Failure</th><th>Mitigation</th><th>Measure</th></tr></thead><tbody><tr><td>Tool times out after side effect</td><td>Idempotency key, query operation status, avoid blind replay</td><td>Duplicate action rate</td></tr><tr><td>Tool response contains hostile instructions</td><td>Treat result as data, isolate permissions, enforce tool policies</td><td>Injection success rate in adversarial tests</td></tr><tr><td>Agent repeats itself</td><td>No-progress detector + step budget</td><td>Repeat-action rate</td></tr><tr><td>Source systems disagree</td><td>Mark unknown, record provenance, escalate</td><td>False-pass rate</td></tr><tr><td>Reviewer approves stale diff</td><td>Version checks + approval expiry</td><td>Stale-approval rejection rate</td></tr><tr><td>Model output breaks schema</td><td>Structured generation + server validation</td><td>Schema failure rate</td></tr><tr><td>High latency / model cost</td><td>Simpler baseline, caching, caps, parallel independent reads</td><td>p50/p95 latency and cost per verified task</td></tr><tr><td>Partial failure hidden as success</td><td>Row-level status and verifiable success predicate</td><td>Outcome misclassification</td></tr></tbody></table></div>
+<p><strong>Metric definitions:</strong> task success = verified goal achieved / eligible runs; false-pass rate = invalid outputs accepted / outputs accepted; escalation rate = runs sent for human review / total runs; tool error rate = failed calls / total calls; cost per verified task = total inference + tool expense / verified tasks. Use representative, held-out workloads; report both quality and the percentage of cases the system declines.</p>
+<h2 id="8-practice-whiteboard-coding-behavioral-articulation">8. Practice: whiteboard, coding, behavioral articulation</h2>
+<p><strong>Whiteboard drill (15 minutes):</strong> Draw trusted services, model decisions, tool adapters, checkpoint database, approval UI, and audit logs. Mark the <em>trust boundary</em> between untrusted tool text and authorized actions. Explain how an interrupted write is recovered.</p>
+<p><strong>Coding drill (30 minutes):</strong> Implement a typed state object, action schema validator, loop with max steps, no-progress detector, fake tool responses, and unit tests for timeout, approval wait, duplicate retry, and conflicting sources.</p>
+<p><strong>Interview delivery pattern:</strong> (1) state the simple baseline; (2) describe why complexity is justified; (3) show data/control flow; (4) call out security + correctness; (5) explain failure behavior; (6) provide specific evaluation metrics. Avoid claiming an agent is reliable because its prompt asks it to be.</p>
+<h2 id="further-reading">Further reading</h2>
+<ul><li><a href="https://resources.anthropic.com/building-effective-ai-agents" target="_blank" rel="noopener noreferrer">Anthropic — Building Effective AI Agents</a></li><li><a href="https://claude.com/resources/guides/building-effective-ai-agents/common-architecture-patterns" target="_blank" rel="noopener noreferrer">Anthropic — Common architecture patterns</a></li><li><a href="https://docs.langchain.com/oss/python/langgraph/overview" target="_blank" rel="noopener noreferrer">LangGraph documentation</a></li><li><a href="https://arxiv.org/abs/2210.03629" target="_blank" rel="noopener noreferrer">ReAct paper (Yao et al., 2022)</a></li><li><a href="https://genai.owasp.org/llm-top-10/" target="_blank" rel="noopener noreferrer">OWASP Top 10 for LLM Applications</a></li></ul>
+<blockquote><p>These are learning references, not a claim that all examples in this guide are taken from a specific framework.</p></blockquote>
+<h2 id="9-frequently-asked-interview-questions-with-answers">9. Frequently asked interview questions (with answers)</h2>
+<p>These answers are intentionally concise enough to say aloud. For senior-level rounds, add a diagram, a failure scenario, and a measurable trade-off.</p>
+<h3 id="q1-what-is-state-and-observations-and-why-does-it-matter">Q1. What is state and observations, and why does it matter?</h3>
+<p><strong>Answer:</strong> Maintain explicit task state with goal, evidence, actions taken, outstanding questions, and budgets. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q2-give-a-practical-example-of-state-and-observations">Q2. Give a practical example of state and observations.</h3>
+<p><strong>Answer:</strong> A lookup step records that ERP returned no supplier match. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q3-what-can-go-wrong-when-implementing-state-and-observations">Q3. What can go wrong when implementing state and observations?</h3>
+<p><strong>Answer:</strong> Letting conversational prose be the only source of truth. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q4-how-would-you-test-or-measure-state-and-observations">Q4. How would you test or measure state and observations?</h3>
+<p><strong>Answer:</strong> Replay a run from the stored state. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q5-what-is-decision-stage-and-why-does-it-matter">Q5. What is decision stage, and why does it matter?</h3>
+<p><strong>Answer:</strong> Determine the next action from the current observation and goal, subject to allowed tools. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q6-give-a-practical-example-of-decision-stage">Q6. Give a practical example of decision stage.</h3>
+<p><strong>Answer:</strong> After a product lookup, select validation rather than immediately updating. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q7-what-can-go-wrong-when-implementing-decision-stage">Q7. What can go wrong when implementing decision stage?</h3>
+<p><strong>Answer:</strong> Selecting actions from stale tool output. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q8-how-would-you-test-or-measure-decision-stage">Q8. How would you test or measure decision stage?</h3>
+<p><strong>Answer:</strong> Unit test decision branches using fixture observations. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q9-what-is-tool-execution-and-why-does-it-matter">Q9. What is tool execution, and why does it matter?</h3>
+<p><strong>Answer:</strong> Execute validated tool requests with schema checks, authorization, and timeouts. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q10-give-a-practical-example-of-tool-execution">Q10. Give a practical example of tool execution.</h3>
+<p><strong>Answer:</strong> A read_material tool accepts one well-formed material ID. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q11-what-can-go-wrong-when-implementing-tool-execution">Q11. What can go wrong when implementing tool execution?</h3>
+<p><strong>Answer:</strong> Passing arbitrary model text into shell commands. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q12-how-would-you-test-or-measure-tool-execution">Q12. How would you test or measure tool execution?</h3>
+<p><strong>Answer:</strong> Fuzz arguments and assert invalid calls never execute. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q13-what-is-inspect-results-and-why-does-it-matter">Q13. What is inspect results, and why does it matter?</h3>
+<p><strong>Answer:</strong> Check whether tool output proves progress; distinguish success, partial success, and error. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q14-give-a-practical-example-of-inspect-results">Q14. Give a practical example of inspect results.</h3>
+<p><strong>Answer:</strong> HTTP 200 with zero rows is not evidence that the desired record exists. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q15-what-can-go-wrong-when-implementing-inspect-results">Q15. What can go wrong when implementing inspect results?</h3>
+<p><strong>Answer:</strong> Treating any successful API response as task completion. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q16-how-would-you-test-or-measure-inspect-results">Q16. How would you test or measure inspect results?</h3>
+<p><strong>Answer:</strong> Use outcome assertions and business invariants. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q17-what-is-explicit-stopping-and-why-does-it-matter">Q17. What is explicit stopping, and why does it matter?</h3>
+<p><strong>Answer:</strong> Stop when success is verified, a refusal is required, human input is needed, or budget expires. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q18-give-a-practical-example-of-explicit-stopping">Q18. Give a practical example of explicit stopping.</h3>
+<p><strong>Answer:</strong> Stop after verified mapping validation, not after the tenth identical search. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q19-what-can-go-wrong-when-implementing-explicit-stopping">Q19. What can go wrong when implementing explicit stopping?</h3>
+<p><strong>Answer:</strong> Infinite loops and premature final answers. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q20-how-would-you-test-or-measure-explicit-stopping">Q20. How would you test or measure explicit stopping?</h3>
+<p><strong>Answer:</strong> Simulate no-progress sequences and assert bounded termination. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q21-what-is-error-handling-and-why-does-it-matter">Q21. What is error handling, and why does it matter?</h3>
+<p><strong>Answer:</strong> Separate transient failures, permanent failures, and unknown outcomes before deciding on retries. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q22-give-a-practical-example-of-error-handling">Q22. Give a practical example of error handling.</h3>
+<p><strong>Answer:</strong> Retry a rate-limited GET with jitter; verify state before repeating a POST. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q23-what-can-go-wrong-when-implementing-error-handling">Q23. What can go wrong when implementing error handling?</h3>
+<p><strong>Answer:</strong> Blindly retrying a non-idempotent payment request. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q24-how-would-you-test-or-measure-error-handling">Q24. How would you test or measure error handling?</h3>
+<p><strong>Answer:</strong> Inject 429, timeout, and partial-write faults. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q25-what-is-idempotency-and-why-does-it-matter">Q25. What is idempotency, and why does it matter?</h3>
+<p><strong>Answer:</strong> Repeating a tool operation should not duplicate a business side effect when retries occur. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q26-give-a-practical-example-of-idempotency">Q26. Give a practical example of idempotency.</h3>
+<p><strong>Answer:</strong> Use an idempotency key for purchase-order creation. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q27-what-can-go-wrong-when-implementing-idempotency">Q27. What can go wrong when implementing idempotency?</h3>
+<p><strong>Answer:</strong> Assuming a network timeout means the server did nothing. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q28-how-would-you-test-or-measure-idempotency">Q28. How would you test or measure idempotency?</h3>
+<p><strong>Answer:</strong> Call a command twice with the same key and compare results. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q29-what-is-progress-detection-and-why-does-it-matter">Q29. What is progress detection, and why does it matter?</h3>
+<p><strong>Answer:</strong> Track meaningful state changes and avoid repeated futile calls. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q30-give-a-practical-example-of-progress-detection">Q30. Give a practical example of progress detection.</h3>
+<p><strong>Answer:</strong> Hash normalized retrieval results to detect no-new-information loops. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q31-what-can-go-wrong-when-implementing-progress-detection">Q31. What can go wrong when implementing progress detection?</h3>
+<p><strong>Answer:</strong> Repeatedly querying an empty index. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q32-how-would-you-test-or-measure-progress-detection">Q32. How would you test or measure progress detection?</h3>
+<p><strong>Answer:</strong> Test cycle detection and no-progress thresholds. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q33-what-is-structured-outputs-and-why-does-it-matter">Q33. What is structured outputs, and why does it matter?</h3>
+<p><strong>Answer:</strong> Use typed actions and observations, not ambiguous strings, for control flow. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q34-give-a-practical-example-of-structured-outputs">Q34. Give a practical example of structured outputs.</h3>
+<p><strong>Answer:</strong> Model emits {action: &quot;lookup&quot;, material_id: &quot;...&quot;} against a JSON schema. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q35-what-can-go-wrong-when-implementing-structured-outputs">Q35. What can go wrong when implementing structured outputs?</h3>
+<p><strong>Answer:</strong> Parsing free-form model explanations with fragile regex. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q36-how-would-you-test-or-measure-structured-outputs">Q36. How would you test or measure structured outputs?</h3>
+<p><strong>Answer:</strong> Validate both happy and malformed responses. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q37-what-is-observability-and-why-does-it-matter">Q37. What is observability, and why does it matter?</h3>
+<p><strong>Answer:</strong> Record step traces, correlation IDs, durations, tokens, tool errors, and final outcome. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q38-give-a-practical-example-of-observability">Q38. Give a practical example of observability.</h3>
+<p><strong>Answer:</strong> A trace identifies an approval wait as the latency bottleneck. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q39-what-can-go-wrong-when-implementing-observability">Q39. What can go wrong when implementing observability?</h3>
+<p><strong>Answer:</strong> Keeping only final answers, making failures irreproducible. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q40-how-would-you-test-or-measure-observability">Q40. How would you test or measure observability?</h3>
+<p><strong>Answer:</strong> Reconstruct a sampled production run from its trace. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<hr>
+<p><strong>Final self-check:</strong> Can you explain this topic without relying on a framework name? Can you name the control-plane owner, the most serious failure, a safe fallback, and one metric proving it works?</p></article>
+<nav class="page-nav" aria-label="Note navigation"><a href="./agent-autonomy-levels-and-choosing-the-minimum-sufficient-autonomy.html">← Agent Autonomy Levels and Minimum Sufficient Autonomy</a><a href="./deterministic-workflow-nodes-vs-model-selected-actions.html">Deterministic Workflow Nodes vs. Model-Selected Actions →</a></nav>
+</main>
+</div>
+<script>
+const links = [...document.querySelectorAll(".toc a")];
+const observer = new IntersectionObserver(entries => {
+  for (const entry of entries) {
+    if (!entry.isIntersecting) continue;
+    links.forEach(link => link.classList.toggle("active", link.hash === "#" + entry.target.id));
+  }
+}, { rootMargin: "-15% 0px -72% 0px" });
+document.querySelectorAll("main h2[id], main h3[id]").forEach(heading => observer.observe(heading));
+</script>
+</body>
+</html>

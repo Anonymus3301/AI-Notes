@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="LLM Workflows vs. Autonomous Agents — Agent Fundamentals notes">
+<title>LLM Workflows vs. Autonomous Agents | Agent Fundamentals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../agent-fundamentals.css">
+</head>
+<body>
+<header class="bar">
+  <nav class="bar-links" aria-label="Main navigation">
+    <a href="./index.html">← Agent Fundamentals</a>
+    <a href="../m5.html">Module 5: Agentic AI Systems</a>
+  </nav>
+  <nav class="bar-pages" aria-label="Adjacent notes">
+    <a href="./human-in-the-loop-reviews-approvals-and-escalation.html" aria-label="Previous note: Human-in-the-Loop Reviews, Approvals, and Escalation" title="Human-in-the-Loop Reviews, Approvals, and Escalation">← Previous</a>
+    <a href="./planning-task-breakdown-dependency-graphs-and-replanning.html" aria-label="Next note: Planning: Task Breakdown, Dependency Graphs, and Replanning" title="Planning: Task Breakdown, Dependency Graphs, and Replanning">Next →</a>
+  </nav>
+  <span class="grow"></span>
+  <button type="button" onclick="window.print()">Print / PDF</button>
+</header>
+<div class="layout"><nav class="toc" aria-label="Contents"><strong>On this page</strong><a class="" href="#1-mental-model-in-60-seconds">1. Mental model in 60 seconds</a>
+<a class="sub" href="#vocabulary-to-know">Vocabulary to know</a>
+<a class="" href="#2-architecture-and-execution-flow">2. Architecture and execution flow</a>
+<a class="" href="#3-learn-each-building-block-from-scratch">3. Learn each building block from scratch</a>
+<a class="sub" href="#3-1-workflow-definition">3.1 Workflow definition</a>
+<a class="sub" href="#3-2-agent-definition">3.2 Agent definition</a>
+<a class="sub" href="#3-3-prompt-response-baseline">3.3 Prompt-response baseline</a>
+<a class="sub" href="#3-4-prompt-chaining">3.4 Prompt chaining</a>
+<a class="sub" href="#3-5-routing-workflow">3.5 Routing workflow</a>
+<a class="sub" href="#3-6-parallelization">3.6 Parallelization</a>
+<a class="sub" href="#3-7-evaluator-optimizer">3.7 Evaluator-optimizer</a>
+<a class="sub" href="#3-8-dynamic-uncertainty">3.8 Dynamic uncertainty</a>
+<a class="sub" href="#3-9-trade-off-matrix">3.9 Trade-off matrix</a>
+<a class="sub" href="#3-10-graduated-architecture">3.10 Graduated architecture</a>
+<a class="" href="#4-reference-implementation-framework-agnostic">4. Reference implementation (framework-agnostic)</a>
+<a class="sub" href="#why-each-boundary-matters">Why each boundary matters</a>
+<a class="" href="#5-end-to-end-example-and-walkthrough">5. End-to-end example and walkthrough</a>
+<a class="sub" href="#running-example-supplier-material-validation">Running example: supplier/material validation</a>
+<a class="" href="#6-design-trade-offs-you-should-discuss">6. Design trade-offs you should discuss</a>
+<a class="" href="#7-production-readiness-failure-modes-mitigations-and-metrics">7. Production readiness: failure modes, mitigations, and metrics</a>
+<a class="" href="#8-practice-whiteboard-coding-behavioral-articulation">8. Practice: whiteboard, coding, behavioral articulation</a>
+<a class="" href="#further-reading">Further reading</a>
+<a class="" href="#9-frequently-asked-interview-questions-with-answers">9. Frequently asked interview questions (with answers)</a>
+<a class="sub" href="#q1-what-is-workflow-definition-and-why-does-it-matter">Q1. What is workflow definition, and why does it matter?</a>
+<a class="sub" href="#q2-give-a-practical-example-of-workflow-definition">Q2. Give a practical example of workflow definition.</a>
+<a class="sub" href="#q3-what-can-go-wrong-when-implementing-workflow-definition">Q3. What can go wrong when implementing workflow definition?</a>
+<a class="sub" href="#q4-how-would-you-test-or-measure-workflow-definition">Q4. How would you test or measure workflow definition?</a>
+<a class="sub" href="#q5-what-is-agent-definition-and-why-does-it-matter">Q5. What is agent definition, and why does it matter?</a>
+<a class="sub" href="#q6-give-a-practical-example-of-agent-definition">Q6. Give a practical example of agent definition.</a>
+<a class="sub" href="#q7-what-can-go-wrong-when-implementing-agent-definition">Q7. What can go wrong when implementing agent definition?</a>
+<a class="sub" href="#q8-how-would-you-test-or-measure-agent-definition">Q8. How would you test or measure agent definition?</a>
+<a class="sub" href="#q9-what-is-prompt-response-baseline-and-why-does-it-matter">Q9. What is prompt-response baseline, and why does it matter?</a>
+<a class="sub" href="#q10-give-a-practical-example-of-prompt-response-baseline">Q10. Give a practical example of prompt-response baseline.</a>
+<a class="sub" href="#q11-what-can-go-wrong-when-implementing-prompt-response-baseline">Q11. What can go wrong when implementing prompt-response baseline?</a>
+<a class="sub" href="#q12-how-would-you-test-or-measure-prompt-response-baseline">Q12. How would you test or measure prompt-response baseline?</a>
+<a class="sub" href="#q13-what-is-prompt-chaining-and-why-does-it-matter">Q13. What is prompt chaining, and why does it matter?</a>
+<a class="sub" href="#q14-give-a-practical-example-of-prompt-chaining">Q14. Give a practical example of prompt chaining.</a>
+<a class="sub" href="#q15-what-can-go-wrong-when-implementing-prompt-chaining">Q15. What can go wrong when implementing prompt chaining?</a>
+<a class="sub" href="#q16-how-would-you-test-or-measure-prompt-chaining">Q16. How would you test or measure prompt chaining?</a>
+<a class="sub" href="#q17-what-is-routing-workflow-and-why-does-it-matter">Q17. What is routing workflow, and why does it matter?</a>
+<a class="sub" href="#q18-give-a-practical-example-of-routing-workflow">Q18. Give a practical example of routing workflow.</a>
+<a class="sub" href="#q19-what-can-go-wrong-when-implementing-routing-workflow">Q19. What can go wrong when implementing routing workflow?</a>
+<a class="sub" href="#q20-how-would-you-test-or-measure-routing-workflow">Q20. How would you test or measure routing workflow?</a>
+<a class="sub" href="#q21-what-is-parallelization-and-why-does-it-matter">Q21. What is parallelization, and why does it matter?</a>
+<a class="sub" href="#q22-give-a-practical-example-of-parallelization">Q22. Give a practical example of parallelization.</a>
+<a class="sub" href="#q23-what-can-go-wrong-when-implementing-parallelization">Q23. What can go wrong when implementing parallelization?</a>
+<a class="sub" href="#q24-how-would-you-test-or-measure-parallelization">Q24. How would you test or measure parallelization?</a>
+<a class="sub" href="#q25-what-is-evaluator-optimizer-and-why-does-it-matter">Q25. What is evaluator-optimizer, and why does it matter?</a>
+<a class="sub" href="#q26-give-a-practical-example-of-evaluator-optimizer">Q26. Give a practical example of evaluator-optimizer.</a>
+<a class="sub" href="#q27-what-can-go-wrong-when-implementing-evaluator-optimizer">Q27. What can go wrong when implementing evaluator-optimizer?</a>
+<a class="sub" href="#q28-how-would-you-test-or-measure-evaluator-optimizer">Q28. How would you test or measure evaluator-optimizer?</a>
+<a class="sub" href="#q29-what-is-dynamic-uncertainty-and-why-does-it-matter">Q29. What is dynamic uncertainty, and why does it matter?</a>
+<a class="sub" href="#q30-give-a-practical-example-of-dynamic-uncertainty">Q30. Give a practical example of dynamic uncertainty.</a>
+<a class="sub" href="#q31-what-can-go-wrong-when-implementing-dynamic-uncertainty">Q31. What can go wrong when implementing dynamic uncertainty?</a>
+<a class="sub" href="#q32-how-would-you-test-or-measure-dynamic-uncertainty">Q32. How would you test or measure dynamic uncertainty?</a>
+<a class="sub" href="#q33-what-is-trade-off-matrix-and-why-does-it-matter">Q33. What is trade-off matrix, and why does it matter?</a>
+<a class="sub" href="#q34-give-a-practical-example-of-trade-off-matrix">Q34. Give a practical example of trade-off matrix.</a>
+<a class="sub" href="#q35-what-can-go-wrong-when-implementing-trade-off-matrix">Q35. What can go wrong when implementing trade-off matrix?</a>
+<a class="sub" href="#q36-how-would-you-test-or-measure-trade-off-matrix">Q36. How would you test or measure trade-off matrix?</a>
+<a class="sub" href="#q37-what-is-graduated-architecture-and-why-does-it-matter">Q37. What is graduated architecture, and why does it matter?</a>
+<a class="sub" href="#q38-give-a-practical-example-of-graduated-architecture">Q38. Give a practical example of graduated architecture.</a>
+<a class="sub" href="#q39-what-can-go-wrong-when-implementing-graduated-architecture">Q39. What can go wrong when implementing graduated architecture?</a>
+<a class="sub" href="#q40-how-would-you-test-or-measure-graduated-architecture">Q40. How would you test or measure graduated architecture?</a></nav>
+<main>
+<header class="cover"><h1>LLM Workflows vs. Autonomous Agents</h1><p class="sub">Agent Fundamentals and Decision-Making · Note 5 of 10</p></header>
+<article><h2 id="1-mental-model-in-60-seconds">1. Mental model in 60 seconds</h2>
+<p>LLM Workflows vs. Autonomous Agents is best understood as a <strong>system-design choice</strong>, not a magic model feature. The LLM may propose interpretations and actions; the <strong>application</strong> owns permissions, control flow, durability, verified outcomes, and failure behavior. When interviewing, begin with the goal and risk, then show how the architecture enforces boundaries.</p>
+<h3 id="vocabulary-to-know">Vocabulary to know</h3>
+<div class="table-wrap"><table><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody><tr><td><strong>Workflow definition</strong></td><td>A workflow has an application-defined path even if individual steps use an LLM.</td></tr><tr><td><strong>Agent definition</strong></td><td>An agent dynamically chooses next steps and tools to pursue a goal within constraints.</td></tr><tr><td><strong>Prompt-response baseline</strong></td><td>A single model call is often the cheapest viable solution.</td></tr><tr><td><strong>Prompt chaining</strong></td><td>Break a fixed task into sequenced transformations when stages need separate checks.</td></tr><tr><td><strong>Routing workflow</strong></td><td>Map inputs to specialist handlers with rules or a classification model.</td></tr><tr><td><strong>Parallelization</strong></td><td>Run independent subtasks simultaneously and aggregate the results.</td></tr><tr><td><strong>Evaluator-optimizer</strong></td><td>Iteratively improve an artifact with a separate evaluator and bounded revisions.</td></tr><tr><td><strong>Dynamic uncertainty</strong></td><td>Agents pay off when the sequence of investigation cannot be known beforehand.</td></tr><tr><td><strong>Trade-off matrix</strong></td><td>Compare predictability, latency, cost, observability, flexibility, and blast radius.</td></tr><tr><td><strong>Graduated architecture</strong></td><td>Start with a fixed workflow, add model judgment only where failure evidence warrants it.</td></tr></tbody></table></div>
+<h2 id="2-architecture-and-execution-flow">2. Architecture and execution flow</h2>
+<pre><code class="language-text">User goal
+   |
+   v
+[Authenticate + authorize + validate request]
+   |
+   v
+[Load bounded task state and relevant evidence]
+   |
+   v
+[Choose deterministic step OR constrained model decision]
+   |
+   v
+[Validate proposed action against schema + policy]
+   |
+   +--&gt; approval required? --&gt; [durable pause + human decision]
+   |
+   v
+[Execute authorized tool with timeout + idempotency]
+   |
+   v
+[Inspect result + update state + write trace]
+   |
+   +--&gt; success proven? --------&gt; [return verified result]
+   +--&gt; blocked / unsafe? ------&gt; [escalate / partial result]
+   +--&gt; budget exhausted? -----&gt; [safe fallback]
+   +--&gt; progress possible? -----&gt; [repeat]</code></pre>
+<p><strong>Important distinctions:</strong> <em>decision</em> is not <em>authorization</em>; an HTTP success is not business success; context is not durable memory; a plan is not evidence that actions succeeded.</p>
+<h2 id="3-learn-each-building-block-from-scratch">3. Learn each building block from scratch</h2>
+<h3 id="3-1-workflow-definition">3.1 Workflow definition</h3>
+<p><strong>What it means.</strong> A workflow has an application-defined path even if individual steps use an LLM.</p>
+<p><strong>Concrete example.</strong> Extract invoice fields, validate, request approval, then write.</p>
+<p><strong>Common mistake.</strong> Calling any chain of LLM prompts an autonomous agent.</p>
+<p><strong>How to validate it.</strong> Diagram which component controls each transition.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-2-agent-definition">3.2 Agent definition</h3>
+<p><strong>What it means.</strong> An agent dynamically chooses next steps and tools to pursue a goal within constraints.</p>
+<p><strong>Concrete example.</strong> Investigate an unknown supply-chain mismatch using several read tools.</p>
+<p><strong>Common mistake.</strong> Assuming an agent always needs multiple models.</p>
+<p><strong>How to validate it.</strong> Test behavior under varied unexpected observations.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-3-prompt-response-baseline">3.3 Prompt-response baseline</h3>
+<p><strong>What it means.</strong> A single model call is often the cheapest viable solution.</p>
+<p><strong>Concrete example.</strong> Summarize a short support ticket.</p>
+<p><strong>Common mistake.</strong> Creating a planner and memory store for trivial summarization.</p>
+<p><strong>How to validate it.</strong> Compare quality and latency to more complex designs.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-4-prompt-chaining">3.4 Prompt chaining</h3>
+<p><strong>What it means.</strong> Break a fixed task into sequenced transformations when stages need separate checks.</p>
+<p><strong>Concrete example.</strong> Extract requirements, classify, then generate a formatted report.</p>
+<p><strong>Common mistake.</strong> Splitting a simple task into redundant calls.</p>
+<p><strong>How to validate it.</strong> Check step-wise failure propagation.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-5-routing-workflow">3.5 Routing workflow</h3>
+<p><strong>What it means.</strong> Map inputs to specialist handlers with rules or a classification model.</p>
+<p><strong>Concrete example.</strong> Route password reset to deterministic backend service.</p>
+<p><strong>Common mistake.</strong> Building an open-ended agent to select among two fixed handlers.</p>
+<p><strong>How to validate it.</strong> Measure routing precision and fallback frequency.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-6-parallelization">3.6 Parallelization</h3>
+<p><strong>What it means.</strong> Run independent subtasks simultaneously and aggregate the results.</p>
+<p><strong>Concrete example.</strong> Check tax code and supplier metadata concurrently.</p>
+<p><strong>Common mistake.</strong> Parallelize dependent state changes that require ordering.</p>
+<p><strong>How to validate it.</strong> Validate consistency and p95 latency.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-7-evaluator-optimizer">3.7 Evaluator-optimizer</h3>
+<p><strong>What it means.</strong> Iteratively improve an artifact with a separate evaluator and bounded revisions.</p>
+<p><strong>Concrete example.</strong> Draft a SQL query, run syntax check, repair once.</p>
+<p><strong>Common mistake.</strong> Using an untrusted self-grade as proof of correctness.</p>
+<p><strong>How to validate it.</strong> Test improvement on external gold-standard cases.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-8-dynamic-uncertainty">3.8 Dynamic uncertainty</h3>
+<p><strong>What it means.</strong> Agents pay off when the sequence of investigation cannot be known beforehand.</p>
+<p><strong>Concrete example.</strong> Diagnose an intermittent production incident from logs and metrics.</p>
+<p><strong>Common mistake.</strong> Forcing fixed branches for every possible unknown anomaly.</p>
+<p><strong>How to validate it.</strong> Use scenario diversity tests and compare coverage.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-9-trade-off-matrix">3.9 Trade-off matrix</h3>
+<p><strong>What it means.</strong> Compare predictability, latency, cost, observability, flexibility, and blast radius.</p>
+<p><strong>Concrete example.</strong> Choose a workflow for regulated approvals and an agent for exploratory diagnosis.</p>
+<p><strong>Common mistake.</strong> Selecting based on marketing terminology.</p>
+<p><strong>How to validate it.</strong> Build a decision table for each use case.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-10-graduated-architecture">3.10 Graduated architecture</h3>
+<p><strong>What it means.</strong> Start with a fixed workflow, add model judgment only where failure evidence warrants it.</p>
+<p><strong>Concrete example.</strong> Introduce adaptive retrieval only after fixed search misses documented cases.</p>
+<p><strong>Common mistake.</strong> Starting with a multi-agent hierarchy without baseline metrics.</p>
+<p><strong>How to validate it.</strong> A/B test added autonomy against a simpler baseline.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h2 id="4-reference-implementation-framework-agnostic">4. Reference implementation (framework-agnostic)</h2>
+<p>This pseudocode sketches <strong>control-plane</strong> responsibilities rather than working library APIs; adapt the decision and persistence interfaces to your stack. The outer application enforces tool schema and authorization even if the model ignores its prompt.</p>
+<pre><code class="language-python"># Illustrative framework-agnostic pseudocode. All authorization is server-side.
+def run_agent(goal, user, tools, state_store, max_steps=8):
+    state = state_store.load_or_create(goal=goal, user=user)
+    for step in range(max_steps):
+        if verified_success(state):
+            return {&quot;status&quot;: &quot;succeeded&quot;, &quot;evidence&quot;: state.evidence}
+        if deadline_exceeded(state) or no_progress(state):
+            return fallback_with_partial_evidence(state)
+
+        choice = choose_next_step(state)  # rule-based OR model-selected
+        validated = validate_schema(choice, tools.allowed_schemas)
+        authorize(user, validated.action, validated.arguments)
+
+        if needs_approval(validated):
+            state_store.checkpoint(state, pending_action=validated)
+            return {&quot;status&quot;: &quot;awaiting_approval&quot;, &quot;run_id&quot;: state.id}
+
+        # Idempotency key must be stable across retries of the same side effect.
+        result = tools.execute(
+            validated, timeout_seconds=10,
+            idempotency_key=state.stable_operation_id(validated)
+        )
+        state.record_observation(result)  # provenance + timestamp + outcome
+        state_store.checkpoint(state)
+
+    return fallback_with_partial_evidence(state)</code></pre>
+<h3 id="why-each-boundary-matters">Why each boundary matters</h3>
+<ol><li><strong>Before execution:</strong> validate input, identity, allowed tools, and action-specific business policies.</li><li><strong>During execution:</strong> use deadlines, limited budgets, stable idempotency keys, durable progress updates, and restricted credentials.</li><li><strong>After execution:</strong> inspect the <em>business outcome</em>, capture source evidence, and classify partial or unknown results.</li><li><strong>At completion:</strong> return only verified claims, with unresolved items and the next safe action.</li></ol>
+<h2 id="5-end-to-end-example-and-walkthrough">5. End-to-end example and walkthrough</h2>
+<h3 id="running-example-supplier-material-validation">Running example: supplier/material validation</h3>
+<p>You are building an assistant that validates a spreadsheet of materials before creating records. Inputs include a CSV, product-catalog metadata, ERP identifiers, and plant permissions. The <strong>safe design</strong> is to parse the CSV with code, fetch ERP and catalog facts with typed read tools, compare required attributes with deterministic checks, ask a model only to interpret genuinely ambiguous descriptions, and produce a row-by-row report. Creation is a separate, gated action after approval. In an interview, explain why you separated <strong>evidence gathering</strong>, <strong>judgment</strong>, and <strong>side effects</strong>.</p>
+<p><strong>Acceptance criteria:</strong> every row has a stable ID, source evidence, a pass/fail/unknown outcome, reason codes, and no writes occur without explicit authority. A report with 399 processed rows is not automatically 399 validated rows.</p>
+<p><strong>Walkthrough:</strong> the input is parsed → rows receive stable IDs → metadata is fetched from trusted tools → missing records are marked <code>unknown</code>, not <code>pass</code> → ambiguous fields may use model interpretation with recorded evidence → inconsistent rows are flagged → a reviewer approves any proposed updates → a write service enforces the approved diff and version check → the final report distinguishes verified, skipped, failed, and pending records.</p>
+<h2 id="6-design-trade-offs-you-should-discuss">6. Design trade-offs you should discuss</h2>
+<div class="table-wrap"><table><thead><tr><th>Choice</th><th>Good fit</th><th>Trade-off or failure</th></tr></thead><tbody><tr><td>Deterministic rule</td><td>Stable business invariant</td><td>Brittle for open-ended semantic ambiguity</td></tr><tr><td>LLM judgment</td><td>Ambiguous text or uncertain next investigative step</td><td>Variable outputs, token cost, eval burden</td></tr><tr><td>Human gate</td><td>High-impact or irreversible write</td><td>Human latency and review fatigue</td></tr><tr><td>Durable checkpoint</td><td>Long-running and resumable actions</td><td>Additional persistence/consistency requirements</td></tr><tr><td>Retrieval/memory</td><td>Relevant evidence outside current input</td><td>Stale, irrelevant, or unauthorized evidence</td></tr><tr><td>Bounded autonomous loop</td><td>Unpredictable path with useful tools</td><td>Loops, expense, larger operational surface</td></tr></tbody></table></div>
+<h2 id="7-production-readiness-failure-modes-mitigations-and-metrics">7. Production readiness: failure modes, mitigations, and metrics</h2>
+<div class="table-wrap"><table><thead><tr><th>Failure</th><th>Mitigation</th><th>Measure</th></tr></thead><tbody><tr><td>Tool times out after side effect</td><td>Idempotency key, query operation status, avoid blind replay</td><td>Duplicate action rate</td></tr><tr><td>Tool response contains hostile instructions</td><td>Treat result as data, isolate permissions, enforce tool policies</td><td>Injection success rate in adversarial tests</td></tr><tr><td>Agent repeats itself</td><td>No-progress detector + step budget</td><td>Repeat-action rate</td></tr><tr><td>Source systems disagree</td><td>Mark unknown, record provenance, escalate</td><td>False-pass rate</td></tr><tr><td>Reviewer approves stale diff</td><td>Version checks + approval expiry</td><td>Stale-approval rejection rate</td></tr><tr><td>Model output breaks schema</td><td>Structured generation + server validation</td><td>Schema failure rate</td></tr><tr><td>High latency / model cost</td><td>Simpler baseline, caching, caps, parallel independent reads</td><td>p50/p95 latency and cost per verified task</td></tr><tr><td>Partial failure hidden as success</td><td>Row-level status and verifiable success predicate</td><td>Outcome misclassification</td></tr></tbody></table></div>
+<p><strong>Metric definitions:</strong> task success = verified goal achieved / eligible runs; false-pass rate = invalid outputs accepted / outputs accepted; escalation rate = runs sent for human review / total runs; tool error rate = failed calls / total calls; cost per verified task = total inference + tool expense / verified tasks. Use representative, held-out workloads; report both quality and the percentage of cases the system declines.</p>
+<h2 id="8-practice-whiteboard-coding-behavioral-articulation">8. Practice: whiteboard, coding, behavioral articulation</h2>
+<p><strong>Whiteboard drill (15 minutes):</strong> Draw trusted services, model decisions, tool adapters, checkpoint database, approval UI, and audit logs. Mark the <em>trust boundary</em> between untrusted tool text and authorized actions. Explain how an interrupted write is recovered.</p>
+<p><strong>Coding drill (30 minutes):</strong> Implement a typed state object, action schema validator, loop with max steps, no-progress detector, fake tool responses, and unit tests for timeout, approval wait, duplicate retry, and conflicting sources.</p>
+<p><strong>Interview delivery pattern:</strong> (1) state the simple baseline; (2) describe why complexity is justified; (3) show data/control flow; (4) call out security + correctness; (5) explain failure behavior; (6) provide specific evaluation metrics. Avoid claiming an agent is reliable because its prompt asks it to be.</p>
+<h2 id="further-reading">Further reading</h2>
+<ul><li><a href="https://resources.anthropic.com/building-effective-ai-agents" target="_blank" rel="noopener noreferrer">Anthropic — Building Effective AI Agents</a></li><li><a href="https://claude.com/resources/guides/building-effective-ai-agents/common-architecture-patterns" target="_blank" rel="noopener noreferrer">Anthropic — Common architecture patterns</a></li><li><a href="https://docs.langchain.com/oss/python/langgraph/overview" target="_blank" rel="noopener noreferrer">LangGraph documentation</a></li><li><a href="https://arxiv.org/abs/2210.03629" target="_blank" rel="noopener noreferrer">ReAct paper (Yao et al., 2022)</a></li><li><a href="https://genai.owasp.org/llm-top-10/" target="_blank" rel="noopener noreferrer">OWASP Top 10 for LLM Applications</a></li></ul>
+<blockquote><p>These are learning references, not a claim that all examples in this guide are taken from a specific framework.</p></blockquote>
+<h2 id="9-frequently-asked-interview-questions-with-answers">9. Frequently asked interview questions (with answers)</h2>
+<p>These answers are intentionally concise enough to say aloud. For senior-level rounds, add a diagram, a failure scenario, and a measurable trade-off.</p>
+<h3 id="q1-what-is-workflow-definition-and-why-does-it-matter">Q1. What is workflow definition, and why does it matter?</h3>
+<p><strong>Answer:</strong> A workflow has an application-defined path even if individual steps use an LLM. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q2-give-a-practical-example-of-workflow-definition">Q2. Give a practical example of workflow definition.</h3>
+<p><strong>Answer:</strong> Extract invoice fields, validate, request approval, then write. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q3-what-can-go-wrong-when-implementing-workflow-definition">Q3. What can go wrong when implementing workflow definition?</h3>
+<p><strong>Answer:</strong> Calling any chain of LLM prompts an autonomous agent. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q4-how-would-you-test-or-measure-workflow-definition">Q4. How would you test or measure workflow definition?</h3>
+<p><strong>Answer:</strong> Diagram which component controls each transition. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q5-what-is-agent-definition-and-why-does-it-matter">Q5. What is agent definition, and why does it matter?</h3>
+<p><strong>Answer:</strong> An agent dynamically chooses next steps and tools to pursue a goal within constraints. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q6-give-a-practical-example-of-agent-definition">Q6. Give a practical example of agent definition.</h3>
+<p><strong>Answer:</strong> Investigate an unknown supply-chain mismatch using several read tools. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q7-what-can-go-wrong-when-implementing-agent-definition">Q7. What can go wrong when implementing agent definition?</h3>
+<p><strong>Answer:</strong> Assuming an agent always needs multiple models. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q8-how-would-you-test-or-measure-agent-definition">Q8. How would you test or measure agent definition?</h3>
+<p><strong>Answer:</strong> Test behavior under varied unexpected observations. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q9-what-is-prompt-response-baseline-and-why-does-it-matter">Q9. What is prompt-response baseline, and why does it matter?</h3>
+<p><strong>Answer:</strong> A single model call is often the cheapest viable solution. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q10-give-a-practical-example-of-prompt-response-baseline">Q10. Give a practical example of prompt-response baseline.</h3>
+<p><strong>Answer:</strong> Summarize a short support ticket. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q11-what-can-go-wrong-when-implementing-prompt-response-baseline">Q11. What can go wrong when implementing prompt-response baseline?</h3>
+<p><strong>Answer:</strong> Creating a planner and memory store for trivial summarization. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q12-how-would-you-test-or-measure-prompt-response-baseline">Q12. How would you test or measure prompt-response baseline?</h3>
+<p><strong>Answer:</strong> Compare quality and latency to more complex designs. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q13-what-is-prompt-chaining-and-why-does-it-matter">Q13. What is prompt chaining, and why does it matter?</h3>
+<p><strong>Answer:</strong> Break a fixed task into sequenced transformations when stages need separate checks. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q14-give-a-practical-example-of-prompt-chaining">Q14. Give a practical example of prompt chaining.</h3>
+<p><strong>Answer:</strong> Extract requirements, classify, then generate a formatted report. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q15-what-can-go-wrong-when-implementing-prompt-chaining">Q15. What can go wrong when implementing prompt chaining?</h3>
+<p><strong>Answer:</strong> Splitting a simple task into redundant calls. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q16-how-would-you-test-or-measure-prompt-chaining">Q16. How would you test or measure prompt chaining?</h3>
+<p><strong>Answer:</strong> Check step-wise failure propagation. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q17-what-is-routing-workflow-and-why-does-it-matter">Q17. What is routing workflow, and why does it matter?</h3>
+<p><strong>Answer:</strong> Map inputs to specialist handlers with rules or a classification model. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q18-give-a-practical-example-of-routing-workflow">Q18. Give a practical example of routing workflow.</h3>
+<p><strong>Answer:</strong> Route password reset to deterministic backend service. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q19-what-can-go-wrong-when-implementing-routing-workflow">Q19. What can go wrong when implementing routing workflow?</h3>
+<p><strong>Answer:</strong> Building an open-ended agent to select among two fixed handlers. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q20-how-would-you-test-or-measure-routing-workflow">Q20. How would you test or measure routing workflow?</h3>
+<p><strong>Answer:</strong> Measure routing precision and fallback frequency. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q21-what-is-parallelization-and-why-does-it-matter">Q21. What is parallelization, and why does it matter?</h3>
+<p><strong>Answer:</strong> Run independent subtasks simultaneously and aggregate the results. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q22-give-a-practical-example-of-parallelization">Q22. Give a practical example of parallelization.</h3>
+<p><strong>Answer:</strong> Check tax code and supplier metadata concurrently. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q23-what-can-go-wrong-when-implementing-parallelization">Q23. What can go wrong when implementing parallelization?</h3>
+<p><strong>Answer:</strong> Parallelize dependent state changes that require ordering. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q24-how-would-you-test-or-measure-parallelization">Q24. How would you test or measure parallelization?</h3>
+<p><strong>Answer:</strong> Validate consistency and p95 latency. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q25-what-is-evaluator-optimizer-and-why-does-it-matter">Q25. What is evaluator-optimizer, and why does it matter?</h3>
+<p><strong>Answer:</strong> Iteratively improve an artifact with a separate evaluator and bounded revisions. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q26-give-a-practical-example-of-evaluator-optimizer">Q26. Give a practical example of evaluator-optimizer.</h3>
+<p><strong>Answer:</strong> Draft a SQL query, run syntax check, repair once. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q27-what-can-go-wrong-when-implementing-evaluator-optimizer">Q27. What can go wrong when implementing evaluator-optimizer?</h3>
+<p><strong>Answer:</strong> Using an untrusted self-grade as proof of correctness. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q28-how-would-you-test-or-measure-evaluator-optimizer">Q28. How would you test or measure evaluator-optimizer?</h3>
+<p><strong>Answer:</strong> Test improvement on external gold-standard cases. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q29-what-is-dynamic-uncertainty-and-why-does-it-matter">Q29. What is dynamic uncertainty, and why does it matter?</h3>
+<p><strong>Answer:</strong> Agents pay off when the sequence of investigation cannot be known beforehand. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q30-give-a-practical-example-of-dynamic-uncertainty">Q30. Give a practical example of dynamic uncertainty.</h3>
+<p><strong>Answer:</strong> Diagnose an intermittent production incident from logs and metrics. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q31-what-can-go-wrong-when-implementing-dynamic-uncertainty">Q31. What can go wrong when implementing dynamic uncertainty?</h3>
+<p><strong>Answer:</strong> Forcing fixed branches for every possible unknown anomaly. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q32-how-would-you-test-or-measure-dynamic-uncertainty">Q32. How would you test or measure dynamic uncertainty?</h3>
+<p><strong>Answer:</strong> Use scenario diversity tests and compare coverage. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q33-what-is-trade-off-matrix-and-why-does-it-matter">Q33. What is trade-off matrix, and why does it matter?</h3>
+<p><strong>Answer:</strong> Compare predictability, latency, cost, observability, flexibility, and blast radius. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q34-give-a-practical-example-of-trade-off-matrix">Q34. Give a practical example of trade-off matrix.</h3>
+<p><strong>Answer:</strong> Choose a workflow for regulated approvals and an agent for exploratory diagnosis. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q35-what-can-go-wrong-when-implementing-trade-off-matrix">Q35. What can go wrong when implementing trade-off matrix?</h3>
+<p><strong>Answer:</strong> Selecting based on marketing terminology. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q36-how-would-you-test-or-measure-trade-off-matrix">Q36. How would you test or measure trade-off matrix?</h3>
+<p><strong>Answer:</strong> Build a decision table for each use case. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q37-what-is-graduated-architecture-and-why-does-it-matter">Q37. What is graduated architecture, and why does it matter?</h3>
+<p><strong>Answer:</strong> Start with a fixed workflow, add model judgment only where failure evidence warrants it. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q38-give-a-practical-example-of-graduated-architecture">Q38. Give a practical example of graduated architecture.</h3>
+<p><strong>Answer:</strong> Introduce adaptive retrieval only after fixed search misses documented cases. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q39-what-can-go-wrong-when-implementing-graduated-architecture">Q39. What can go wrong when implementing graduated architecture?</h3>
+<p><strong>Answer:</strong> Starting with a multi-agent hierarchy without baseline metrics. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q40-how-would-you-test-or-measure-graduated-architecture">Q40. How would you test or measure graduated architecture?</h3>
+<p><strong>Answer:</strong> A/B test added autonomy against a simpler baseline. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<hr>
+<p><strong>Final self-check:</strong> Can you explain this topic without relying on a framework name? Can you name the control-plane owner, the most serious failure, a safe fallback, and one metric proving it works?</p></article>
+<nav class="page-nav" aria-label="Note navigation"><a href="./human-in-the-loop-reviews-approvals-and-escalation.html">← Human-in-the-Loop Reviews, Approvals, and Escalation</a><a href="./planning-task-breakdown-dependency-graphs-and-replanning.html">Planning: Task Breakdown, Dependency Graphs, and Replanning →</a></nav>
+</main>
+</div>
+<script>
+const links = [...document.querySelectorAll(".toc a")];
+const observer = new IntersectionObserver(entries => {
+  for (const entry of entries) {
+    if (!entry.isIntersecting) continue;
+    links.forEach(link => link.classList.toggle("active", link.hash === "#" + entry.target.id));
+  }
+}, { rootMargin: "-15% 0px -72% 0px" });
+document.querySelectorAll("main h2[id], main h3[id]").forEach(heading => observer.observe(heading));
+</script>
+</body>
+</html>

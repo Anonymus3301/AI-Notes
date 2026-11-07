@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Reflection, Critique, Self-Correction, and Limitations — Agent Fundamentals notes">
+<title>Reflection, Critique, Self-Correction, and Limitations | Agent Fundamentals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../agent-fundamentals.css">
+</head>
+<body>
+<header class="bar">
+  <nav class="bar-links" aria-label="Main navigation">
+    <a href="./index.html">← Agent Fundamentals</a>
+    <a href="../m5.html">Module 5: Agentic AI Systems</a>
+  </nav>
+  <nav class="bar-pages" aria-label="Adjacent notes">
+    <a href="./reasoning-and-acting-patterns-e-g-react-and-tool-use-loops.html" aria-label="Previous note: ReAct and Reasoning-and-Acting Tool-Use Loops" title="ReAct and Reasoning-and-Acting Tool-Use Loops">← Previous</a>
+    <a href="./short-term-context-vs-persistent-long-term-memory.html" aria-label="Next note: Short-Term Context vs. Persistent Long-Term Memory" title="Short-Term Context vs. Persistent Long-Term Memory">Next →</a>
+  </nav>
+  <span class="grow"></span>
+  <button type="button" onclick="window.print()">Print / PDF</button>
+</header>
+<div class="layout"><nav class="toc" aria-label="Contents"><strong>On this page</strong><a class="" href="#1-mental-model-in-60-seconds">1. Mental model in 60 seconds</a>
+<a class="sub" href="#vocabulary-to-know">Vocabulary to know</a>
+<a class="" href="#2-architecture-and-execution-flow">2. Architecture and execution flow</a>
+<a class="" href="#3-learn-each-building-block-from-scratch">3. Learn each building block from scratch</a>
+<a class="sub" href="#3-1-reflection-definition">3.1 Reflection definition</a>
+<a class="sub" href="#3-2-independent-evaluator">3.2 Independent evaluator</a>
+<a class="sub" href="#3-3-critique-rubric">3.3 Critique rubric</a>
+<a class="sub" href="#3-4-external-feedback">3.4 External feedback</a>
+<a class="sub" href="#3-5-bounded-correction">3.5 Bounded correction</a>
+<a class="sub" href="#3-6-error-amplification">3.6 Error amplification</a>
+<a class="sub" href="#3-7-regression-checking">3.7 Regression checking</a>
+<a class="sub" href="#3-8-when-not-to-reflect">3.8 When not to reflect</a>
+<a class="sub" href="#3-9-evaluator-gaming">3.9 Evaluator gaming</a>
+<a class="sub" href="#3-10-decision-record">3.10 Decision record</a>
+<a class="" href="#4-reference-implementation-framework-agnostic">4. Reference implementation (framework-agnostic)</a>
+<a class="sub" href="#why-each-boundary-matters">Why each boundary matters</a>
+<a class="" href="#5-end-to-end-example-and-walkthrough">5. End-to-end example and walkthrough</a>
+<a class="sub" href="#running-example-supplier-material-validation">Running example: supplier/material validation</a>
+<a class="" href="#6-design-trade-offs-you-should-discuss">6. Design trade-offs you should discuss</a>
+<a class="" href="#7-production-readiness-failure-modes-mitigations-and-metrics">7. Production readiness: failure modes, mitigations, and metrics</a>
+<a class="" href="#8-practice-whiteboard-coding-behavioral-articulation">8. Practice: whiteboard, coding, behavioral articulation</a>
+<a class="" href="#further-reading">Further reading</a>
+<a class="" href="#9-frequently-asked-interview-questions-with-answers">9. Frequently asked interview questions (with answers)</a>
+<a class="sub" href="#q1-what-is-reflection-definition-and-why-does-it-matter">Q1. What is reflection definition, and why does it matter?</a>
+<a class="sub" href="#q2-give-a-practical-example-of-reflection-definition">Q2. Give a practical example of reflection definition.</a>
+<a class="sub" href="#q3-what-can-go-wrong-when-implementing-reflection-definition">Q3. What can go wrong when implementing reflection definition?</a>
+<a class="sub" href="#q4-how-would-you-test-or-measure-reflection-definition">Q4. How would you test or measure reflection definition?</a>
+<a class="sub" href="#q5-what-is-independent-evaluator-and-why-does-it-matter">Q5. What is independent evaluator, and why does it matter?</a>
+<a class="sub" href="#q6-give-a-practical-example-of-independent-evaluator">Q6. Give a practical example of independent evaluator.</a>
+<a class="sub" href="#q7-what-can-go-wrong-when-implementing-independent-evaluator">Q7. What can go wrong when implementing independent evaluator?</a>
+<a class="sub" href="#q8-how-would-you-test-or-measure-independent-evaluator">Q8. How would you test or measure independent evaluator?</a>
+<a class="sub" href="#q9-what-is-critique-rubric-and-why-does-it-matter">Q9. What is critique rubric, and why does it matter?</a>
+<a class="sub" href="#q10-give-a-practical-example-of-critique-rubric">Q10. Give a practical example of critique rubric.</a>
+<a class="sub" href="#q11-what-can-go-wrong-when-implementing-critique-rubric">Q11. What can go wrong when implementing critique rubric?</a>
+<a class="sub" href="#q12-how-would-you-test-or-measure-critique-rubric">Q12. How would you test or measure critique rubric?</a>
+<a class="sub" href="#q13-what-is-external-feedback-and-why-does-it-matter">Q13. What is external feedback, and why does it matter?</a>
+<a class="sub" href="#q14-give-a-practical-example-of-external-feedback">Q14. Give a practical example of external feedback.</a>
+<a class="sub" href="#q15-what-can-go-wrong-when-implementing-external-feedback">Q15. What can go wrong when implementing external feedback?</a>
+<a class="sub" href="#q16-how-would-you-test-or-measure-external-feedback">Q16. How would you test or measure external feedback?</a>
+<a class="sub" href="#q17-what-is-bounded-correction-and-why-does-it-matter">Q17. What is bounded correction, and why does it matter?</a>
+<a class="sub" href="#q18-give-a-practical-example-of-bounded-correction">Q18. Give a practical example of bounded correction.</a>
+<a class="sub" href="#q19-what-can-go-wrong-when-implementing-bounded-correction">Q19. What can go wrong when implementing bounded correction?</a>
+<a class="sub" href="#q20-how-would-you-test-or-measure-bounded-correction">Q20. How would you test or measure bounded correction?</a>
+<a class="sub" href="#q21-what-is-error-amplification-and-why-does-it-matter">Q21. What is error amplification, and why does it matter?</a>
+<a class="sub" href="#q22-give-a-practical-example-of-error-amplification">Q22. Give a practical example of error amplification.</a>
+<a class="sub" href="#q23-what-can-go-wrong-when-implementing-error-amplification">Q23. What can go wrong when implementing error amplification?</a>
+<a class="sub" href="#q24-how-would-you-test-or-measure-error-amplification">Q24. How would you test or measure error amplification?</a>
+<a class="sub" href="#q25-what-is-regression-checking-and-why-does-it-matter">Q25. What is regression checking, and why does it matter?</a>
+<a class="sub" href="#q26-give-a-practical-example-of-regression-checking">Q26. Give a practical example of regression checking.</a>
+<a class="sub" href="#q27-what-can-go-wrong-when-implementing-regression-checking">Q27. What can go wrong when implementing regression checking?</a>
+<a class="sub" href="#q28-how-would-you-test-or-measure-regression-checking">Q28. How would you test or measure regression checking?</a>
+<a class="sub" href="#q29-what-is-when-not-to-reflect-and-why-does-it-matter">Q29. What is when not to reflect, and why does it matter?</a>
+<a class="sub" href="#q30-give-a-practical-example-of-when-not-to-reflect">Q30. Give a practical example of when not to reflect.</a>
+<a class="sub" href="#q31-what-can-go-wrong-when-implementing-when-not-to-reflect">Q31. What can go wrong when implementing when not to reflect?</a>
+<a class="sub" href="#q32-how-would-you-test-or-measure-when-not-to-reflect">Q32. How would you test or measure when not to reflect?</a>
+<a class="sub" href="#q33-what-is-evaluator-gaming-and-why-does-it-matter">Q33. What is evaluator gaming, and why does it matter?</a>
+<a class="sub" href="#q34-give-a-practical-example-of-evaluator-gaming">Q34. Give a practical example of evaluator gaming.</a>
+<a class="sub" href="#q35-what-can-go-wrong-when-implementing-evaluator-gaming">Q35. What can go wrong when implementing evaluator gaming?</a>
+<a class="sub" href="#q36-how-would-you-test-or-measure-evaluator-gaming">Q36. How would you test or measure evaluator gaming?</a>
+<a class="sub" href="#q37-what-is-decision-record-and-why-does-it-matter">Q37. What is decision record, and why does it matter?</a>
+<a class="sub" href="#q38-give-a-practical-example-of-decision-record">Q38. Give a practical example of decision record.</a>
+<a class="sub" href="#q39-what-can-go-wrong-when-implementing-decision-record">Q39. What can go wrong when implementing decision record?</a>
+<a class="sub" href="#q40-how-would-you-test-or-measure-decision-record">Q40. How would you test or measure decision record?</a></nav>
+<main>
+<header class="cover"><h1>Reflection, Critique, Self-Correction, and Limitations</h1><p class="sub">Agent Fundamentals and Decision-Making · Note 8 of 10</p></header>
+<article><h2 id="1-mental-model-in-60-seconds">1. Mental model in 60 seconds</h2>
+<p>Reflection, Critique, Self-Correction, and Limitations is best understood as a <strong>system-design choice</strong>, not a magic model feature. The LLM may propose interpretations and actions; the <strong>application</strong> owns permissions, control flow, durability, verified outcomes, and failure behavior. When interviewing, begin with the goal and risk, then show how the architecture enforces boundaries.</p>
+<h3 id="vocabulary-to-know">Vocabulary to know</h3>
+<div class="table-wrap"><table><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody><tr><td><strong>Reflection definition</strong></td><td>A model reviews an intermediate answer or plan and proposes improvements.</td></tr><tr><td><strong>Independent evaluator</strong></td><td>Use a distinct rubric, tool, or model to check output rather than unstructured self-praise.</td></tr><tr><td><strong>Critique rubric</strong></td><td>Define concrete criteria such as correctness, completeness, groundedness, constraints, and security.</td></tr><tr><td><strong>External feedback</strong></td><td>Prefer executable tests, source checks, and user feedback over self-critique.</td></tr><tr><td><strong>Bounded correction</strong></td><td>Limit revision attempts and stop when no measurable progress occurs.</td></tr><tr><td><strong>Error amplification</strong></td><td>A critic sharing the same misconceptions may confidently reinforce an error.</td></tr><tr><td><strong>Regression checking</strong></td><td>A revision can fix one aspect while breaking another.</td></tr><tr><td><strong>When not to reflect</strong></td><td>For simple, deterministic tasks, an extra critique call adds latency and cost without value.</td></tr><tr><td><strong>Evaluator gaming</strong></td><td>If the generator optimizes against a flawed grader, scores can rise while real quality falls.</td></tr><tr><td><strong>Decision record</strong></td><td>Retain what was changed, why, and which test justified accepting the revision.</td></tr></tbody></table></div>
+<h2 id="2-architecture-and-execution-flow">2. Architecture and execution flow</h2>
+<pre><code class="language-text">User goal
+   |
+   v
+[Authenticate + authorize + validate request]
+   |
+   v
+[Load bounded task state and relevant evidence]
+   |
+   v
+[Choose deterministic step OR constrained model decision]
+   |
+   v
+[Validate proposed action against schema + policy]
+   |
+   +--&gt; approval required? --&gt; [durable pause + human decision]
+   |
+   v
+[Execute authorized tool with timeout + idempotency]
+   |
+   v
+[Inspect result + update state + write trace]
+   |
+   +--&gt; success proven? --------&gt; [return verified result]
+   +--&gt; blocked / unsafe? ------&gt; [escalate / partial result]
+   +--&gt; budget exhausted? -----&gt; [safe fallback]
+   +--&gt; progress possible? -----&gt; [repeat]</code></pre>
+<p><strong>Important distinctions:</strong> <em>decision</em> is not <em>authorization</em>; an HTTP success is not business success; context is not durable memory; a plan is not evidence that actions succeeded.</p>
+<h2 id="3-learn-each-building-block-from-scratch">3. Learn each building block from scratch</h2>
+<h3 id="3-1-reflection-definition">3.1 Reflection definition</h3>
+<p><strong>What it means.</strong> A model reviews an intermediate answer or plan and proposes improvements.</p>
+<p><strong>Concrete example.</strong> A drafting agent notices its response omitted a required field.</p>
+<p><strong>Common mistake.</strong> Assuming reflection necessarily improves factual accuracy.</p>
+<p><strong>How to validate it.</strong> Compare with an objective validation set.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-2-independent-evaluator">3.2 Independent evaluator</h3>
+<p><strong>What it means.</strong> Use a distinct rubric, tool, or model to check output rather than unstructured self-praise.</p>
+<p><strong>Concrete example.</strong> SQL parser validates a generated query.</p>
+<p><strong>Common mistake.</strong> Trusting model saying looks correct.</p>
+<p><strong>How to validate it.</strong> Measure evaluator precision and recall.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-3-critique-rubric">3.3 Critique rubric</h3>
+<p><strong>What it means.</strong> Define concrete criteria such as correctness, completeness, groundedness, constraints, and security.</p>
+<p><strong>Concrete example.</strong> Require every material validation row to include source evidence.</p>
+<p><strong>Common mistake.</strong> Generic instruction to improve your answer.</p>
+<p><strong>How to validate it.</strong> Score on labeled rubric items.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-4-external-feedback">3.4 External feedback</h3>
+<p><strong>What it means.</strong> Prefer executable tests, source checks, and user feedback over self-critique.</p>
+<p><strong>Concrete example.</strong> Run a generated SQL query in read-only staging.</p>
+<p><strong>Common mistake.</strong> Confusing fluent explanation with verified execution.</p>
+<p><strong>How to validate it.</strong> Measure factual error before and after external feedback.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-5-bounded-correction">3.5 Bounded correction</h3>
+<p><strong>What it means.</strong> Limit revision attempts and stop when no measurable progress occurs.</p>
+<p><strong>Concrete example.</strong> Allow at most two repairs to a malformed JSON payload.</p>
+<p><strong>Common mistake.</strong> Infinite critique-rewrite loops.</p>
+<p><strong>How to validate it.</strong> Inject unsatisfiable constraints and assert exit.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-6-error-amplification">3.6 Error amplification</h3>
+<p><strong>What it means.</strong> A critic sharing the same misconceptions may confidently reinforce an error.</p>
+<p><strong>Concrete example.</strong> Two prompts hallucinate the same nonexistent API property.</p>
+<p><strong>Common mistake.</strong> Treating repeated agreement as independent proof.</p>
+<p><strong>How to validate it.</strong> Use disjoint data, tools, or human labels.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-7-regression-checking">3.7 Regression checking</h3>
+<p><strong>What it means.</strong> A revision can fix one aspect while breaking another.</p>
+<p><strong>Concrete example.</strong> A code patch fixes a test but violates authorization.</p>
+<p><strong>Common mistake.</strong> Accepting a patch without rerunning the entire suite.</p>
+<p><strong>How to validate it.</strong> Run full invariant and regression tests.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-8-when-not-to-reflect">3.8 When not to reflect</h3>
+<p><strong>What it means.</strong> For simple, deterministic tasks, an extra critique call adds latency and cost without value.</p>
+<p><strong>Concrete example.</strong> No LLM critique needed for a regex format check.</p>
+<p><strong>Common mistake.</strong> Applying expensive reflection to all requests.</p>
+<p><strong>How to validate it.</strong> Measure net benefit by task category.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-9-evaluator-gaming">3.9 Evaluator gaming</h3>
+<p><strong>What it means.</strong> If the generator optimizes against a flawed grader, scores can rise while real quality falls.</p>
+<p><strong>Concrete example.</strong> Answers learn to mention keywords rather than solve problems.</p>
+<p><strong>Common mistake.</strong> Using only model-graded scores.</p>
+<p><strong>How to validate it.</strong> Hold out human-reviewed cases.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-10-decision-record">3.10 Decision record</h3>
+<p><strong>What it means.</strong> Retain what was changed, why, and which test justified accepting the revision.</p>
+<p><strong>Concrete example.</strong> Trace shows original output, failed constraint, corrected result.</p>
+<p><strong>Common mistake.</strong> Deleting failed attempts from audit history.</p>
+<p><strong>How to validate it.</strong> Audit an end-to-end correction trace.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h2 id="4-reference-implementation-framework-agnostic">4. Reference implementation (framework-agnostic)</h2>
+<p>This pseudocode sketches <strong>control-plane</strong> responsibilities rather than working library APIs; adapt the decision and persistence interfaces to your stack. The outer application enforces tool schema and authorization even if the model ignores its prompt.</p>
+<pre><code class="language-python"># Illustrative framework-agnostic pseudocode. All authorization is server-side.
+def run_agent(goal, user, tools, state_store, max_steps=8):
+    state = state_store.load_or_create(goal=goal, user=user)
+    for step in range(max_steps):
+        if verified_success(state):
+            return {&quot;status&quot;: &quot;succeeded&quot;, &quot;evidence&quot;: state.evidence}
+        if deadline_exceeded(state) or no_progress(state):
+            return fallback_with_partial_evidence(state)
+
+        choice = choose_next_step(state)  # rule-based OR model-selected
+        validated = validate_schema(choice, tools.allowed_schemas)
+        authorize(user, validated.action, validated.arguments)
+
+        if needs_approval(validated):
+            state_store.checkpoint(state, pending_action=validated)
+            return {&quot;status&quot;: &quot;awaiting_approval&quot;, &quot;run_id&quot;: state.id}
+
+        # Idempotency key must be stable across retries of the same side effect.
+        result = tools.execute(
+            validated, timeout_seconds=10,
+            idempotency_key=state.stable_operation_id(validated)
+        )
+        state.record_observation(result)  # provenance + timestamp + outcome
+        state_store.checkpoint(state)
+
+    return fallback_with_partial_evidence(state)</code></pre>
+<h3 id="why-each-boundary-matters">Why each boundary matters</h3>
+<ol><li><strong>Before execution:</strong> validate input, identity, allowed tools, and action-specific business policies.</li><li><strong>During execution:</strong> use deadlines, limited budgets, stable idempotency keys, durable progress updates, and restricted credentials.</li><li><strong>After execution:</strong> inspect the <em>business outcome</em>, capture source evidence, and classify partial or unknown results.</li><li><strong>At completion:</strong> return only verified claims, with unresolved items and the next safe action.</li></ol>
+<h2 id="5-end-to-end-example-and-walkthrough">5. End-to-end example and walkthrough</h2>
+<h3 id="running-example-supplier-material-validation">Running example: supplier/material validation</h3>
+<p>You are building an assistant that validates a spreadsheet of materials before creating records. Inputs include a CSV, product-catalog metadata, ERP identifiers, and plant permissions. The <strong>safe design</strong> is to parse the CSV with code, fetch ERP and catalog facts with typed read tools, compare required attributes with deterministic checks, ask a model only to interpret genuinely ambiguous descriptions, and produce a row-by-row report. Creation is a separate, gated action after approval. In an interview, explain why you separated <strong>evidence gathering</strong>, <strong>judgment</strong>, and <strong>side effects</strong>.</p>
+<p><strong>Acceptance criteria:</strong> every row has a stable ID, source evidence, a pass/fail/unknown outcome, reason codes, and no writes occur without explicit authority. A report with 399 processed rows is not automatically 399 validated rows.</p>
+<p><strong>Walkthrough:</strong> the input is parsed → rows receive stable IDs → metadata is fetched from trusted tools → missing records are marked <code>unknown</code>, not <code>pass</code> → ambiguous fields may use model interpretation with recorded evidence → inconsistent rows are flagged → a reviewer approves any proposed updates → a write service enforces the approved diff and version check → the final report distinguishes verified, skipped, failed, and pending records.</p>
+<h2 id="6-design-trade-offs-you-should-discuss">6. Design trade-offs you should discuss</h2>
+<div class="table-wrap"><table><thead><tr><th>Choice</th><th>Good fit</th><th>Trade-off or failure</th></tr></thead><tbody><tr><td>Deterministic rule</td><td>Stable business invariant</td><td>Brittle for open-ended semantic ambiguity</td></tr><tr><td>LLM judgment</td><td>Ambiguous text or uncertain next investigative step</td><td>Variable outputs, token cost, eval burden</td></tr><tr><td>Human gate</td><td>High-impact or irreversible write</td><td>Human latency and review fatigue</td></tr><tr><td>Durable checkpoint</td><td>Long-running and resumable actions</td><td>Additional persistence/consistency requirements</td></tr><tr><td>Retrieval/memory</td><td>Relevant evidence outside current input</td><td>Stale, irrelevant, or unauthorized evidence</td></tr><tr><td>Bounded autonomous loop</td><td>Unpredictable path with useful tools</td><td>Loops, expense, larger operational surface</td></tr></tbody></table></div>
+<h2 id="7-production-readiness-failure-modes-mitigations-and-metrics">7. Production readiness: failure modes, mitigations, and metrics</h2>
+<div class="table-wrap"><table><thead><tr><th>Failure</th><th>Mitigation</th><th>Measure</th></tr></thead><tbody><tr><td>Tool times out after side effect</td><td>Idempotency key, query operation status, avoid blind replay</td><td>Duplicate action rate</td></tr><tr><td>Tool response contains hostile instructions</td><td>Treat result as data, isolate permissions, enforce tool policies</td><td>Injection success rate in adversarial tests</td></tr><tr><td>Agent repeats itself</td><td>No-progress detector + step budget</td><td>Repeat-action rate</td></tr><tr><td>Source systems disagree</td><td>Mark unknown, record provenance, escalate</td><td>False-pass rate</td></tr><tr><td>Reviewer approves stale diff</td><td>Version checks + approval expiry</td><td>Stale-approval rejection rate</td></tr><tr><td>Model output breaks schema</td><td>Structured generation + server validation</td><td>Schema failure rate</td></tr><tr><td>High latency / model cost</td><td>Simpler baseline, caching, caps, parallel independent reads</td><td>p50/p95 latency and cost per verified task</td></tr><tr><td>Partial failure hidden as success</td><td>Row-level status and verifiable success predicate</td><td>Outcome misclassification</td></tr></tbody></table></div>
+<p><strong>Metric definitions:</strong> task success = verified goal achieved / eligible runs; false-pass rate = invalid outputs accepted / outputs accepted; escalation rate = runs sent for human review / total runs; tool error rate = failed calls / total calls; cost per verified task = total inference + tool expense / verified tasks. Use representative, held-out workloads; report both quality and the percentage of cases the system declines.</p>
+<h2 id="8-practice-whiteboard-coding-behavioral-articulation">8. Practice: whiteboard, coding, behavioral articulation</h2>
+<p><strong>Whiteboard drill (15 minutes):</strong> Draw trusted services, model decisions, tool adapters, checkpoint database, approval UI, and audit logs. Mark the <em>trust boundary</em> between untrusted tool text and authorized actions. Explain how an interrupted write is recovered.</p>
+<p><strong>Coding drill (30 minutes):</strong> Implement a typed state object, action schema validator, loop with max steps, no-progress detector, fake tool responses, and unit tests for timeout, approval wait, duplicate retry, and conflicting sources.</p>
+<p><strong>Interview delivery pattern:</strong> (1) state the simple baseline; (2) describe why complexity is justified; (3) show data/control flow; (4) call out security + correctness; (5) explain failure behavior; (6) provide specific evaluation metrics. Avoid claiming an agent is reliable because its prompt asks it to be.</p>
+<h2 id="further-reading">Further reading</h2>
+<ul><li><a href="https://resources.anthropic.com/building-effective-ai-agents" target="_blank" rel="noopener noreferrer">Anthropic — Building Effective AI Agents</a></li><li><a href="https://claude.com/resources/guides/building-effective-ai-agents/common-architecture-patterns" target="_blank" rel="noopener noreferrer">Anthropic — Common architecture patterns</a></li><li><a href="https://docs.langchain.com/oss/python/langgraph/overview" target="_blank" rel="noopener noreferrer">LangGraph documentation</a></li><li><a href="https://arxiv.org/abs/2210.03629" target="_blank" rel="noopener noreferrer">ReAct paper (Yao et al., 2022)</a></li><li><a href="https://genai.owasp.org/llm-top-10/" target="_blank" rel="noopener noreferrer">OWASP Top 10 for LLM Applications</a></li></ul>
+<blockquote><p>These are learning references, not a claim that all examples in this guide are taken from a specific framework.</p></blockquote>
+<h2 id="9-frequently-asked-interview-questions-with-answers">9. Frequently asked interview questions (with answers)</h2>
+<p>These answers are intentionally concise enough to say aloud. For senior-level rounds, add a diagram, a failure scenario, and a measurable trade-off.</p>
+<h3 id="q1-what-is-reflection-definition-and-why-does-it-matter">Q1. What is reflection definition, and why does it matter?</h3>
+<p><strong>Answer:</strong> A model reviews an intermediate answer or plan and proposes improvements. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q2-give-a-practical-example-of-reflection-definition">Q2. Give a practical example of reflection definition.</h3>
+<p><strong>Answer:</strong> A drafting agent notices its response omitted a required field. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q3-what-can-go-wrong-when-implementing-reflection-definition">Q3. What can go wrong when implementing reflection definition?</h3>
+<p><strong>Answer:</strong> Assuming reflection necessarily improves factual accuracy. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q4-how-would-you-test-or-measure-reflection-definition">Q4. How would you test or measure reflection definition?</h3>
+<p><strong>Answer:</strong> Compare with an objective validation set. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q5-what-is-independent-evaluator-and-why-does-it-matter">Q5. What is independent evaluator, and why does it matter?</h3>
+<p><strong>Answer:</strong> Use a distinct rubric, tool, or model to check output rather than unstructured self-praise. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q6-give-a-practical-example-of-independent-evaluator">Q6. Give a practical example of independent evaluator.</h3>
+<p><strong>Answer:</strong> SQL parser validates a generated query. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q7-what-can-go-wrong-when-implementing-independent-evaluator">Q7. What can go wrong when implementing independent evaluator?</h3>
+<p><strong>Answer:</strong> Trusting model saying looks correct. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q8-how-would-you-test-or-measure-independent-evaluator">Q8. How would you test or measure independent evaluator?</h3>
+<p><strong>Answer:</strong> Measure evaluator precision and recall. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q9-what-is-critique-rubric-and-why-does-it-matter">Q9. What is critique rubric, and why does it matter?</h3>
+<p><strong>Answer:</strong> Define concrete criteria such as correctness, completeness, groundedness, constraints, and security. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q10-give-a-practical-example-of-critique-rubric">Q10. Give a practical example of critique rubric.</h3>
+<p><strong>Answer:</strong> Require every material validation row to include source evidence. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q11-what-can-go-wrong-when-implementing-critique-rubric">Q11. What can go wrong when implementing critique rubric?</h3>
+<p><strong>Answer:</strong> Generic instruction to improve your answer. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q12-how-would-you-test-or-measure-critique-rubric">Q12. How would you test or measure critique rubric?</h3>
+<p><strong>Answer:</strong> Score on labeled rubric items. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q13-what-is-external-feedback-and-why-does-it-matter">Q13. What is external feedback, and why does it matter?</h3>
+<p><strong>Answer:</strong> Prefer executable tests, source checks, and user feedback over self-critique. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q14-give-a-practical-example-of-external-feedback">Q14. Give a practical example of external feedback.</h3>
+<p><strong>Answer:</strong> Run a generated SQL query in read-only staging. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q15-what-can-go-wrong-when-implementing-external-feedback">Q15. What can go wrong when implementing external feedback?</h3>
+<p><strong>Answer:</strong> Confusing fluent explanation with verified execution. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q16-how-would-you-test-or-measure-external-feedback">Q16. How would you test or measure external feedback?</h3>
+<p><strong>Answer:</strong> Measure factual error before and after external feedback. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q17-what-is-bounded-correction-and-why-does-it-matter">Q17. What is bounded correction, and why does it matter?</h3>
+<p><strong>Answer:</strong> Limit revision attempts and stop when no measurable progress occurs. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q18-give-a-practical-example-of-bounded-correction">Q18. Give a practical example of bounded correction.</h3>
+<p><strong>Answer:</strong> Allow at most two repairs to a malformed JSON payload. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q19-what-can-go-wrong-when-implementing-bounded-correction">Q19. What can go wrong when implementing bounded correction?</h3>
+<p><strong>Answer:</strong> Infinite critique-rewrite loops. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q20-how-would-you-test-or-measure-bounded-correction">Q20. How would you test or measure bounded correction?</h3>
+<p><strong>Answer:</strong> Inject unsatisfiable constraints and assert exit. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q21-what-is-error-amplification-and-why-does-it-matter">Q21. What is error amplification, and why does it matter?</h3>
+<p><strong>Answer:</strong> A critic sharing the same misconceptions may confidently reinforce an error. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q22-give-a-practical-example-of-error-amplification">Q22. Give a practical example of error amplification.</h3>
+<p><strong>Answer:</strong> Two prompts hallucinate the same nonexistent API property. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q23-what-can-go-wrong-when-implementing-error-amplification">Q23. What can go wrong when implementing error amplification?</h3>
+<p><strong>Answer:</strong> Treating repeated agreement as independent proof. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q24-how-would-you-test-or-measure-error-amplification">Q24. How would you test or measure error amplification?</h3>
+<p><strong>Answer:</strong> Use disjoint data, tools, or human labels. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q25-what-is-regression-checking-and-why-does-it-matter">Q25. What is regression checking, and why does it matter?</h3>
+<p><strong>Answer:</strong> A revision can fix one aspect while breaking another. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q26-give-a-practical-example-of-regression-checking">Q26. Give a practical example of regression checking.</h3>
+<p><strong>Answer:</strong> A code patch fixes a test but violates authorization. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q27-what-can-go-wrong-when-implementing-regression-checking">Q27. What can go wrong when implementing regression checking?</h3>
+<p><strong>Answer:</strong> Accepting a patch without rerunning the entire suite. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q28-how-would-you-test-or-measure-regression-checking">Q28. How would you test or measure regression checking?</h3>
+<p><strong>Answer:</strong> Run full invariant and regression tests. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q29-what-is-when-not-to-reflect-and-why-does-it-matter">Q29. What is when not to reflect, and why does it matter?</h3>
+<p><strong>Answer:</strong> For simple, deterministic tasks, an extra critique call adds latency and cost without value. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q30-give-a-practical-example-of-when-not-to-reflect">Q30. Give a practical example of when not to reflect.</h3>
+<p><strong>Answer:</strong> No LLM critique needed for a regex format check. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q31-what-can-go-wrong-when-implementing-when-not-to-reflect">Q31. What can go wrong when implementing when not to reflect?</h3>
+<p><strong>Answer:</strong> Applying expensive reflection to all requests. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q32-how-would-you-test-or-measure-when-not-to-reflect">Q32. How would you test or measure when not to reflect?</h3>
+<p><strong>Answer:</strong> Measure net benefit by task category. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q33-what-is-evaluator-gaming-and-why-does-it-matter">Q33. What is evaluator gaming, and why does it matter?</h3>
+<p><strong>Answer:</strong> If the generator optimizes against a flawed grader, scores can rise while real quality falls. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q34-give-a-practical-example-of-evaluator-gaming">Q34. Give a practical example of evaluator gaming.</h3>
+<p><strong>Answer:</strong> Answers learn to mention keywords rather than solve problems. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q35-what-can-go-wrong-when-implementing-evaluator-gaming">Q35. What can go wrong when implementing evaluator gaming?</h3>
+<p><strong>Answer:</strong> Using only model-graded scores. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q36-how-would-you-test-or-measure-evaluator-gaming">Q36. How would you test or measure evaluator gaming?</h3>
+<p><strong>Answer:</strong> Hold out human-reviewed cases. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q37-what-is-decision-record-and-why-does-it-matter">Q37. What is decision record, and why does it matter?</h3>
+<p><strong>Answer:</strong> Retain what was changed, why, and which test justified accepting the revision. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q38-give-a-practical-example-of-decision-record">Q38. Give a practical example of decision record.</h3>
+<p><strong>Answer:</strong> Trace shows original output, failed constraint, corrected result. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q39-what-can-go-wrong-when-implementing-decision-record">Q39. What can go wrong when implementing decision record?</h3>
+<p><strong>Answer:</strong> Deleting failed attempts from audit history. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q40-how-would-you-test-or-measure-decision-record">Q40. How would you test or measure decision record?</h3>
+<p><strong>Answer:</strong> Audit an end-to-end correction trace. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<hr>
+<p><strong>Final self-check:</strong> Can you explain this topic without relying on a framework name? Can you name the control-plane owner, the most serious failure, a safe fallback, and one metric proving it works?</p></article>
+<nav class="page-nav" aria-label="Note navigation"><a href="./reasoning-and-acting-patterns-e-g-react-and-tool-use-loops.html">← ReAct and Reasoning-and-Acting Tool-Use Loops</a><a href="./short-term-context-vs-persistent-long-term-memory.html">Short-Term Context vs. Persistent Long-Term Memory →</a></nav>
+</main>
+</div>
+<script>
+const links = [...document.querySelectorAll(".toc a")];
+const observer = new IntersectionObserver(entries => {
+  for (const entry of entries) {
+    if (!entry.isIntersecting) continue;
+    links.forEach(link => link.classList.toggle("active", link.hash === "#" + entry.target.id));
+  }
+}, { rootMargin: "-15% 0px -72% 0px" });
+document.querySelectorAll("main h2[id], main h3[id]").forEach(heading => observer.observe(heading));
+</script>
+</body>
+</html>

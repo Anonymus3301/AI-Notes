@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Agent Autonomy Levels and Minimum Sufficient Autonomy — Agent Fundamentals notes">
+<title>Agent Autonomy Levels and Minimum Sufficient Autonomy | Agent Fundamentals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../agent-fundamentals.css">
+</head>
+<body>
+<header class="bar">
+  <nav class="bar-links" aria-label="Main navigation">
+    <a href="./index.html">← Agent Fundamentals</a>
+    <a href="../m5.html">Module 5: Agentic AI Systems</a>
+  </nav>
+  <nav class="bar-pages" aria-label="Adjacent notes">
+    <span aria-disabled="true">← Previous</span>
+    <a href="./core-agent-loop-observe-decide-act-inspect-results-and-stop.html" aria-label="Next note: Core Agent Loop: Observe, Decide, Act, Inspect, Stop" title="Core Agent Loop: Observe, Decide, Act, Inspect, Stop">Next →</a>
+  </nav>
+  <span class="grow"></span>
+  <button type="button" onclick="window.print()">Print / PDF</button>
+</header>
+<div class="layout"><nav class="toc" aria-label="Contents"><strong>On this page</strong><a class="" href="#1-mental-model-in-60-seconds">1. Mental model in 60 seconds</a>
+<a class="sub" href="#vocabulary-to-know">Vocabulary to know</a>
+<a class="" href="#2-architecture-and-execution-flow">2. Architecture and execution flow</a>
+<a class="" href="#3-learn-each-building-block-from-scratch">3. Learn each building block from scratch</a>
+<a class="sub" href="#3-1-autonomy-spectrum">3.1 Autonomy spectrum</a>
+<a class="sub" href="#3-2-minimum-sufficient-autonomy">3.2 Minimum sufficient autonomy</a>
+<a class="sub" href="#3-3-read-versus-write-authority">3.3 Read versus write authority</a>
+<a class="sub" href="#3-4-scope-and-blast-radius">3.4 Scope and blast radius</a>
+<a class="sub" href="#3-5-reversibility">3.5 Reversibility</a>
+<a class="sub" href="#3-6-confidence-and-uncertainty">3.6 Confidence and uncertainty</a>
+<a class="sub" href="#3-7-graduated-rollout">3.7 Graduated rollout</a>
+<a class="sub" href="#3-8-policy-versus-judgment">3.8 Policy versus judgment</a>
+<a class="sub" href="#3-9-autonomy-budgeting">3.9 Autonomy budgeting</a>
+<a class="sub" href="#3-10-accountability">3.10 Accountability</a>
+<a class="" href="#4-reference-implementation-framework-agnostic">4. Reference implementation (framework-agnostic)</a>
+<a class="sub" href="#why-each-boundary-matters">Why each boundary matters</a>
+<a class="" href="#5-end-to-end-example-and-walkthrough">5. End-to-end example and walkthrough</a>
+<a class="sub" href="#running-example-supplier-material-validation">Running example: supplier/material validation</a>
+<a class="" href="#6-design-trade-offs-you-should-discuss">6. Design trade-offs you should discuss</a>
+<a class="" href="#7-production-readiness-failure-modes-mitigations-and-metrics">7. Production readiness: failure modes, mitigations, and metrics</a>
+<a class="" href="#8-practice-whiteboard-coding-behavioral-articulation">8. Practice: whiteboard, coding, behavioral articulation</a>
+<a class="" href="#further-reading">Further reading</a>
+<a class="" href="#9-frequently-asked-interview-questions-with-answers">9. Frequently asked interview questions (with answers)</a>
+<a class="sub" href="#q1-what-is-autonomy-spectrum-and-why-does-it-matter">Q1. What is autonomy spectrum, and why does it matter?</a>
+<a class="sub" href="#q2-give-a-practical-example-of-autonomy-spectrum">Q2. Give a practical example of autonomy spectrum.</a>
+<a class="sub" href="#q3-what-can-go-wrong-when-implementing-autonomy-spectrum">Q3. What can go wrong when implementing autonomy spectrum?</a>
+<a class="sub" href="#q4-how-would-you-test-or-measure-autonomy-spectrum">Q4. How would you test or measure autonomy spectrum?</a>
+<a class="sub" href="#q5-what-is-minimum-sufficient-autonomy-and-why-does-it-matter">Q5. What is minimum sufficient autonomy, and why does it matter?</a>
+<a class="sub" href="#q6-give-a-practical-example-of-minimum-sufficient-autonomy">Q6. Give a practical example of minimum sufficient autonomy.</a>
+<a class="sub" href="#q7-what-can-go-wrong-when-implementing-minimum-sufficient-autonomy">Q7. What can go wrong when implementing minimum sufficient autonomy?</a>
+<a class="sub" href="#q8-how-would-you-test-or-measure-minimum-sufficient-autonomy">Q8. How would you test or measure minimum sufficient autonomy?</a>
+<a class="sub" href="#q9-what-is-read-versus-write-authority-and-why-does-it-matter">Q9. What is read versus write authority, and why does it matter?</a>
+<a class="sub" href="#q10-give-a-practical-example-of-read-versus-write-authority">Q10. Give a practical example of read versus write authority.</a>
+<a class="sub" href="#q11-what-can-go-wrong-when-implementing-read-versus-write-authority">Q11. What can go wrong when implementing read versus write authority?</a>
+<a class="sub" href="#q12-how-would-you-test-or-measure-read-versus-write-authority">Q12. How would you test or measure read versus write authority?</a>
+<a class="sub" href="#q13-what-is-scope-and-blast-radius-and-why-does-it-matter">Q13. What is scope and blast radius, and why does it matter?</a>
+<a class="sub" href="#q14-give-a-practical-example-of-scope-and-blast-radius">Q14. Give a practical example of scope and blast radius.</a>
+<a class="sub" href="#q15-what-can-go-wrong-when-implementing-scope-and-blast-radius">Q15. What can go wrong when implementing scope and blast radius?</a>
+<a class="sub" href="#q16-how-would-you-test-or-measure-scope-and-blast-radius">Q16. How would you test or measure scope and blast radius?</a>
+<a class="sub" href="#q17-what-is-reversibility-and-why-does-it-matter">Q17. What is reversibility, and why does it matter?</a>
+<a class="sub" href="#q18-give-a-practical-example-of-reversibility">Q18. Give a practical example of reversibility.</a>
+<a class="sub" href="#q19-what-can-go-wrong-when-implementing-reversibility">Q19. What can go wrong when implementing reversibility?</a>
+<a class="sub" href="#q20-how-would-you-test-or-measure-reversibility">Q20. How would you test or measure reversibility?</a>
+<a class="sub" href="#q21-what-is-confidence-and-uncertainty-and-why-does-it-matter">Q21. What is confidence and uncertainty, and why does it matter?</a>
+<a class="sub" href="#q22-give-a-practical-example-of-confidence-and-uncertainty">Q22. Give a practical example of confidence and uncertainty.</a>
+<a class="sub" href="#q23-what-can-go-wrong-when-implementing-confidence-and-uncertainty">Q23. What can go wrong when implementing confidence and uncertainty?</a>
+<a class="sub" href="#q24-how-would-you-test-or-measure-confidence-and-uncertainty">Q24. How would you test or measure confidence and uncertainty?</a>
+<a class="sub" href="#q25-what-is-graduated-rollout-and-why-does-it-matter">Q25. What is graduated rollout, and why does it matter?</a>
+<a class="sub" href="#q26-give-a-practical-example-of-graduated-rollout">Q26. Give a practical example of graduated rollout.</a>
+<a class="sub" href="#q27-what-can-go-wrong-when-implementing-graduated-rollout">Q27. What can go wrong when implementing graduated rollout?</a>
+<a class="sub" href="#q28-how-would-you-test-or-measure-graduated-rollout">Q28. How would you test or measure graduated rollout?</a>
+<a class="sub" href="#q29-what-is-policy-versus-judgment-and-why-does-it-matter">Q29. What is policy versus judgment, and why does it matter?</a>
+<a class="sub" href="#q30-give-a-practical-example-of-policy-versus-judgment">Q30. Give a practical example of policy versus judgment.</a>
+<a class="sub" href="#q31-what-can-go-wrong-when-implementing-policy-versus-judgment">Q31. What can go wrong when implementing policy versus judgment?</a>
+<a class="sub" href="#q32-how-would-you-test-or-measure-policy-versus-judgment">Q32. How would you test or measure policy versus judgment?</a>
+<a class="sub" href="#q33-what-is-autonomy-budgeting-and-why-does-it-matter">Q33. What is autonomy budgeting, and why does it matter?</a>
+<a class="sub" href="#q34-give-a-practical-example-of-autonomy-budgeting">Q34. Give a practical example of autonomy budgeting.</a>
+<a class="sub" href="#q35-what-can-go-wrong-when-implementing-autonomy-budgeting">Q35. What can go wrong when implementing autonomy budgeting?</a>
+<a class="sub" href="#q36-how-would-you-test-or-measure-autonomy-budgeting">Q36. How would you test or measure autonomy budgeting?</a>
+<a class="sub" href="#q37-what-is-accountability-and-why-does-it-matter">Q37. What is accountability, and why does it matter?</a>
+<a class="sub" href="#q38-give-a-practical-example-of-accountability">Q38. Give a practical example of accountability.</a>
+<a class="sub" href="#q39-what-can-go-wrong-when-implementing-accountability">Q39. What can go wrong when implementing accountability?</a>
+<a class="sub" href="#q40-how-would-you-test-or-measure-accountability">Q40. How would you test or measure accountability?</a></nav>
+<main>
+<header class="cover"><h1>Agent Autonomy Levels and Minimum Sufficient Autonomy</h1><p class="sub">Agent Fundamentals and Decision-Making · Note 1 of 10</p></header>
+<article><h2 id="1-mental-model-in-60-seconds">1. Mental model in 60 seconds</h2>
+<p>Agent Autonomy Levels and Minimum Sufficient Autonomy is best understood as a <strong>system-design choice</strong>, not a magic model feature. The LLM may propose interpretations and actions; the <strong>application</strong> owns permissions, control flow, durability, verified outcomes, and failure behavior. When interviewing, begin with the goal and risk, then show how the architecture enforces boundaries.</p>
+<h3 id="vocabulary-to-know">Vocabulary to know</h3>
+<div class="table-wrap"><table><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody><tr><td><strong>Autonomy spectrum</strong></td><td>Autonomy ranges from answering only, to suggesting actions, to taking bounded actions, to pursuing delegated goals.</td></tr><tr><td><strong>Minimum sufficient autonomy</strong></td><td>Grant only the decision-making freedom necessary to achieve the task at acceptable risk.</td></tr><tr><td><strong>Read versus write authority</strong></td><td>Read-only retrieval has a different risk profile from mutating records or contacting people.</td></tr><tr><td><strong>Scope and blast radius</strong></td><td>Bound the number of records, environments, users, or dollars any autonomous action can affect.</td></tr><tr><td><strong>Reversibility</strong></td><td>Reversible operations can tolerate somewhat more automation than irreversible ones.</td></tr><tr><td><strong>Confidence and uncertainty</strong></td><td>A model confidence statement is not a calibrated probability; use external validation and explicit abstention.</td></tr><tr><td><strong>Graduated rollout</strong></td><td>Increase autonomy in stages: offline evaluation, shadow mode, drafts, gated writes, limited production, wider rollout.</td></tr><tr><td><strong>Policy versus judgment</strong></td><td>Hard limits belong in deterministic code, while flexible interpretation can be delegated to a model.</td></tr><tr><td><strong>Autonomy budgeting</strong></td><td>Each extra action introduces token costs, latency, and potential failure; assign time and step budgets.</td></tr><tr><td><strong>Accountability</strong></td><td>A human owner and system audit trail remain necessary even when actions are automated.</td></tr></tbody></table></div>
+<h2 id="2-architecture-and-execution-flow">2. Architecture and execution flow</h2>
+<pre><code class="language-text">User goal
+   |
+   v
+[Authenticate + authorize + validate request]
+   |
+   v
+[Load bounded task state and relevant evidence]
+   |
+   v
+[Choose deterministic step OR constrained model decision]
+   |
+   v
+[Validate proposed action against schema + policy]
+   |
+   +--&gt; approval required? --&gt; [durable pause + human decision]
+   |
+   v
+[Execute authorized tool with timeout + idempotency]
+   |
+   v
+[Inspect result + update state + write trace]
+   |
+   +--&gt; success proven? --------&gt; [return verified result]
+   +--&gt; blocked / unsafe? ------&gt; [escalate / partial result]
+   +--&gt; budget exhausted? -----&gt; [safe fallback]
+   +--&gt; progress possible? -----&gt; [repeat]</code></pre>
+<p><strong>Important distinctions:</strong> <em>decision</em> is not <em>authorization</em>; an HTTP success is not business success; context is not durable memory; a plan is not evidence that actions succeeded.</p>
+<h2 id="3-learn-each-building-block-from-scratch">3. Learn each building block from scratch</h2>
+<h3 id="3-1-autonomy-spectrum">3.1 Autonomy spectrum</h3>
+<p><strong>What it means.</strong> Autonomy ranges from answering only, to suggesting actions, to taking bounded actions, to pursuing delegated goals.</p>
+<p><strong>Concrete example.</strong> A support assistant drafts a refund, while an authorized service can issue refunds below a preset limit.</p>
+<p><strong>Common mistake.</strong> Calling a chatbot with a tool an autonomous agent without checking who controls execution.</p>
+<p><strong>How to validate it.</strong> Document which decisions and side effects the model may make at each level.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-2-minimum-sufficient-autonomy">3.2 Minimum sufficient autonomy</h3>
+<p><strong>What it means.</strong> Grant only the decision-making freedom necessary to achieve the task at acceptable risk.</p>
+<p><strong>Concrete example.</strong> Use fixed routing for invoice intake and model selection only for ambiguous supplier names.</p>
+<p><strong>Common mistake.</strong> Adding an open-ended agent to a stable three-step business process.</p>
+<p><strong>How to validate it.</strong> Compare task success, cost, latency, and incident rate against a deterministic baseline.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-3-read-versus-write-authority">3.3 Read versus write authority</h3>
+<p><strong>What it means.</strong> Read-only retrieval has a different risk profile from mutating records or contacting people.</p>
+<p><strong>Concrete example.</strong> Allow product lookup automatically but require approval before updating supplier banking details.</p>
+<p><strong>Common mistake.</strong> Treating a database SELECT and DELETE as interchangeable tool calls.</p>
+<p><strong>How to validate it.</strong> Audit access controls and run attempted unauthorized-write tests.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-4-scope-and-blast-radius">3.4 Scope and blast radius</h3>
+<p><strong>What it means.</strong> Bound the number of records, environments, users, or dollars any autonomous action can affect.</p>
+<p><strong>Concrete example.</strong> A bulk-update agent is capped at 10 draft records in staging.</p>
+<p><strong>Common mistake.</strong> Allowing a compromised instruction to affect all customers.</p>
+<p><strong>How to validate it.</strong> Test worst-case impact under repeated or malformed requests.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-5-reversibility">3.5 Reversibility</h3>
+<p><strong>What it means.</strong> Reversible operations can tolerate somewhat more automation than irreversible ones.</p>
+<p><strong>Concrete example.</strong> Create a draft purchase order automatically; require approval before submission.</p>
+<p><strong>Common mistake.</strong> Assuming sending an email can be rolled back like a database transaction.</p>
+<p><strong>How to validate it.</strong> Perform rollback drills and catalog irreversibility.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-6-confidence-and-uncertainty">3.6 Confidence and uncertainty</h3>
+<p><strong>What it means.</strong> A model confidence statement is not a calibrated probability; use external validation and explicit abstention.</p>
+<p><strong>Concrete example.</strong> If material IDs disagree between ERP and PIM, escalate rather than guess.</p>
+<p><strong>Common mistake.</strong> Setting approval thresholds based solely on self-reported confidence.</p>
+<p><strong>How to validate it.</strong> Measure selective accuracy and risk versus coverage on a labeled set.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-7-graduated-rollout">3.7 Graduated rollout</h3>
+<p><strong>What it means.</strong> Increase autonomy in stages: offline evaluation, shadow mode, drafts, gated writes, limited production, wider rollout.</p>
+<p><strong>Concrete example.</strong> Observe suggested inventory edits for a week before enabling capped writes.</p>
+<p><strong>Common mistake.</strong> Deploying untested write tools with unrestricted credentials.</p>
+<p><strong>How to validate it.</strong> Use canaries, audit logs, and rollback metrics.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-8-policy-versus-judgment">3.8 Policy versus judgment</h3>
+<p><strong>What it means.</strong> Hard limits belong in deterministic code, while flexible interpretation can be delegated to a model.</p>
+<p><strong>Concrete example.</strong> Code enforces a $100 refund cap while the model drafts the reason.</p>
+<p><strong>Common mistake.</strong> Relying on prompt wording to enforce financial limits.</p>
+<p><strong>How to validate it.</strong> Write adversarial tests to show policy holds regardless of model output.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-9-autonomy-budgeting">3.9 Autonomy budgeting</h3>
+<p><strong>What it means.</strong> Each extra action introduces token costs, latency, and potential failure; assign time and step budgets.</p>
+<p><strong>Concrete example.</strong> A research agent may make at most five searches before returning partial findings.</p>
+<p><strong>Common mistake.</strong> Equating more tool calls with improved quality.</p>
+<p><strong>How to validate it.</strong> Plot marginal quality gain against step count.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h3 id="3-10-accountability">3.10 Accountability</h3>
+<p><strong>What it means.</strong> A human owner and system audit trail remain necessary even when actions are automated.</p>
+<p><strong>Concrete example.</strong> Log initiating user, policy version, approval, tool result, and record diff.</p>
+<p><strong>Common mistake.</strong> Assuming the model itself is accountable for a production change.</p>
+<p><strong>How to validate it.</strong> Trace one action end-to-end to the responsible initiator and reviewer.</p>
+<p><strong>Senior-level reasoning:</strong> Ask what changes if this component is wrong, slow, unavailable, stale, or malicious. Define the invariant that must hold despite that failure. Name the owner of any side effect and decide whether to stop, retry, degrade, or escalate.</p>
+<h2 id="4-reference-implementation-framework-agnostic">4. Reference implementation (framework-agnostic)</h2>
+<p>This pseudocode sketches <strong>control-plane</strong> responsibilities rather than working library APIs; adapt the decision and persistence interfaces to your stack. The outer application enforces tool schema and authorization even if the model ignores its prompt.</p>
+<pre><code class="language-python"># Illustrative framework-agnostic pseudocode. All authorization is server-side.
+def run_agent(goal, user, tools, state_store, max_steps=8):
+    state = state_store.load_or_create(goal=goal, user=user)
+    for step in range(max_steps):
+        if verified_success(state):
+            return {&quot;status&quot;: &quot;succeeded&quot;, &quot;evidence&quot;: state.evidence}
+        if deadline_exceeded(state) or no_progress(state):
+            return fallback_with_partial_evidence(state)
+
+        choice = choose_next_step(state)  # rule-based OR model-selected
+        validated = validate_schema(choice, tools.allowed_schemas)
+        authorize(user, validated.action, validated.arguments)
+
+        if needs_approval(validated):
+            state_store.checkpoint(state, pending_action=validated)
+            return {&quot;status&quot;: &quot;awaiting_approval&quot;, &quot;run_id&quot;: state.id}
+
+        # Idempotency key must be stable across retries of the same side effect.
+        result = tools.execute(
+            validated, timeout_seconds=10,
+            idempotency_key=state.stable_operation_id(validated)
+        )
+        state.record_observation(result)  # provenance + timestamp + outcome
+        state_store.checkpoint(state)
+
+    return fallback_with_partial_evidence(state)</code></pre>
+<h3 id="why-each-boundary-matters">Why each boundary matters</h3>
+<ol><li><strong>Before execution:</strong> validate input, identity, allowed tools, and action-specific business policies.</li><li><strong>During execution:</strong> use deadlines, limited budgets, stable idempotency keys, durable progress updates, and restricted credentials.</li><li><strong>After execution:</strong> inspect the <em>business outcome</em>, capture source evidence, and classify partial or unknown results.</li><li><strong>At completion:</strong> return only verified claims, with unresolved items and the next safe action.</li></ol>
+<h2 id="5-end-to-end-example-and-walkthrough">5. End-to-end example and walkthrough</h2>
+<h3 id="running-example-supplier-material-validation">Running example: supplier/material validation</h3>
+<p>You are building an assistant that validates a spreadsheet of materials before creating records. Inputs include a CSV, product-catalog metadata, ERP identifiers, and plant permissions. The <strong>safe design</strong> is to parse the CSV with code, fetch ERP and catalog facts with typed read tools, compare required attributes with deterministic checks, ask a model only to interpret genuinely ambiguous descriptions, and produce a row-by-row report. Creation is a separate, gated action after approval. In an interview, explain why you separated <strong>evidence gathering</strong>, <strong>judgment</strong>, and <strong>side effects</strong>.</p>
+<p><strong>Acceptance criteria:</strong> every row has a stable ID, source evidence, a pass/fail/unknown outcome, reason codes, and no writes occur without explicit authority. A report with 399 processed rows is not automatically 399 validated rows.</p>
+<p><strong>Walkthrough:</strong> the input is parsed → rows receive stable IDs → metadata is fetched from trusted tools → missing records are marked <code>unknown</code>, not <code>pass</code> → ambiguous fields may use model interpretation with recorded evidence → inconsistent rows are flagged → a reviewer approves any proposed updates → a write service enforces the approved diff and version check → the final report distinguishes verified, skipped, failed, and pending records.</p>
+<h2 id="6-design-trade-offs-you-should-discuss">6. Design trade-offs you should discuss</h2>
+<div class="table-wrap"><table><thead><tr><th>Choice</th><th>Good fit</th><th>Trade-off or failure</th></tr></thead><tbody><tr><td>Deterministic rule</td><td>Stable business invariant</td><td>Brittle for open-ended semantic ambiguity</td></tr><tr><td>LLM judgment</td><td>Ambiguous text or uncertain next investigative step</td><td>Variable outputs, token cost, eval burden</td></tr><tr><td>Human gate</td><td>High-impact or irreversible write</td><td>Human latency and review fatigue</td></tr><tr><td>Durable checkpoint</td><td>Long-running and resumable actions</td><td>Additional persistence/consistency requirements</td></tr><tr><td>Retrieval/memory</td><td>Relevant evidence outside current input</td><td>Stale, irrelevant, or unauthorized evidence</td></tr><tr><td>Bounded autonomous loop</td><td>Unpredictable path with useful tools</td><td>Loops, expense, larger operational surface</td></tr></tbody></table></div>
+<h2 id="7-production-readiness-failure-modes-mitigations-and-metrics">7. Production readiness: failure modes, mitigations, and metrics</h2>
+<div class="table-wrap"><table><thead><tr><th>Failure</th><th>Mitigation</th><th>Measure</th></tr></thead><tbody><tr><td>Tool times out after side effect</td><td>Idempotency key, query operation status, avoid blind replay</td><td>Duplicate action rate</td></tr><tr><td>Tool response contains hostile instructions</td><td>Treat result as data, isolate permissions, enforce tool policies</td><td>Injection success rate in adversarial tests</td></tr><tr><td>Agent repeats itself</td><td>No-progress detector + step budget</td><td>Repeat-action rate</td></tr><tr><td>Source systems disagree</td><td>Mark unknown, record provenance, escalate</td><td>False-pass rate</td></tr><tr><td>Reviewer approves stale diff</td><td>Version checks + approval expiry</td><td>Stale-approval rejection rate</td></tr><tr><td>Model output breaks schema</td><td>Structured generation + server validation</td><td>Schema failure rate</td></tr><tr><td>High latency / model cost</td><td>Simpler baseline, caching, caps, parallel independent reads</td><td>p50/p95 latency and cost per verified task</td></tr><tr><td>Partial failure hidden as success</td><td>Row-level status and verifiable success predicate</td><td>Outcome misclassification</td></tr></tbody></table></div>
+<p><strong>Metric definitions:</strong> task success = verified goal achieved / eligible runs; false-pass rate = invalid outputs accepted / outputs accepted; escalation rate = runs sent for human review / total runs; tool error rate = failed calls / total calls; cost per verified task = total inference + tool expense / verified tasks. Use representative, held-out workloads; report both quality and the percentage of cases the system declines.</p>
+<h2 id="8-practice-whiteboard-coding-behavioral-articulation">8. Practice: whiteboard, coding, behavioral articulation</h2>
+<p><strong>Whiteboard drill (15 minutes):</strong> Draw trusted services, model decisions, tool adapters, checkpoint database, approval UI, and audit logs. Mark the <em>trust boundary</em> between untrusted tool text and authorized actions. Explain how an interrupted write is recovered.</p>
+<p><strong>Coding drill (30 minutes):</strong> Implement a typed state object, action schema validator, loop with max steps, no-progress detector, fake tool responses, and unit tests for timeout, approval wait, duplicate retry, and conflicting sources.</p>
+<p><strong>Interview delivery pattern:</strong> (1) state the simple baseline; (2) describe why complexity is justified; (3) show data/control flow; (4) call out security + correctness; (5) explain failure behavior; (6) provide specific evaluation metrics. Avoid claiming an agent is reliable because its prompt asks it to be.</p>
+<h2 id="further-reading">Further reading</h2>
+<ul><li><a href="https://resources.anthropic.com/building-effective-ai-agents" target="_blank" rel="noopener noreferrer">Anthropic — Building Effective AI Agents</a></li><li><a href="https://claude.com/resources/guides/building-effective-ai-agents/common-architecture-patterns" target="_blank" rel="noopener noreferrer">Anthropic — Common architecture patterns</a></li><li><a href="https://docs.langchain.com/oss/python/langgraph/overview" target="_blank" rel="noopener noreferrer">LangGraph documentation</a></li><li><a href="https://arxiv.org/abs/2210.03629" target="_blank" rel="noopener noreferrer">ReAct paper (Yao et al., 2022)</a></li><li><a href="https://genai.owasp.org/llm-top-10/" target="_blank" rel="noopener noreferrer">OWASP Top 10 for LLM Applications</a></li></ul>
+<blockquote><p>These are learning references, not a claim that all examples in this guide are taken from a specific framework.</p></blockquote>
+<h2 id="9-frequently-asked-interview-questions-with-answers">9. Frequently asked interview questions (with answers)</h2>
+<p>These answers are intentionally concise enough to say aloud. For senior-level rounds, add a diagram, a failure scenario, and a measurable trade-off.</p>
+<h3 id="q1-what-is-autonomy-spectrum-and-why-does-it-matter">Q1. What is autonomy spectrum, and why does it matter?</h3>
+<p><strong>Answer:</strong> Autonomy ranges from answering only, to suggesting actions, to taking bounded actions, to pursuing delegated goals. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q2-give-a-practical-example-of-autonomy-spectrum">Q2. Give a practical example of autonomy spectrum.</h3>
+<p><strong>Answer:</strong> A support assistant drafts a refund, while an authorized service can issue refunds below a preset limit. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q3-what-can-go-wrong-when-implementing-autonomy-spectrum">Q3. What can go wrong when implementing autonomy spectrum?</h3>
+<p><strong>Answer:</strong> Calling a chatbot with a tool an autonomous agent without checking who controls execution. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q4-how-would-you-test-or-measure-autonomy-spectrum">Q4. How would you test or measure autonomy spectrum?</h3>
+<p><strong>Answer:</strong> Document which decisions and side effects the model may make at each level. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q5-what-is-minimum-sufficient-autonomy-and-why-does-it-matter">Q5. What is minimum sufficient autonomy, and why does it matter?</h3>
+<p><strong>Answer:</strong> Grant only the decision-making freedom necessary to achieve the task at acceptable risk. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q6-give-a-practical-example-of-minimum-sufficient-autonomy">Q6. Give a practical example of minimum sufficient autonomy.</h3>
+<p><strong>Answer:</strong> Use fixed routing for invoice intake and model selection only for ambiguous supplier names. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q7-what-can-go-wrong-when-implementing-minimum-sufficient-autonomy">Q7. What can go wrong when implementing minimum sufficient autonomy?</h3>
+<p><strong>Answer:</strong> Adding an open-ended agent to a stable three-step business process. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q8-how-would-you-test-or-measure-minimum-sufficient-autonomy">Q8. How would you test or measure minimum sufficient autonomy?</h3>
+<p><strong>Answer:</strong> Compare task success, cost, latency, and incident rate against a deterministic baseline. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q9-what-is-read-versus-write-authority-and-why-does-it-matter">Q9. What is read versus write authority, and why does it matter?</h3>
+<p><strong>Answer:</strong> Read-only retrieval has a different risk profile from mutating records or contacting people. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q10-give-a-practical-example-of-read-versus-write-authority">Q10. Give a practical example of read versus write authority.</h3>
+<p><strong>Answer:</strong> Allow product lookup automatically but require approval before updating supplier banking details. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q11-what-can-go-wrong-when-implementing-read-versus-write-authority">Q11. What can go wrong when implementing read versus write authority?</h3>
+<p><strong>Answer:</strong> Treating a database SELECT and DELETE as interchangeable tool calls. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q12-how-would-you-test-or-measure-read-versus-write-authority">Q12. How would you test or measure read versus write authority?</h3>
+<p><strong>Answer:</strong> Audit access controls and run attempted unauthorized-write tests. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q13-what-is-scope-and-blast-radius-and-why-does-it-matter">Q13. What is scope and blast radius, and why does it matter?</h3>
+<p><strong>Answer:</strong> Bound the number of records, environments, users, or dollars any autonomous action can affect. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q14-give-a-practical-example-of-scope-and-blast-radius">Q14. Give a practical example of scope and blast radius.</h3>
+<p><strong>Answer:</strong> A bulk-update agent is capped at 10 draft records in staging. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q15-what-can-go-wrong-when-implementing-scope-and-blast-radius">Q15. What can go wrong when implementing scope and blast radius?</h3>
+<p><strong>Answer:</strong> Allowing a compromised instruction to affect all customers. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q16-how-would-you-test-or-measure-scope-and-blast-radius">Q16. How would you test or measure scope and blast radius?</h3>
+<p><strong>Answer:</strong> Test worst-case impact under repeated or malformed requests. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q17-what-is-reversibility-and-why-does-it-matter">Q17. What is reversibility, and why does it matter?</h3>
+<p><strong>Answer:</strong> Reversible operations can tolerate somewhat more automation than irreversible ones. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q18-give-a-practical-example-of-reversibility">Q18. Give a practical example of reversibility.</h3>
+<p><strong>Answer:</strong> Create a draft purchase order automatically; require approval before submission. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q19-what-can-go-wrong-when-implementing-reversibility">Q19. What can go wrong when implementing reversibility?</h3>
+<p><strong>Answer:</strong> Assuming sending an email can be rolled back like a database transaction. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q20-how-would-you-test-or-measure-reversibility">Q20. How would you test or measure reversibility?</h3>
+<p><strong>Answer:</strong> Perform rollback drills and catalog irreversibility. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q21-what-is-confidence-and-uncertainty-and-why-does-it-matter">Q21. What is confidence and uncertainty, and why does it matter?</h3>
+<p><strong>Answer:</strong> A model confidence statement is not a calibrated probability; use external validation and explicit abstention. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q22-give-a-practical-example-of-confidence-and-uncertainty">Q22. Give a practical example of confidence and uncertainty.</h3>
+<p><strong>Answer:</strong> If material IDs disagree between ERP and PIM, escalate rather than guess. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q23-what-can-go-wrong-when-implementing-confidence-and-uncertainty">Q23. What can go wrong when implementing confidence and uncertainty?</h3>
+<p><strong>Answer:</strong> Setting approval thresholds based solely on self-reported confidence. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q24-how-would-you-test-or-measure-confidence-and-uncertainty">Q24. How would you test or measure confidence and uncertainty?</h3>
+<p><strong>Answer:</strong> Measure selective accuracy and risk versus coverage on a labeled set. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q25-what-is-graduated-rollout-and-why-does-it-matter">Q25. What is graduated rollout, and why does it matter?</h3>
+<p><strong>Answer:</strong> Increase autonomy in stages: offline evaluation, shadow mode, drafts, gated writes, limited production, wider rollout. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q26-give-a-practical-example-of-graduated-rollout">Q26. Give a practical example of graduated rollout.</h3>
+<p><strong>Answer:</strong> Observe suggested inventory edits for a week before enabling capped writes. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q27-what-can-go-wrong-when-implementing-graduated-rollout">Q27. What can go wrong when implementing graduated rollout?</h3>
+<p><strong>Answer:</strong> Deploying untested write tools with unrestricted credentials. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q28-how-would-you-test-or-measure-graduated-rollout">Q28. How would you test or measure graduated rollout?</h3>
+<p><strong>Answer:</strong> Use canaries, audit logs, and rollback metrics. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q29-what-is-policy-versus-judgment-and-why-does-it-matter">Q29. What is policy versus judgment, and why does it matter?</h3>
+<p><strong>Answer:</strong> Hard limits belong in deterministic code, while flexible interpretation can be delegated to a model. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q30-give-a-practical-example-of-policy-versus-judgment">Q30. Give a practical example of policy versus judgment.</h3>
+<p><strong>Answer:</strong> Code enforces a $100 refund cap while the model drafts the reason. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q31-what-can-go-wrong-when-implementing-policy-versus-judgment">Q31. What can go wrong when implementing policy versus judgment?</h3>
+<p><strong>Answer:</strong> Relying on prompt wording to enforce financial limits. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q32-how-would-you-test-or-measure-policy-versus-judgment">Q32. How would you test or measure policy versus judgment?</h3>
+<p><strong>Answer:</strong> Write adversarial tests to show policy holds regardless of model output. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q33-what-is-autonomy-budgeting-and-why-does-it-matter">Q33. What is autonomy budgeting, and why does it matter?</h3>
+<p><strong>Answer:</strong> Each extra action introduces token costs, latency, and potential failure; assign time and step budgets. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q34-give-a-practical-example-of-autonomy-budgeting">Q34. Give a practical example of autonomy budgeting.</h3>
+<p><strong>Answer:</strong> A research agent may make at most five searches before returning partial findings. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q35-what-can-go-wrong-when-implementing-autonomy-budgeting">Q35. What can go wrong when implementing autonomy budgeting?</h3>
+<p><strong>Answer:</strong> Equating more tool calls with improved quality. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q36-how-would-you-test-or-measure-autonomy-budgeting">Q36. How would you test or measure autonomy budgeting?</h3>
+<p><strong>Answer:</strong> Plot marginal quality gain against step count. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<h3 id="q37-what-is-accountability-and-why-does-it-matter">Q37. What is accountability, and why does it matter?</h3>
+<p><strong>Answer:</strong> A human owner and system audit trail remain necessary even when actions are automated. In production, this determines what the application must enforce rather than merely ask the model to do.</p>
+<h3 id="q38-give-a-practical-example-of-accountability">Q38. Give a practical example of accountability.</h3>
+<p><strong>Answer:</strong> Log initiating user, policy version, approval, tool result, and record diff. I would explicitly separate observations from authorized side effects and keep evidence for review.</p>
+<h3 id="q39-what-can-go-wrong-when-implementing-accountability">Q39. What can go wrong when implementing accountability?</h3>
+<p><strong>Answer:</strong> Assuming the model itself is accountable for a production change. The consequence is usually worse reliability, weaker auditability, or unnecessary risk. Design a bounded failure path rather than assuming the model will recover.</p>
+<h3 id="q40-how-would-you-test-or-measure-accountability">Q40. How would you test or measure accountability?</h3>
+<p><strong>Answer:</strong> Trace one action end-to-end to the responsible initiator and reviewer. Include success and failure fixtures, report the baseline, and check end-to-end impact instead of relying on subjective model ratings.</p>
+<hr>
+<p><strong>Final self-check:</strong> Can you explain this topic without relying on a framework name? Can you name the control-plane owner, the most serious failure, a safe fallback, and one metric proving it works?</p></article>
+<nav class="page-nav" aria-label="Note navigation"><span></span><a href="./core-agent-loop-observe-decide-act-inspect-results-and-stop.html">Core Agent Loop: Observe, Decide, Act, Inspect, Stop →</a></nav>
+</main>
+</div>
+<script>
+const links = [...document.querySelectorAll(".toc a")];
+const observer = new IntersectionObserver(entries => {
+  for (const entry of entries) {
+    if (!entry.isIntersecting) continue;
+    links.forEach(link => link.classList.toggle("active", link.hash === "#" + entry.target.id));
+  }
+}, { rootMargin: "-15% 0px -72% 0px" });
+document.querySelectorAll("main h2[id], main h3[id]").forEach(heading => observer.observe(heading));
+</script>
+</body>
+</html>
