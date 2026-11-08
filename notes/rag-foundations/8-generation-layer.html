@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="🤖 8. Generation Layer (LLM usage) — RAG Foundations notes">
+<title>🤖 8. Generation Layer (LLM usage) | RAG Foundations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../agent-fundamentals.css">
+<script src="../site-nav.js" defer></script>
+</head>
+<body>
+<header class="bar">
+  <nav class="bar-links" aria-label="Main navigation">
+    <a href="./index.html">← RAG Foundations</a>
+    <a href="../m3.html">Module 3: RAG Systems</a>
+  </nav>
+  <nav class="bar-pages" aria-label="Adjacent notes">
+    <a href="./7-re-ranking.html" aria-label="Previous note: 🧠 7. Re-ranking (Huge performance boost)" title="🧠 7. Re-ranking (Huge performance boost)">← Previous</a>
+    <a href="./9-evaluation.html" aria-label="Next note: 🧪 9. Evaluation (Most people ignore this)" title="🧪 9. Evaluation (Most people ignore this)">Next →</a>
+  </nav>
+  <span class="grow"></span>
+  <button type="button" onclick="window.print()">Print / PDF</button>
+</header>
+<div class="layout"><nav class="toc" aria-label="Contents"><strong>On this page</strong><a class="sub" href="#prompt-engineering-for-rag">Prompt Engineering for RAG</a>
+<a class="sub" href="#context-injection-strategies">Context Injection Strategies</a>
+<a class="sub" href="#grounded-generation-forcing-model-to-stick-to-context">Grounded Generation (Forcing Model to Stick to Context)</a>
+<a class="sub" href="#citation-generation">Citation Generation</a>
+<a class="sub" href="#handling-hallucinations">Handling Hallucinations</a>
+<a class="sub" href="#temperature-decoding-tuning">Temperature / Decoding Tuning</a>
+<a class="sub" href="#models">Models</a>
+<a class="sub" href="#recommended-production-blueprint-for-generation-layer">Recommended Production Blueprint for Generation Layer</a></nav>
+<main>
+<header class="cover"><h1>🤖 8. Generation Layer (LLM usage)</h1><p class="sub">RAG Foundations · Note 8 of 16</p></header>
+<article><p>The generation layer is where retrieved evidence becomes user-facing answers. In production RAG systems, this stage is not just &quot;send chunks to an LLM.&quot; It is a controlled synthesis pipeline with strict rules for grounding, citation behavior, uncertainty handling, and decoding choices.</p>
+<p>If retrieval determines what evidence is available, generation determines whether that evidence is used faithfully. Most reliability failures in RAG (hallucinated details, missing citations, overconfident tone, weak refusal behavior) happen here.</p>
+<p>The goal of a mature generation layer is simple:</p>
+<ol><li>Use retrieved context as the primary source of truth.</li><li>Produce clear, useful answers with explicit provenance.</li><li>Refuse or qualify responses when evidence is weak.</li><li>Balance factuality, style quality, latency, and cost.</li></ol>
+<h3 id="prompt-engineering-for-rag">Prompt Engineering for RAG</h3>
+<p>Prompt design in RAG is not about generic creativity templates. It is about behavioral control: forcing the model to prioritize evidence, separate known facts from assumptions, and produce outputs in a predictable structure.</p>
+<p>A strong RAG generation prompt usually includes:</p>
+<ul><li><strong>Role and objective:</strong> define the assistant as an evidence-grounded system, not an unconstrained conversational model.</li><li><strong>Evidence boundaries:</strong> explicitly state that answers must rely on provided context.</li><li><strong>Fallback behavior:</strong> define what to do when context is insufficient (ask clarification, say unknown, or provide partial answer with caveats).</li><li><strong>Output contract:</strong> specify format (bullet points, JSON, with citations, confidence tag, etc.).</li><li><strong>Style constraints:</strong> concise vs detailed, technical depth, audience adaptation.</li></ul>
+<p>Why prompt engineering matters so much in RAG:</p>
+<ul><li>Retrieved context can be noisy or partially relevant; the prompt determines evidence prioritization.</li><li>LLMs have a prior to be helpful and complete responses, which can trigger invention when evidence is missing.</li><li>Consistent output formats are required for downstream consumers (UI rendering, evaluators, post-processors).</li></ul>
+<p>High-leverage prompt blocks:</p>
+<ol><li><strong>System grounding policy:</strong> &quot;Use only retrieved context for factual claims.&quot;</li><li><strong>Citation instruction:</strong> &quot;Attach source references to each factual statement.&quot;</li><li><strong>Uncertainty policy:</strong> &quot;If evidence is missing, explicitly say what is unknown.&quot;</li><li><strong>Conflict policy:</strong> &quot;If sources disagree, surface disagreement and do not collapse into false certainty.&quot;</li></ol>
+<p>Practical prompt design pattern:</p>
+<ol><li>Start with strict grounding and short output.</li><li>Evaluate failure traces (hallucinations, missing citations, wrong confidence).</li><li>Add targeted instructions for recurring errors.</li><li>Keep prompt concise enough to avoid token waste and instruction dilution.</li></ol>
+<h3 id="context-injection-strategies">Context Injection Strategies</h3>
+<p>Context injection is how retrieved chunks are transformed into model input. Quality depends not only on which chunks are selected, but also on ordering, grouping, annotation, and budget control.</p>
+<p>Common strategies:</p>
+<ul><li><strong>Flat concatenation:</strong> append top chunks in rank order. Simple, but often suboptimal when evidence is redundant or mixed quality.</li><li><strong>Ranked sections:</strong> provide chunks with explicit rank labels and source metadata.</li><li><strong>Thematic grouping:</strong> cluster by subtopic and inject in grouped blocks for multi-facet questions.</li><li><strong>Structured evidence block:</strong> encode each chunk as fields (<code>source</code>, <code>title</code>, <code>timestamp</code>, <code>content</code>, <code>score</code>) before answer generation.</li><li><strong>Hierarchical injection:</strong> summary-first context followed by high-priority raw passages.</li></ul>
+<p>Important context injection decisions:</p>
+<ul><li><strong>Ordering policy:</strong> highest precision first vs chronology-first vs source-priority.</li><li><strong>Redundancy trimming:</strong> deduplicate near-identical chunks before prompt assembly.</li><li><strong>Window allocation:</strong> reserve tokens for instructions, evidence, and answer (not evidence alone).</li><li><strong>Metadata inclusion:</strong> include source IDs and timestamps to support citation and recency-aware answers.</li></ul>
+<p>Why this changes answer quality:</p>
+<ul><li>LLM attention is not uniform across long prompts; earlier and denser evidence often dominates.</li><li>Poor chunk order can cause the model to anchor on weak passages.</li><li>Missing metadata makes citations brittle and prevents conflict-aware reasoning.</li></ul>
+<p>A practical production pattern:</p>
+<ol><li>Keep only high-quality reranked chunks.</li><li>Remove duplicates and very low-information text.</li><li>Inject each chunk with stable source identifiers.</li><li>Add a short &quot;evidence summary&quot; before raw passages for long contexts.</li></ol>
+<h3 id="grounded-generation-forcing-model-to-stick-to-context">Grounded Generation (Forcing Model to Stick to Context)</h3>
+<p>Grounded generation means the model is behaviorally constrained to produce claims that are entailed, or at least strongly supported, by supplied evidence.</p>
+<p>Core control mechanisms:</p>
+<ul><li><strong>Instruction-level grounding:</strong> explicit rules forbidding unsupported claims.</li><li><strong>Schema-level grounding:</strong> require answer fields tied to evidence IDs.</li><li><strong>Decode-time grounding:</strong> lower temperature and constrained decoding patterns.</li><li><strong>Post-generation verification:</strong> check each claim against retrieved context before finalizing response.</li></ul>
+<p>Grounding tactics that work in practice:</p>
+<ul><li><strong>Claim-evidence pairing:</strong> require each key claim to reference one or more chunk IDs.</li><li><strong>Quote-first synthesis:</strong> extract evidence snippets first, then synthesize.</li><li><strong>Two-pass generation:</strong> pass 1 generates evidence map; pass 2 writes final answer using only map entries.</li><li><strong>Refusal policy:</strong> if no supporting evidence exists, output &quot;insufficient evidence&quot; instead of extrapolating.</li></ul>
+<p>Failure modes even with grounding prompts:</p>
+<ul><li>Model blends prior knowledge with retrieved evidence.</li><li>Model overgeneralizes from one partial sentence.</li><li>Model fills missing numeric values using plausible defaults.</li></ul>
+<p>Mitigations:</p>
+<ol><li>Tighten instruction language around unsupported inference.</li><li>Use lower-variance decoding for factual tasks.</li><li>Add claim-level validators (string overlap, entailment models, or verifier LLM).</li><li>Penalize unsupported claims in offline eval and online feedback loops.</li></ol>
+<h3 id="citation-generation">Citation Generation</h3>
+<p>Citations convert RAG from &quot;sounds right&quot; to &quot;traceably right.&quot; Strong citation behavior means each factual statement can be traced to source evidence shown in retrieval.</p>
+<p>Citation design choices:</p>
+<ul><li><strong>Granularity:</strong> sentence-level vs paragraph-level citations.</li><li><strong>Format:</strong> inline markers (<code>[S1]</code>, <code>[S2]</code>) vs footnotes vs structured JSON references.</li><li><strong>Strictness:</strong> citation required for all factual claims vs only non-trivial claims.</li><li><strong>Source fidelity:</strong> references must map to injected chunks, not external model memory.</li></ul>
+<p>Reliable citation pipeline pattern:</p>
+<ol><li>Assign immutable source IDs during context assembly.</li><li>Instruct the model to cite by those IDs only.</li><li>Post-validate every citation points to an existing injected source.</li><li>Optionally verify semantic support between claim and cited text.</li></ol>
+<p>Common citation issues:</p>
+<ul><li><strong>Phantom citations:</strong> model invents source IDs that were never injected.</li><li><strong>Citation drift:</strong> correct claim paired with wrong source.</li><li><strong>Citation dumping:</strong> same citation repeated for unrelated statements.</li><li><strong>Low-granularity mismatch:</strong> one citation cannot support all claims in long paragraphs.</li></ul>
+<p>Best practices:</p>
+<ul><li>Keep source IDs short and deterministic.</li><li>Encourage one-to-many mapping only when evidence genuinely spans multiple sources.</li><li>Force explicit &quot;no citation available&quot; for unsupported claims rather than silent omission.</li><li>Evaluate citation precision and recall, not just answer readability.</li></ul>
+<h3 id="handling-hallucinations">Handling Hallucinations</h3>
+<p>Hallucinations in RAG are usually &quot;grounding failures,&quot; not only model defects. They happen when retrieval misses evidence, context is noisy, or generation constraints are weak.</p>
+<p>Major hallucination categories:</p>
+<ul><li><strong>Unsupported factual addition:</strong> claim not present in any context chunk.</li><li><strong>Wrong synthesis:</strong> individually true fragments combined into false conclusion.</li><li><strong>Temporal hallucination:</strong> outdated facts presented as current.</li><li><strong>Numeric hallucination:</strong> fabricated quantities, percentages, dates, or ranges.</li></ul>
+<p>System-level anti-hallucination controls:</p>
+<ul><li><strong>Retrieval confidence gates:</strong> low-confidence retrieval triggers fallback instead of free-form answering.</li><li><strong>Answerability classification:</strong> detect whether context can answer the question before generation.</li><li><strong>Conservative prompting:</strong> prefer refusal over speculative completion.</li><li><strong>Verification loop:</strong> run claim checks before returning the final answer.</li><li><strong>Human escalation path:</strong> for high-stakes queries, route ambiguous outputs for review.</li></ul>
+<p>Product behavior that improves trust:</p>
+<ul><li>Explicitly label uncertainty.</li><li>Separate &quot;what sources state&quot; from &quot;possible interpretation.&quot;</li><li>Ask clarifying questions when intent or evidence is ambiguous.</li><li>Avoid confident tone when evidence coverage is partial.</li></ul>
+<p>Operational metric set:</p>
+<ul><li>Hallucination rate on adversarial test queries.</li><li>Unsupported-claim count per answer.</li><li>Refusal appropriateness (not only refusal frequency).</li><li>User-reported trust and correction rates.</li></ul>
+<h3 id="temperature-decoding-tuning">Temperature / Decoding Tuning</h3>
+<p>Decoding parameters strongly affect RAG reliability. For factual QA, low-variance generation usually outperforms creative settings because it reduces speculative continuation.</p>
+<p>Primary knobs:</p>
+<ul><li><strong>Temperature:</strong> lower values reduce randomness; better for grounded factual responses.</li><li><strong>Top-p (nucleus sampling):</strong> limits token selection to probable mass; lower values improve determinism.</li><li><strong>Top-k (when available):</strong> restricts candidate token set per step.</li><li><strong>Max tokens:</strong> caps response length and can reduce rambling unsupported claims.</li><li><strong>Stop sequences:</strong> enforce output boundaries and formatting contracts.</li></ul>
+<p>Typical tuning guidance for RAG:</p>
+<ul><li>Start with low temperature (<code>0.0</code> to <code>0.3</code>) for evidence-heavy QA.</li><li>Use moderate <code>top_p</code> constraints to avoid high-entropy completions.</li><li>Increase creativity settings only for non-factual tasks (tone rewrite, brainstorming).</li><li>Tune per route: strict factual assistant can use different decoding than conversational explainer.</li></ul>
+<p>Tradeoff framing:</p>
+<ul><li>Lower randomness improves factual stability and reproducibility.</li><li>Higher randomness can improve fluency variation but increases hallucination risk.</li><li>Very strict decoding can become terse or brittle; use prompt quality and better context before raising temperature.</li></ul>
+<p>Production tuning loop:</p>
+<ol><li>Define evaluation slices (fact QA, multi-hop, ambiguous queries, no-answer queries).</li><li>Sweep decoding configs and compare groundedness + usefulness.</li><li>Lock defaults per task type, not one global setting for all routes.</li><li>Monitor drift when model versions change.</li></ol>
+<h3 id="models">Models</h3>
+<p>Model choice in the generation layer is a multi-objective decision: quality, factual obedience, latency, cost, context window, enterprise controls, and ecosystem fit.</p>
+<p>There is no single &quot;best model.&quot; The right choice depends on workload profile:</p>
+<ul><li>High-stakes factual QA may prioritize groundedness and citation behavior.</li><li>Interactive chat may prioritize latency and conversational quality.</li><li>Cost-sensitive scale workloads may prioritize tokens-per-dollar with strong guardrails.</li></ul>
+<h4 id="gpt-models">GPT Models</h4>
+<p>GPT-family models are commonly used in RAG for strong instruction following, tool use patterns, and broad ecosystem support.</p>
+<p>Where they typically perform well:</p>
+<ul><li>Structured output with explicit schemas.</li><li>Multi-step synthesis across several context chunks.</li><li>Strong developer tooling and mature API ergonomics.</li></ul>
+<p>Operational strengths:</p>
+<ul><li>Robust function/tool-calling patterns in complex agents.</li><li>Good prompt adherence when constraints are clear and concise.</li><li>Broad compatibility with observability, eval, and guardrail tooling.</li></ul>
+<p>Watchouts:</p>
+<ul><li>Cost can rise quickly in high-volume long-context workloads.</li><li>Prompt bloat can dilute grounding behavior.</li><li>Citation quality still requires explicit prompt + validation, not assumption.</li></ul>
+<p>Recommended usage pattern:</p>
+<ol><li>Use strict grounded system prompt and source-ID citation format.</li><li>Keep context curated and reranked before generation.</li><li>Add verifier or citation validator for high-stakes domains.</li></ol>
+<h4 id="claude">Claude</h4>
+<p>Claude-family models are widely used for long-context reasoning, nuanced writing quality, and strong behavior in instruction-heavy enterprise workflows.</p>
+<p>Where Claude often stands out:</p>
+<ul><li>Long document reasoning and synthesis over large context windows.</li><li>Natural, clear prose with strong coherence.</li><li>Careful handling of nuanced or policy-heavy prompts.</li></ul>
+<p>Operational strengths:</p>
+<ul><li>Good performance on context-rich enterprise knowledge tasks.</li><li>Useful for workflows needing both analysis and polished explanations.</li><li>Often strong at preserving tone constraints with explicit instructions.</li></ul>
+<p>Watchouts:</p>
+<ul><li>Long context can tempt over-inclusion; context curation is still mandatory.</li><li>Latency and cost profiles vary by model tier and token footprint.</li><li>Hallucination resistance still depends on grounding instructions and verifier design.</li></ul>
+<p>Recommended usage pattern:</p>
+<ol><li>Use structured evidence blocks with stable source IDs.</li><li>Require sentence-level citations for factual statements.</li><li>Apply claim verification on critical outputs.</li></ol>
+<h4 id="gemma">Gemma</h4>
+<p>Gemma-family models are important in open and local-first stacks where teams need deployment control, customization, and potentially lower serving cost.</p>
+<p>Where Gemma is commonly chosen:</p>
+<ul><li>Self-hosted or private deployments.</li><li>Cost-aware workloads with controlled latency environments.</li><li>Domain adaptation pipelines where fine-tuning or adapter strategies are needed.</li></ul>
+<p>Operational strengths:</p>
+<ul><li>Flexibility in infrastructure ownership and privacy controls.</li><li>Strong option for teams optimizing custom inference stacks.</li><li>Can be paired with specialized rerankers and validators for robust RAG.</li></ul>
+<p>Watchouts:</p>
+<ul><li>Quality varies by model size and serving setup.</li><li>Requires stronger prompt discipline and guardrails for stable grounding.</li><li>Engineering overhead (hosting, scaling, observability) is on your team.</li></ul>
+<p>Recommended usage pattern:</p>
+<ol><li>Use conservative decoding for factual routes.</li><li>Pair with strict retrieval filtering and reranking.</li><li>Add post-generation verification to offset smaller-model variance.</li></ol>
+<h4 id="qwen">Qwen</h4>
+<p>Qwen-family models are frequently used in open-model ecosystems for strong multilingual capability and competitive quality-cost tradeoffs.</p>
+<p>Where Qwen often performs well:</p>
+<ul><li>Multilingual RAG workloads and cross-lingual retrieval/generation.</li><li>Cost-efficient deployments with good general reasoning quality.</li><li>Flexible deployment scenarios across cloud and self-hosted setups.</li></ul>
+<p>Operational strengths:</p>
+<ul><li>Broad open-model ecosystem momentum and tooling.</li><li>Strong practical performance for many applied assistant tasks.</li><li>Useful choice when balancing capability, openness, and spend.</li></ul>
+<p>Watchouts:</p>
+<ul><li>Behavior consistency can differ across Qwen variants and quantizations.</li><li>Requires careful eval for domain-specific groundedness.</li><li>Citation reliability still needs explicit formatting rules and validation.</li></ul>
+<p>Recommended usage pattern:</p>
+<ol><li>Evaluate per-language groundedness, not only aggregate quality.</li><li>Tune decoding separately for factual vs conversational routes.</li><li>Add citation and claim-validation checks in production.</li></ol>
+<h3 id="recommended-production-blueprint-for-generation-layer">Recommended Production Blueprint for Generation Layer</h3>
+<p>A stable generation layer in production typically follows this flow:</p>
+<ol><li>Accept reranked, deduplicated, metadata-rich context.</li><li>Build prompt with strict grounding policy and citation contract.</li><li>Generate with low-variance decoding defaults for factual tasks.</li><li>Validate citations and unsupported claims.</li><li>Return final answer, or fallback to uncertainty/refusal when evidence is weak.</li></ol>
+<p>This blueprint works because it treats generation as a controlled reliability stage, not only text completion. In high-performing RAG systems, &quot;answer quality&quot; is the result of policy, context discipline, model selection, and continuous evaluation working together.</p></article>
+<nav class="page-nav" aria-label="Note navigation"><a href="./7-re-ranking.html">← 🧠 7. Re-ranking (Huge performance boost)</a><a href="./9-evaluation.html">🧪 9. Evaluation (Most people ignore this) →</a></nav>
+</main>
+</div>
+<script>
+const links = [...document.querySelectorAll(".toc a")];
+const observer = new IntersectionObserver(entries => {
+  for (const entry of entries) {
+    if (!entry.isIntersecting) continue;
+    links.forEach(link => link.classList.toggle("active", link.hash === "#" + entry.target.id));
+  }
+}, { rootMargin: "-15% 0px -72% 0px" });
+document.querySelectorAll("main h2[id], main h3[id]").forEach(heading => observer.observe(heading));
+</script>
+</body>
+</html>

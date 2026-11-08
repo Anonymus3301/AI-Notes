@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="🔍 6. Retrieval Techniques (This is where pros stand out) — RAG Foundations notes">
+<title>🔍 6. Retrieval Techniques (This is where pros stand out) | RAG Foundations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../agent-fundamentals.css">
+<script src="../site-nav.js" defer></script>
+</head>
+<body>
+<header class="bar">
+  <nav class="bar-links" aria-label="Main navigation">
+    <a href="./index.html">← RAG Foundations</a>
+    <a href="../m3.html">Module 3: RAG Systems</a>
+  </nav>
+  <nav class="bar-pages" aria-label="Adjacent notes">
+    <a href="./5-vector-databases.html" aria-label="Previous note: 🗄️ 5. Vector Databases (Where embeddings live)" title="🗄️ 5. Vector Databases (Where embeddings live)">← Previous</a>
+    <a href="./7-re-ranking.html" aria-label="Next note: 🧠 7. Re-ranking (Huge performance boost)" title="🧠 7. Re-ranking (Huge performance boost)">Next →</a>
+  </nav>
+  <span class="grow"></span>
+  <button type="button" onclick="window.print()">Print / PDF</button>
+</header>
+<div class="layout"><nav class="toc" aria-label="Contents"><strong>On this page</strong><a class="sub" href="#top-k-retrieval">Top-K Retrieval</a>
+<a class="sub" href="#similarity-thresholding">Similarity Thresholding</a>
+<a class="sub" href="#maximal-marginal-relevance-mmr">Maximal Marginal Relevance (MMR)</a>
+<a class="sub" href="#hybrid-retrieval">Hybrid Retrieval</a>
+<a class="sub" href="#retrieval-strategy-composition-how-pros-combine-techniques">Retrieval Strategy Composition (How pros combine techniques)</a>
+<a class="sub" href="#practical-evaluation-checklist">Practical Evaluation Checklist</a></nav>
+<main>
+<header class="cover"><h1>🔍 6. Retrieval Techniques (This is where pros stand out)</h1><p class="sub">RAG Foundations · Note 6 of 16</p></header>
+<article><p>In mature RAG systems, embeddings alone do not create strong answers. Retrieval strategy is what determines whether the model receives the right evidence at the right time under real-world constraints such as latency, noisy queries, domain jargon, and multi-tenant filtering.</p>
+<p>This chapter focuses on the retrieval techniques that differentiate basic demos from production-grade systems. These methods are not mutually exclusive. High-performing pipelines often combine several of them in staged retrieval and reranking flows.</p>
+<h3 id="top-k-retrieval">Top-K Retrieval</h3>
+<p>Top-k retrieval is the foundational retrieval pattern: return the <code>k</code> highest-scoring chunks for a query according to a similarity function (cosine similarity, dot product, Euclidean distance, BM25 score, or fused hybrid score).</p>
+<p>Why it matters:</p>
+<ul><li>It defines the initial candidate context seen by the LLM.</li><li>It controls recall and context budget tradeoffs.</li><li>It sets a baseline for all advanced retrieval improvements.</li></ul>
+<p>How it works conceptually:</p>
+<ol><li>Convert query to a retrieval representation (embedding and/or lexical query).</li><li>Search the index and rank candidates by score.</li><li>Return the top <code>k</code> candidates to downstream stages (direct prompt, reranker, compressor, or generator).</li></ol>
+<p>Key tuning dimensions:</p>
+<ul><li><strong>Small <code>k</code> (for example 3-5):</strong> lower latency and token use, but higher risk of missing relevant evidence.</li><li><strong>Larger <code>k</code> (for example 20-100):</strong> better recall potential, but noisier context and higher cost.</li><li><strong>Dynamic <code>k</code>:</strong> adapt <code>k</code> by query ambiguity, confidence, or user intent (fact lookup vs exploratory question).</li></ul>
+<p>Common failure modes:</p>
+<ul><li>Important evidence ranked just below the cutoff.</li><li>Redundant chunks consume top positions.</li><li>High semantic similarity but low answer utility (chunk &quot;about&quot; topic but not containing needed fact).</li></ul>
+<p>Production best practices:</p>
+<ul><li>Evaluate top-k with recall@k and answer accuracy, not score curves alone.</li><li>Use top-k as a candidate generation step, then rerank/compress before final prompting.</li><li>Tune separately per query class (short keyword query, long natural-language query, entity-heavy query).</li></ul>
+<h3 id="similarity-thresholding">Similarity Thresholding</h3>
+<p>Similarity thresholding applies a minimum score requirement so low-confidence matches are excluded, even if they appear in top-k. This prevents forcing irrelevant context into prompts when retrieval confidence is weak.</p>
+<p>Core intuition:</p>
+<ul><li>Top-k always returns <code>k</code> results, even if all are poor.</li><li>Thresholding allows returning fewer than <code>k</code> or even zero results when confidence is low.</li></ul>
+<p>Why this is critical:</p>
+<ul><li>Reduces hallucination amplification from irrelevant chunks.</li><li>Improves trustworthiness when retrieval confidence is uncertain.</li><li>Enables fallback logic (clarifying question, query rewrite, web/tool search, &quot;insufficient evidence&quot; response).</li></ul>
+<p>Design patterns:</p>
+<ul><li><strong>Static threshold:</strong> single global cutoff (simple, but often brittle across domains).</li><li><strong>Per-index threshold:</strong> different cutoff by source type or embedding model.</li><li><strong>Adaptive threshold:</strong> calibrate based on query length, entropy, hybrid score distribution, or user intent.</li></ul>
+<p>Operational caveats:</p>
+<ul><li>Raw similarity scores are not always calibrated across models/indexes.</li><li>Threshold too high can harm recall for valid but subtle matches.</li><li>Threshold too low behaves like plain top-k and may pass noise.</li></ul>
+<p>Practical implementation strategy:</p>
+<ol><li>Log score distributions for successful vs failed retrieval.</li><li>Tune thresholds with offline eval sets and online feedback.</li><li>Add fallback behavior for low-confidence retrieval (ask clarification, widen retrieval, or change retrieval mode).</li></ol>
+<h3 id="maximal-marginal-relevance-mmr">Maximal Marginal Relevance (MMR)</h3>
+<p>Maximal Marginal Relevance balances <strong>relevance</strong> and <strong>diversity</strong> during candidate selection. Instead of taking the top-ranked items directly, MMR penalizes redundancy so returned context spans different but relevant evidence.</p>
+<p>Why MMR helps in RAG:</p>
+<ul><li>Retrieval results often contain near-duplicate chunks from the same document region.</li><li>Redundant context wastes tokens and reduces coverage of complementary evidence.</li><li>Diverse retrieval improves robustness for multi-facet questions.</li></ul>
+<p>MMR objective (high level):</p>
+<ul><li>Select items that are similar to the query.</li><li>Penalize items too similar to already selected items.</li><li>Control tradeoff with a diversity parameter (often <code>lambda</code>).</li></ul>
+<p>Tuning behavior:</p>
+<ul><li><strong>Higher relevance weight:</strong> more like classic top-k, less diversity.</li><li><strong>Higher diversity weight:</strong> broader coverage, possible drop in direct relevance.</li></ul>
+<p>Best-fit scenarios:</p>
+<ul><li>Long documents where adjacent chunks are semantically overlapping.</li><li>Multi-part questions (&quot;compare A and B and mention risks&quot;).</li><li>Knowledge bases with repetitive templated text.</li></ul>
+<p>Common pitfall:</p>
+<ul><li>Over-diversification can include peripheral chunks that are distinct but not useful.</li></ul>
+<p>Good practice:</p>
+<ul><li>Apply MMR to a moderately large candidate pool (for example top-30) and output a smaller final set (for example 6-10).</li><li>Combine with reranking to recover precision after diversity selection.</li></ul>
+<h3 id="hybrid-retrieval">Hybrid Retrieval</h3>
+<p>Hybrid retrieval combines lexical and semantic retrieval signals so systems can capture both exact term matches and conceptual similarity.</p>
+<p>Why hybrid retrieval is often superior:</p>
+<ul><li>Lexical search excels at exact tokens (IDs, error codes, API names, legal phrases).</li><li>Embedding search excels at paraphrases and semantic intent.</li><li>Real user queries frequently contain both patterns.</li></ul>
+<p>Typical hybrid architecture:</p>
+<ol><li>Run BM25/keyword retrieval and vector retrieval in parallel.</li><li>Merge candidates.</li><li>Fuse rankings/scores (weighted blending, RRF, learning-to-rank).</li><li>Pass fused list to reranker/compressor/generator.</li></ol>
+<p>Score fusion approaches:</p>
+<ul><li><strong>Weighted score fusion:</strong> normalize and combine lexical + vector scores.</li><li><strong>Reciprocal Rank Fusion (RRF):</strong> robust rank-level merging without heavy score calibration.</li><li><strong>Two-stage fusion:</strong> candidate union first, cross-encoder reranker second.</li></ul>
+<h4 id="bm25-embeddings">BM25 + Embeddings</h4>
+<p>This is the most common hybrid baseline and frequently a strong production default.</p>
+<p>BM25 contribution:</p>
+<ul><li>Captures exact word overlap and term rarity.</li><li>Strong for identifiers, abbreviations, and rare terms.</li></ul>
+<p>Embeddings contribution:</p>
+<ul><li>Captures semantic relatedness and paraphrases.</li><li>Strong when wording differs from indexed text.</li></ul>
+<p>Why combining both works:</p>
+<ul><li>BM25 catches precision-critical exact signals.</li><li>Embeddings recover relevant content when lexical overlap is low.</li></ul>
+<p>Implementation tips:</p>
+<ul><li>Normalize scores before blending to prevent one retriever from dominating.</li><li>Use separate top-k from each retriever, then fuse.</li><li>Start with RRF as a stable baseline, then tune weighted fusion.</li></ul>
+<h4 id="multi-query-retrieval-generate-multiple-queries">Multi-Query Retrieval (Generate Multiple Queries)</h4>
+<p>Multi-query retrieval expands one user query into multiple alternative formulations, then retrieves with each and merges results. It improves recall when a single phrasing underspecifies intent.</p>
+<p>Why it works:</p>
+<ul><li>User questions are often incomplete, ambiguous, or phrased narrowly.</li><li>Alternative phrasings hit different vocabulary and semantic neighborhoods.</li><li>Union of candidates reduces single-query blind spots.</li></ul>
+<p>Typical generation patterns:</p>
+<ul><li>Paraphrases of original question.</li><li>Sub-questions for multi-hop intent.</li><li>Synonym/domain-term variants.</li><li>Explicit entity-focused and definition-focused rewrites.</li></ul>
+<p>Pipeline:</p>
+<ol><li>Generate <code>n</code> alternate queries (often 3-8).</li><li>Retrieve per query.</li><li>Deduplicate and fuse candidates.</li><li>Optionally rerank globally before context assembly.</li></ol>
+<p>Tradeoffs:</p>
+<ul><li>Higher recall, but extra latency and cost.</li><li>More retrieved noise if generated queries drift off intent.</li></ul>
+<p>Guardrails:</p>
+<ul><li>Constrain query generation with intent-preserving prompts.</li><li>Drop low-quality generated queries using confidence checks.</li><li>Cache generated expansions for repeated user intents.</li></ul>
+<h4 id="query-rewriting-expansion">Query Rewriting / Expansion</h4>
+<p>Query rewriting transforms a user query into a retrieval-optimized query. Query expansion adds relevant terms/entities without changing original intent. Both improve retriever compatibility.</p>
+<p>When needed:</p>
+<ul><li>Conversational follow-up questions lack context (&quot;What about its latency?&quot;).</li><li>User language is vague while corpus language is technical.</li><li>Domain terminology mismatch (layperson wording vs specialist docs).</li></ul>
+<p>Rewriting examples:</p>
+<ul><li>Add missing entities from session context.</li><li>Convert pronouns to explicit references.</li><li>Standardize time ranges, versions, or product names.</li></ul>
+<p>Expansion examples:</p>
+<ul><li>Add synonyms and acronyms.</li><li>Add adjacent terms likely needed for retrieval.</li><li>Add canonical entity names and aliases.</li></ul>
+<p>Risks:</p>
+<ul><li>Over-expansion introduces unrelated terms and noisy retrieval.</li><li>Aggressive rewriting may distort user intent.</li></ul>
+<p>Best practice:</p>
+<ul><li>Keep original query as anchor signal in fusion.</li><li>Track rewrite provenance for debugging.</li><li>Evaluate rewrite impact on both retrieval metrics and final answer quality.</li></ul>
+<h4 id="self-querying-retrievers">Self-Querying Retrievers</h4>
+<p>Self-querying retrievers use an LLM to translate natural-language intent into a structured retrieval query that includes both semantic intent and metadata filters.</p>
+<p>What makes them powerful:</p>
+<ul><li>Users rarely express filters in strict query syntax.</li><li>LLM can infer constraints like date ranges, document type, language, or product family.</li><li>Retrieval becomes both semantically relevant and structurally constrained.</li></ul>
+<p>Example transformation pattern:</p>
+<ul><li>User: &quot;Recent incident reports about payment retries in Europe.&quot;</li><li>Structured retrieval intent:</li><li>Semantic query: &quot;payment retry incidents&quot;</li><li>Filters: <code>region = Europe</code>, <code>doc_type = incident_report</code>, <code>created_at = last 90 days</code></li></ul>
+<p>Advantages:</p>
+<ul><li>Better precision for filtered enterprise corpora.</li><li>More natural user interface for complex retrieval constraints.</li><li>Reduced manual query-language burden on users.</li></ul>
+<p>Failure risks:</p>
+<ul><li>Incorrect inferred filters can silently hide relevant documents.</li><li>Metadata schema drift can break generated structured queries.</li></ul>
+<p>Operational safeguards:</p>
+<ul><li>Validate generated filters against known schema.</li><li>Log structured query plans for inspection.</li><li>Provide fallback to unfiltered or relaxed retrieval when filter confidence is low.</li></ul>
+<h4 id="parent-child-retrieval">Parent-Child Retrieval</h4>
+<p>Parent-child retrieval stores fine-grained child chunks for precise matching but returns larger parent contexts for generation. This combines retrieval precision with answerable context windows.</p>
+<p>Why it matters:</p>
+<ul><li>Small chunks improve matching granularity.</li><li>LLMs often need broader surrounding context for coherent answers.</li><li>Directly returning only tiny chunks can miss critical qualifiers.</li></ul>
+<p>How it works:</p>
+<ol><li>Split documents into child chunks (retrieval units).</li><li>Link each child to a parent section/document.</li><li>Retrieve top child chunks.</li><li>Promote to corresponding parents (or expanded windows) for final context.</li></ol>
+<p>Benefits:</p>
+<ul><li>Better match quality than large-chunk retrieval.</li><li>Better generation fidelity than tiny-chunk-only prompting.</li><li>Useful for policy docs, technical manuals, and legal corpora.</li></ul>
+<p>Design considerations:</p>
+<ul><li>Parent size should fit downstream context budget.</li><li>Merge multiple child hits from same parent to avoid duplication.</li><li>Preserve citation traceability from parent context back to matched children.</li></ul>
+<h4 id="context-compression">Context Compression</h4>
+<p>Context compression reduces retrieved text volume while preserving answer-relevant evidence. It is especially important when retrieval returns large passages but model context windows and latency budgets are limited.</p>
+<p>Compression strategies:</p>
+<ul><li><strong>Extractive compression:</strong> keep only salient sentences/spans from retrieved chunks.</li><li><strong>Query-focused summarization:</strong> summarize candidate text around query intent.</li><li><strong>Rerank + trim:</strong> keep top evidence segments and drop weak tails.</li><li><strong>Structured compression:</strong> extract fields/facts into compact schemas.</li></ul>
+<p>Why compression improves systems:</p>
+<ul><li>Lowers token cost and latency.</li><li>Reduces distraction from irrelevant details.</li><li>Increases signal density in final prompt context.</li></ul>
+<p>Key risk:</p>
+<ul><li>Over-compression can remove qualifiers, negations, or edge-case details and lead to wrong answers.</li></ul>
+<p>Mitigation:</p>
+<ul><li>Keep citations to original chunks for traceability.</li><li>Apply conservative compression for high-stakes domains.</li><li>Validate compressed-context answer accuracy against non-compressed baseline.</li></ul>
+<h3 id="retrieval-strategy-composition-how-pros-combine-techniques">Retrieval Strategy Composition (How pros combine techniques)</h3>
+<p>Strong systems rarely rely on one retrieval method. They layer techniques to improve recall, precision, diversity, and efficiency together.</p>
+<p>A common production sequence:</p>
+<ol><li>Rewrite/expand query from conversation state.</li><li>Run hybrid retrieval (BM25 + embeddings) with moderate top-k.</li><li>Apply multi-query expansion for hard or ambiguous queries.</li><li>Use MMR or reranker to reduce redundancy and improve coverage.</li><li>Apply similarity thresholding and confidence-based fallback.</li><li>Use parent-child promotion and context compression before generation.</li></ol>
+<p>This staged design gives better control than any single retrieval trick. Retrieval quality becomes a system-level property shaped by query understanding, candidate generation, ranking, filtering, and final context assembly.</p>
+<h3 id="practical-evaluation-checklist">Practical Evaluation Checklist</h3>
+<p>To improve retrieval techniques reliably, evaluate each layer with explicit metrics:</p>
+<ul><li><strong>Recall-oriented:</strong> recall@k, hit rate, coverage of gold evidence.</li><li><strong>Ranking-oriented:</strong> MRR/NDCG, reranker lift.</li><li><strong>End-to-end:</strong> answer correctness, groundedness/citation fidelity, user satisfaction.</li><li><strong>Operational:</strong> latency, token cost, failure fallback rate, drift over time.</li></ul>
+<p>A retrieval pipeline is &quot;professional grade&quot; when it is not only accurate in demos, but measurable, debuggable, and stable under changing queries, data, and production constraints.</p></article>
+<nav class="page-nav" aria-label="Note navigation"><a href="./5-vector-databases.html">← 🗄️ 5. Vector Databases (Where embeddings live)</a><a href="./7-re-ranking.html">🧠 7. Re-ranking (Huge performance boost) →</a></nav>
+</main>
+</div>
+<script>
+const links = [...document.querySelectorAll(".toc a")];
+const observer = new IntersectionObserver(entries => {
+  for (const entry of entries) {
+    if (!entry.isIntersecting) continue;
+    links.forEach(link => link.classList.toggle("active", link.hash === "#" + entry.target.id));
+  }
+}, { rootMargin: "-15% 0px -72% 0px" });
+document.querySelectorAll("main h2[id], main h3[id]").forEach(heading => observer.observe(heading));
+</script>
+</body>
+</html>

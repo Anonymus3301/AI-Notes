@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="⚡ 12. Performance &amp; Scaling (For real-world systems) — RAG Foundations notes">
+<title>⚡ 12. Performance &amp; Scaling (For real-world systems) | RAG Foundations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../agent-fundamentals.css">
+<script src="../site-nav.js" defer></script>
+</head>
+<body>
+<header class="bar">
+  <nav class="bar-links" aria-label="Main navigation">
+    <a href="./index.html">← RAG Foundations</a>
+    <a href="../m3.html">Module 3: RAG Systems</a>
+  </nav>
+  <nav class="bar-pages" aria-label="Adjacent notes">
+    <a href="./11-types-of-rag-top-4.html" aria-label="Previous note: 🧩 11. Types of RAG (Top 4)" title="🧩 11. Types of RAG (Top 4)">← Previous</a>
+    <a href="./13-security-privacy.html" aria-label="Next note: 🔐 13. Security &amp; Privacy (Critical for production trust)" title="🔐 13. Security &amp; Privacy (Critical for production trust)">Next →</a>
+  </nav>
+  <span class="grow"></span>
+  <button type="button" onclick="window.print()">Print / PDF</button>
+</header>
+<div class="layout"><nav class="toc" aria-label="Contents"><strong>On this page</strong><a class="sub" href="#why-this-layer-matters">Why This Layer Matters</a>
+<a class="sub" href="#latency-optimization">Latency Optimization</a>
+<a class="sub" href="#caching">Caching</a>
+<a class="sub" href="#batch-processing">Batch Processing</a>
+<a class="sub" href="#streaming-responses">Streaming Responses</a>
+<a class="sub" href="#distributed-vector-search">Distributed Vector Search</a>
+<a class="sub" href="#cost-optimization-very-important-if-using-apis">Cost Optimization (Very Important if using APIs)</a>
+<a class="sub" href="#putting-it-together-a-practical-performance-playbook">Putting It Together: A Practical Performance Playbook</a>
+<a class="sub" href="#final-takeaway">Final Takeaway</a></nav>
+<main>
+<header class="cover"><h1>⚡ 12. Performance &amp; Scaling (For real-world systems)</h1><p class="sub">RAG Foundations · Note 12 of 16</p></header>
+<article><p>A RAG system can look excellent in prototype demos and still fail in production once traffic, corpus size, and cost constraints show up together.</p>
+<p>At real scale, users care about three outcomes at the same time:</p>
+<ol><li>Fast responses (low latency and stable tail behavior).</li><li>Reliable quality (grounded answers under load).</li><li>Sustainable economics (cost per successful answer stays within budget).</li></ol>
+<p>Performance and scaling is the discipline that balances all three. Without it, teams often ship &quot;accurate but too slow,&quot; &quot;fast but low quality,&quot; or &quot;great quality but financially unsustainable.&quot;</p>
+<h3 id="why-this-layer-matters">Why This Layer Matters</h3>
+<p>Most production RAG bottlenecks do not come from one component alone. They come from interactions:</p>
+<ul><li>Retrieval fan-out increases latency variance.</li><li>Large context windows increase generation cost and delay.</li><li>Repeated similar queries waste embeddings and retrieval calls.</li><li>Peak traffic causes index or API saturation.</li><li>Tail latency (p95/p99) hurts UX even when average latency looks fine.</li></ul>
+<p>Core reality:</p>
+<ol><li>The best architecture on paper can collapse under burst traffic.</li><li>The most accurate pipeline can still fail product goals if responses are too slow.</li><li>Cost spikes are often caused by small inefficiencies repeated millions of times.</li></ol>
+<h3 id="latency-optimization">Latency Optimization</h3>
+<p>Latency optimization in RAG is about reducing both median latency and tail latency, because user experience is usually controlled by the slowest path.</p>
+<h4 id="latency-budgeting-first">Latency Budgeting First</h4>
+<p>Before tuning anything, define an explicit latency budget per stage:</p>
+<ol><li>Query preprocessing and routing.</li><li>Retrieval (dense/sparse/hybrid).</li><li>Reranking.</li><li>Prompt construction.</li><li>Generation (first token and full completion).</li><li>Post-processing and delivery.</li></ol>
+<p>If you do not assign stage budgets, optimization becomes guesswork.</p>
+<h4 id="practical-optimization-levers">Practical Optimization Levers</h4>
+<ul><li><strong>Parallelize independent work:</strong> run sparse+dense retrieval concurrently, not sequentially.</li><li><strong>Early cutoff retrieval:</strong> stop low-value retrieval branches once confidence threshold is reached.</li><li><strong>Adaptive K:</strong> use smaller candidate counts for simple queries; expand only for hard queries.</li><li><strong>Fast-path routing:</strong> classify trivial lookup questions and bypass heavy orchestration.</li><li><strong>Chunk efficiency:</strong> avoid oversized chunks that increase embedding and prompt overhead.</li><li><strong>Prompt compaction:</strong> keep only high-signal context fields; remove redundant metadata.</li><li><strong>Model tiering:</strong> use smaller/faster models for routing, rewriting, and low-risk answers.</li></ul>
+<h4 id="tail-latency-p95-p99-controls">Tail Latency (p95/p99) Controls</h4>
+<p>Average latency can look healthy while users still suffer due to long-tail requests. Control tail latency using:</p>
+<ol><li>Strict per-stage timeouts.</li><li>Partial fallback answers when deep retrieval exceeds budget.</li><li>Circuit breakers around slow external dependencies.</li><li>Priority queues for interactive traffic over background jobs.</li><li>Retry policies with jitter only where idempotent and useful.</li></ol>
+<h4 id="latency-observability-you-need">Latency Observability You Need</h4>
+<p>Track, at minimum:</p>
+<ul><li>Time to first token (TTFT).</li><li>Time to final token (TTLT).</li><li>Retrieval latency distribution by index/source.</li><li>Reranker latency by candidate volume.</li><li>Prompt token count vs generation latency.</li><li>p50/p95/p99 by query type and route.</li></ul>
+<p>Without route-level slicing, latency dashboards hide root causes.</p>
+<h3 id="caching">Caching</h3>
+<p>Caching is one of the highest-leverage performance tools in RAG. Done well, it reduces latency and cost simultaneously. Done poorly, it introduces staleness and incorrect outputs.</p>
+<p>Design principle:</p>
+<ol><li>Cache deterministic intermediate artifacts.</li><li>Set freshness policy explicitly per cache type.</li><li>Track cache hit quality, not only hit rate.</li></ol>
+<h4 id="query-cache">Query Cache</h4>
+<p>Query cache stores responses or retrieval artifacts for repeated or near-duplicate questions.</p>
+<p>What to cache:</p>
+<ul><li>Final answer for low-volatility domains.</li><li>Retrieved document IDs and reranked context sets.</li><li>Query rewrite outputs for recurring conversational patterns.</li></ul>
+<p>Cache key design:</p>
+<ul><li>Normalize query text (case, punctuation, whitespace).</li><li>Include user/org scope where access control differs.</li><li>Include model/prompt/retriever version when behavior changes.</li><li>Include freshness segment (for time-sensitive domains).</li></ul>
+<p>Freshness strategy:</p>
+<ol><li>TTL-based invalidation for dynamic domains.</li><li>Event-driven invalidation on corpus updates.</li><li>Source-aware invalidation when specific document sets change.</li></ol>
+<p>Risks and mitigations:</p>
+<ul><li><strong>Stale answers:</strong> use short TTL for volatile sources.</li><li><strong>Cross-tenant leakage:</strong> enforce tenant-scoped keys.</li><li><strong>Hidden regressions:</strong> version cache keys with pipeline changes.</li></ul>
+<h4 id="embedding-cache">Embedding Cache</h4>
+<p>Embedding cache stores vector outputs for repeated texts (queries and/or documents) so you avoid recomputing embeddings unnecessarily.</p>
+<p>Where it saves most:</p>
+<ul><li>Repeated user queries in assistant-style products.</li><li>Re-indexing jobs with overlapping documents.</li><li>Frequent chunk regeneration during iterative ingestion.</li></ul>
+<p>Design details:</p>
+<ol><li>Key by normalized text hash + embedding model version.</li><li>Store vector dimension and metadata to prevent mismatch errors.</li><li>Separate query embedding cache from corpus embedding cache for independent policy control.</li><li>Invalidate on embedding model upgrade or tokenizer change.</li></ol>
+<p>Operational cautions:</p>
+<ul><li>Never mix embeddings from different model families in the same index unless explicitly supported.</li><li>Validate vector dimension at write/read boundaries.</li><li>Use compression carefully; aggressive quantization can degrade retrieval quality.</li></ul>
+<h3 id="batch-processing">Batch Processing</h3>
+<p>Batch processing increases throughput and reduces per-unit overhead in both ingestion and online inference-adjacent workloads.</p>
+<h4 id="high-impact-batch-opportunities">High-Impact Batch Opportunities</h4>
+<ul><li>Document chunking and embedding generation.</li><li>Metadata enrichment and entity extraction.</li><li>Bulk vector upserts and index rebuilds.</li><li>Offline evaluation and regression test runs.</li><li>Query embedding precomputation for known frequent prompts.</li></ul>
+<h4 id="batch-design-patterns">Batch Design Patterns</h4>
+<ol><li><strong>Micro-batching:</strong> accumulate small windows (for example 10-100 items) to reduce overhead without large delay.</li><li><strong>Dynamic batch sizing:</strong> adjust based on current queue depth and latency SLO.</li><li><strong>Backpressure-aware queues:</strong> prevent upstream overload and keep service stable.</li><li><strong>Idempotent workers:</strong> safe retries for failed batch items.</li></ol>
+<h4 id="throughput-vs-latency-trade-off">Throughput vs Latency Trade-off</h4>
+<p>Batching is powerful but can hurt responsiveness if overused in user-facing paths. Use micro-batching for online requests and larger batching for offline/async pipelines.</p>
+<h3 id="streaming-responses">Streaming Responses</h3>
+<p>Streaming responses improve perceived speed by delivering useful output before full pipeline completion.</p>
+<h4 id="why-streaming-matters">Why Streaming Matters</h4>
+<p>For many users, &quot;seeing progress now&quot; feels dramatically better than waiting silently for the final answer, even when total completion time is similar.</p>
+<h4 id="streaming-architecture-in-rag">Streaming Architecture in RAG</h4>
+<p>Common production approach:</p>
+<ol><li>Retrieve and rank initial high-confidence evidence quickly.</li><li>Start first-token response with conservative framing.</li><li>Continue background retrieval/enrichment in parallel if needed.</li><li>Stream grounded answer segments incrementally.</li><li>Mark final stabilization state clearly.</li></ol>
+<h4 id="critical-design-requirements">Critical Design Requirements</h4>
+<ul><li><strong>State labeling:</strong> explicitly tag phases like <code>draft</code>, <code>updating</code>, <code>final</code>.</li><li><strong>Citation stability:</strong> maintain stable source IDs across streamed updates.</li><li><strong>Cancellation handling:</strong> user interrupt must stop retrieval and generation deterministically.</li><li><strong>Ordered delivery:</strong> prevent asynchronous out-of-order chunk rendering.</li></ul>
+<h4 id="failure-modes-to-guard-against">Failure Modes to Guard Against</h4>
+<ul><li>Early confident claims before full grounding.</li><li>Citation drift as reranking changes mid-stream.</li><li>Incomplete correction visibility when later evidence contradicts earlier text.</li><li>Resource leaks when abandoned streams keep backend jobs running.</li></ul>
+<h3 id="distributed-vector-search">Distributed Vector Search</h3>
+<p>As corpus volume and query traffic grow, single-node vector search often hits memory, throughput, or latency limits. Distributed vector search solves scale, but introduces complexity in consistency, routing, and recall stability.</p>
+<h4 id="when-to-move-to-distributed">When to Move to Distributed</h4>
+<p>Typical signals:</p>
+<ul><li>Index no longer fits comfortably in single-node memory.</li><li>Query concurrency causes saturation at peak load.</li><li>Regional latency requires geo-distributed serving.</li><li>Rebuild/compaction operations disrupt availability windows.</li></ul>
+<h4 id="core-distributed-patterns">Core Distributed Patterns</h4>
+<ol><li><strong>Sharding by vector ID or semantic partition:</strong> split index across nodes.</li><li><strong>Replica sets for read scaling:</strong> multiple copies to absorb query load.</li><li><strong>Hierarchical retrieval:</strong> coarse global routing, then fine local ANN search.</li><li><strong>Hybrid orchestration:</strong> combine distributed sparse and vector retrieval, then global rerank.</li></ol>
+<h4 id="consistency-and-freshness">Consistency and Freshness</h4>
+<p>Distributed systems can return inconsistent results if index updates are uneven. Use:</p>
+<ul><li>Versioned index snapshots.</li><li>Controlled rollout of new embeddings/index partitions.</li><li>Read-after-write expectations documented by route (strict vs eventual).</li><li>Background compaction windows with graceful traffic shifting.</li></ul>
+<h4 id="accuracy-and-latency-balancing">Accuracy and Latency Balancing</h4>
+<p>Distributed ANN tuning is a multi-objective problem:</p>
+<ul><li>More probes/ef-search can improve recall but increase latency.</li><li>Aggressive partitioning can lower latency but hurt cross-shard recall.</li><li>Larger replication improves resilience but increases infrastructure cost.</li></ul>
+<p>Evaluate distributed search by both retrieval quality and SLO adherence, not latency alone.</p>
+<h3 id="cost-optimization-very-important-if-using-apis">Cost Optimization (Very Important if using APIs)</h3>
+<p>API-backed RAG systems can become expensive quickly because cost accumulates at every stage: embeddings, reranking, generation tokens, retries, and observability volume.</p>
+<p>Cost optimization is not &quot;make everything cheaper.&quot; It is maximizing quality per dollar while protecting latency and reliability.</p>
+<h4 id="build-a-cost-model-first">Build a Cost Model First</h4>
+<p>Track cost at request level with component attribution:</p>
+<ol><li>Query rewrite/classification model cost.</li><li>Embedding calls cost.</li><li>Retrieval and reranker compute/API cost.</li><li>Generation input/output token cost.</li><li>Retry/failure overhead.</li><li>Infrastructure and storage baseline costs.</li></ol>
+<p>Without per-stage attribution, you cannot optimize intelligently.</p>
+<h4 id="high-leverage-cost-controls">High-Leverage Cost Controls</h4>
+<ul><li><strong>Token budget policies:</strong> cap context length adaptively by query class.</li><li><strong>Context deduplication:</strong> remove overlapping chunks before generation.</li><li><strong>Model tiering:</strong> route low-risk/simple queries to cheaper models.</li><li><strong>Cache aggressively where safe:</strong> especially query and embedding caches.</li><li><strong>Adaptive retrieval depth:</strong> do not pay for deep retrieval when confidence is already high.</li><li><strong>Retry discipline:</strong> avoid blind automatic retries on deterministic failures.</li><li><strong>Prompt minimization:</strong> concise system prompts and structured context templates.</li></ul>
+<h4 id="api-specific-cost-pitfalls">API-Specific Cost Pitfalls</h4>
+<ul><li>Overly large prompts caused by naive top-K retrieval.</li><li>Paying for long outputs when user only needs concise answers.</li><li>Hidden spend from tool-calling loops that do not terminate early.</li><li>Duplicate embedding requests due to missing cache keys.</li><li>Logging every token at full fidelity without retention strategy.</li></ul>
+<h4 id="governance-and-budget-guardrails">Governance and Budget Guardrails</h4>
+<p>Production-grade controls:</p>
+<ol><li>Hard per-request token ceilings.</li><li>Daily/monthly budget alarms by environment and feature route.</li><li>Automatic downgrade/fallback modes during cost spikes.</li><li>Query-class specific cost caps (for example free-tier vs enterprise).</li><li>Release gates that block deploys when cost-per-success regresses.</li></ol>
+<h4 id="optimize-for-cost-per-successful-answer">Optimize for Cost per Successful Answer</h4>
+<p>Raw &quot;cost per request&quot; can be misleading. A better business KPI is cost per successful grounded answer, because it reflects both efficiency and quality.</p>
+<p>Track alongside:</p>
+<ul><li>Success rate by query slice.</li><li>Citation/faithfulness quality.</li><li>p95 latency.</li><li>User satisfaction or task completion signals.</li></ul>
+<h3 id="putting-it-together-a-practical-performance-playbook">Putting It Together: A Practical Performance Playbook</h3>
+<p>A durable operating model for production RAG:</p>
+<ol><li>Define SLOs for latency, quality, and cost together.</li><li>Instrument every stage (retrieval, rerank, generation, streaming).</li><li>Add query and embedding caches with explicit freshness policies.</li><li>Introduce micro-batching where throughput bottlenecks exist.</li><li>Use streaming for interactive UX and progressive trust.</li><li>Scale vector search with sharding/replicas once single-node limits appear.</li><li>Enforce budget guardrails and model-tier routing for API cost control.</li><li>Review p95/p99 incidents weekly and tie fixes to measurable KPIs.</li></ol>
+<h3 id="final-takeaway">Final Takeaway</h3>
+<p>Performance and scaling in RAG is not just infrastructure tuning. It is product engineering under constraints.</p>
+<p>Teams that treat latency, caching, distributed search, and cost control as first-class architecture decisions ship systems that remain fast, reliable, and affordable as usage grows. Teams that postpone this work usually face painful rewrites once traffic, corpus size, and API bills catch up.</p></article>
+<nav class="page-nav" aria-label="Note navigation"><a href="./11-types-of-rag-top-4.html">← 🧩 11. Types of RAG (Top 4)</a><a href="./13-security-privacy.html">🔐 13. Security &amp; Privacy (Critical for production trust) →</a></nav>
+</main>
+</div>
+<script>
+const links = [...document.querySelectorAll(".toc a")];
+const observer = new IntersectionObserver(entries => {
+  for (const entry of entries) {
+    if (!entry.isIntersecting) continue;
+    links.forEach(link => link.classList.toggle("active", link.hash === "#" + entry.target.id));
+  }
+}, { rootMargin: "-15% 0px -72% 0px" });
+document.querySelectorAll("main h2[id], main h3[id]").forEach(heading => observer.observe(heading));
+</script>
+</body>
+</html>

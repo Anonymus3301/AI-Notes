@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Retrieval Augmented Generation Foundations — RAG Foundations notes">
+<title>Retrieval Augmented Generation Foundations | RAG Foundations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../agent-fundamentals.css">
+<script src="../site-nav.js" defer></script>
+</head>
+<body>
+<header class="bar">
+  <nav class="bar-links" aria-label="Main navigation">
+    <a href="./index.html">← RAG Foundations</a>
+    <a href="../m3.html">Module 3: RAG Systems</a>
+  </nav>
+  <nav class="bar-pages" aria-label="Adjacent notes">
+    <span aria-disabled="true">← Previous</span>
+    <a href="./2-data-ingestion-and-preprocessing.html" aria-label="Next note: 📚 2. Data Ingestion &amp; Preprocessing" title="📚 2. Data Ingestion &amp; Preprocessing">Next →</a>
+  </nav>
+  <span class="grow"></span>
+  <button type="button" onclick="window.print()">Print / PDF</button>
+</header>
+<div class="layout"><nav class="toc" aria-label="Contents"><strong>On this page</strong><a class="" href="#what-rag-is-vs-fine-tuning-vs-prompt-engineering">What RAG Is vs Fine-Tuning vs Prompt Engineering</a>
+<a class="sub" href="#practical-difference-in-one-sentence-each">Practical Difference in One Sentence Each</a>
+<a class="sub" href="#how-they-work-together">How They Work Together</a>
+<a class="" href="#when-to-use-rag">When to Use RAG</a>
+<a class="sub" href="#knowledge-freshness">Knowledge Freshness</a>
+<a class="sub" href="#privacy-and-data-control">Privacy and Data Control</a>
+<a class="sub" href="#cost-efficiency">Cost Efficiency</a>
+<a class="sub" href="#decision-heuristic">Decision Heuristic</a>
+<a class="" href="#limitations-of-llms">Limitations of LLMs</a>
+<a class="sub" href="#hallucination">Hallucination</a>
+<a class="sub" href="#context-window-limits">Context Window Limits</a>
+<a class="sub" href="#additional-practical-constraint">Additional Practical Constraint</a>
+<a class="" href="#basic-rag-pipeline">Basic RAG Pipeline</a>
+<a class="sub" href="#1-ingestion">1) Ingestion</a>
+<a class="sub" href="#2-chunking">2) Chunking</a>
+<a class="sub" href="#3-embedding">3) Embedding</a>
+<a class="sub" href="#4-retrieval">4) Retrieval</a>
+<a class="sub" href="#5-generation">5) Generation</a>
+<a class="" href="#how-the-pipeline-fits-together">How the Pipeline Fits Together</a>
+<a class="" href="#closing-perspective">Closing Perspective</a></nav>
+<main>
+<header class="cover"><h1>Retrieval Augmented Generation Foundations</h1><p class="sub">RAG Foundations · Note 1 of 16</p></header>
+<article><h2 id="what-rag-is-vs-fine-tuning-vs-prompt-engineering">What RAG Is vs Fine-Tuning vs Prompt Engineering</h2>
+<p>Retrieval Augmented Generation, commonly called RAG, is a system design pattern where an LLM is paired with an external knowledge source at runtime. Instead of forcing the model to rely only on its pretraining memory, the system retrieves relevant documents first, then passes them into the prompt so the model can answer with grounded context.</p>
+<p>RAG is not a model training method. It is an inference-time architecture. The core idea is simple: fetch trustworthy context before generating output.</p>
+<p>Fine-tuning is different. Fine-tuning updates model weights through additional training so the model internalizes patterns, style, or domain behavior. This can improve specialized performance, but it does not inherently give the model live access to changing facts unless training is repeated on new data.</p>
+<p>Prompt engineering is also different. Prompt engineering improves results by shaping instructions, examples, and output format inside the prompt. It can significantly improve behavior and consistency, but it cannot create persistent memory of external facts by itself.</p>
+<h3 id="practical-difference-in-one-sentence-each">Practical Difference in One Sentence Each</h3>
+<ul><li>RAG: bring fresh external knowledge into each answer at runtime.</li><li>Fine-tuning: modify model behavior through training.</li><li>Prompt engineering: guide behavior through better instructions.</li></ul>
+<h3 id="how-they-work-together">How They Work Together</h3>
+<p>These approaches are complementary, not mutually exclusive.</p>
+<ul><li>RAG handles factual grounding and up-to-date knowledge.</li><li>Fine-tuning handles repeated behavioral patterns such as tone, schema compliance, and domain language.</li><li>Prompt engineering handles task framing, constraints, and response quality.</li></ul>
+<p>A mature production system often uses all three:</p>
+<ul><li>Prompting to structure the task.</li><li>RAG to inject trusted evidence.</li><li>Fine-tuning only when repeated behavior gaps remain.</li></ul>
+<h2 id="when-to-use-rag">When to Use RAG</h2>
+<p>RAG is most valuable when answers depend on information that is external, frequently updated, private, or too large to fit directly into one prompt.</p>
+<h3 id="knowledge-freshness">Knowledge Freshness</h3>
+<p>Use RAG when source knowledge changes regularly.</p>
+<p>Examples:</p>
+<ul><li>Product documentation that changes every sprint.</li><li>Policy handbooks that update quarterly.</li><li>Pricing catalogs that update weekly.</li></ul>
+<p>Without RAG, an LLM can only use what it learned during training plus what the user includes in the prompt. With RAG, the latest indexed documents can be retrieved on demand.</p>
+<h3 id="privacy-and-data-control">Privacy and Data Control</h3>
+<p>Use RAG when sensitive internal content should remain under your control.</p>
+<p>Typical cases:</p>
+<ul><li>Internal engineering runbooks.</li><li>Customer support transcripts.</li><li>Compliance and legal documents.</li></ul>
+<p>RAG enables controlled retrieval over approved corpora. This allows organizations to restrict which documents can be surfaced and audited, instead of relying on model memory or broad external search behavior.</p>
+<h3 id="cost-efficiency">Cost Efficiency</h3>
+<p>Use RAG when repeated queries need better quality without expensive repeated retraining.</p>
+<p>Fine-tuning cycles cost engineering time, compute, and evaluation overhead. RAG can often deliver major quality gains by improving data preparation and retrieval quality, which is usually faster to iterate and easier to maintain.</p>
+<p>You can also manage token cost by retrieving only top relevant chunks instead of sending whole documents.</p>
+<h3 id="decision-heuristic">Decision Heuristic</h3>
+<p>RAG is a strong fit when most of the value comes from knowing the right facts at answer time, not from changing the model’s underlying reasoning style.</p>
+<h2 id="limitations-of-llms">Limitations of LLMs</h2>
+<p>Understanding why RAG exists requires understanding where base LLM behavior breaks down in production knowledge tasks.</p>
+<h3 id="hallucination">Hallucination</h3>
+<p>LLMs can produce fluent but incorrect statements. Fluency often hides factual errors. This happens when the model predicts likely text patterns without access to verifiable context.</p>
+<p>RAG reduces this risk by providing retrieved evidence, but it does not eliminate the risk. If retrieval is weak or the prompt does not enforce evidence use, the model can still invent or overgeneralize.</p>
+<h3 id="context-window-limits">Context Window Limits</h3>
+<p>LLMs can only process a finite amount of text per request. Large document sets cannot be passed in full every time.</p>
+<p>RAG solves this by selecting a smaller, relevant subset of content before generation. Retrieval acts as a filtering layer that decides which pieces deserve prompt space.</p>
+<p>The quality of this filtering directly impacts answer quality.</p>
+<h3 id="additional-practical-constraint">Additional Practical Constraint</h3>
+<p>Even when facts exist in model pretraining, there is no guarantee they are current, complete, or aligned with your organization’s source of truth. This is why retrieval from controlled sources is often required in enterprise settings.</p>
+<h2 id="basic-rag-pipeline">Basic RAG Pipeline</h2>
+<p>The standard pipeline is:</p>
+<p>Ingestion -&gt; Chunking -&gt; Embedding -&gt; Retrieval -&gt; Generation</p>
+<p>Each stage contributes to quality. Weakness in any stage can degrade final responses.</p>
+<h3 id="1-ingestion">1) Ingestion</h3>
+<p>Ingestion is the process of collecting source data and preparing it for downstream indexing.</p>
+<p>Typical ingestion inputs:</p>
+<ul><li>PDFs</li><li>Markdown docs</li><li>HTML pages</li><li>Notion or wiki exports</li><li>Database records</li></ul>
+<p>Core ingestion responsibilities:</p>
+<ul><li>Normalize text encoding.</li><li>Preserve metadata such as source URL, title, section, timestamp, owner, and access scope.</li><li>Remove duplicated or corrupted content.</li><li>Track document versions for refresh workflows.</li></ul>
+<p>If ingestion drops structure or metadata, retrieval precision suffers later.</p>
+<h3 id="2-chunking">2) Chunking</h3>
+<p>Chunking splits documents into smaller units that can be embedded and retrieved effectively.</p>
+<p>Why chunking matters:</p>
+<ul><li>Large chunks may include too much noise.</li><li>Tiny chunks may lose context and meaning.</li></ul>
+<p>Good chunking balances semantic completeness with retrieval precision.</p>
+<p>Common chunking strategies:</p>
+<ul><li>Fixed token windows with overlap.</li><li>Structure-aware splits by headings and sections.</li><li>Hybrid approaches combining structure and token limits.</li></ul>
+<p>Overlap helps preserve continuity, especially when key facts span boundaries. Excessive overlap can increase index size and duplicate near-identical chunks in results.</p>
+<h3 id="3-embedding">3) Embedding</h3>
+<p>Embedding converts each chunk into a numeric vector that captures semantic meaning.</p>
+<p>These vectors are stored in a vector index. At query time, the user question is embedded into the same vector space so similar meanings can be matched by proximity.</p>
+<p>Important embedding considerations:</p>
+<ul><li>Use an embedding model aligned with your language and domain.</li><li>Keep the same embedding model for both indexing and querying.</li><li>Re-embed data when changing embedding model families.</li></ul>
+<p>Embedding quality strongly affects retrieval relevance. Better chunk semantics plus better embeddings usually produce better candidate context.</p>
+<h3 id="4-retrieval">4) Retrieval</h3>
+<p>Retrieval finds the most relevant chunks for a user query.</p>
+<p>Common retrieval methods:</p>
+<ul><li>Vector similarity search</li><li>Keyword or lexical search</li><li>Hybrid retrieval that combines both</li></ul>
+<p>Retrieval usually returns top-k candidates. Many systems add a reranking stage to reorder candidates with a cross-encoder or relevance model for higher precision.</p>
+<p>Key retrieval controls:</p>
+<ul><li><code>top_k</code> size</li><li>Similarity threshold</li><li>Metadata filters such as product, region, date, or permission scope</li></ul>
+<p>Retrieval is often the highest leverage stage in RAG quality improvement.</p>
+<h3 id="5-generation">5) Generation</h3>
+<p>Generation is where the LLM produces the final answer using retrieved context and system instructions.</p>
+<p>A robust generation prompt usually includes:</p>
+<ul><li>User question</li><li>Retrieved passages</li><li>Explicit instruction to use provided context</li><li>Rules for handling missing evidence</li></ul>
+<p>At this stage, good behavior includes:</p>
+<ul><li>Grounding claims in retrieved text.</li><li>Admitting uncertainty when context is insufficient.</li><li>Avoiding unsupported assertions.</li></ul>
+<p>Generation quality depends on both prompt design and the relevance quality from retrieval.</p>
+<h2 id="how-the-pipeline-fits-together">How the Pipeline Fits Together</h2>
+<p>The pipeline is sequential in execution but iterative in optimization.</p>
+<ul><li>If ingestion metadata is poor, filtering fails.</li><li>If chunking is weak, embeddings represent noisy units.</li><li>If embeddings are weak, retrieval recalls irrelevant chunks.</li><li>If retrieval is weak, generation hallucinates or hedges.</li></ul>
+<p>High-quality RAG systems treat this as an end-to-end pipeline, not a single retrieval trick.</p>
+<h2 id="closing-perspective">Closing Perspective</h2>
+<p>RAG is best understood as an architecture for grounding language generation in external knowledge. It is especially effective when information changes, data must remain private, and cost-efficient iteration matters.</p>
+<p>The foundational concepts remain stable across tools and frameworks: retrieve the right context, then generate with discipline. If you design each pipeline stage carefully, answer quality becomes more reliable, auditable, and useful in real workflows.</p></article>
+<nav class="page-nav" aria-label="Note navigation"><span></span><a href="./2-data-ingestion-and-preprocessing.html">📚 2. Data Ingestion &amp; Preprocessing →</a></nav>
+</main>
+</div>
+<script>
+const links = [...document.querySelectorAll(".toc a")];
+const observer = new IntersectionObserver(entries => {
+  for (const entry of entries) {
+    if (!entry.isIntersecting) continue;
+    links.forEach(link => link.classList.toggle("active", link.hash === "#" + entry.target.id));
+  }
+}, { rootMargin: "-15% 0px -72% 0px" });
+document.querySelectorAll("main h2[id], main h3[id]").forEach(heading => observer.observe(heading));
+</script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="RAG Foundations — RAG Foundations notes">
+<title>RAG Foundations | RAG Foundations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../agent-fundamentals.css">
+<script src="../site-nav.js" defer></script>
+</head>
+<body>
+<header class="bar">
+  <nav class="bar-links" aria-label="Main navigation">
+    <a href="../index.html">← All notes</a>
+    <a href="../m3.html">Module 3: RAG Systems</a>
+  </nav>
+  <span class="grow"></span>
+  
+</header>
+
+<main>
+<header class="cover"><h1>RAG Foundations</h1><p class="sub">A structured learning path from retrieval-augmented generation fundamentals to evaluation, security, production design, and emerging patterns.</p></header>
+<section class="cards" aria-label="RAG Foundations notes"><a class="card" href="./1-foundations.html"><strong>Retrieval Augmented Generation Foundations</strong><span>Retrieval Augmented Generation, commonly called RAG, is a system design pattern where an LLM is paired with an external knowledge source at runtime. Instead of forcing the model to rely only…</span><span>Note 1 of 16 · Read note →</span></a>
+<a class="card" href="./2-data-ingestion-and-preprocessing.html"><strong>📚 2. Data Ingestion &amp; Preprocessing</strong><span>Since many real-world RAG systems depend on PDFs, scanned documents, images, web content, and structured datasets, ingestion and preprocessing are not optional plumbing. They are the quality…</span><span>Note 2 of 16 · Read note →</span></a>
+<a class="card" href="./3-chunking-strategies.html"><strong>✂️ 3. Chunking Strategies (SUPER important)</strong><span>Bad chunking = bad RAG. Even with strong embedding models and hybrid retrieval, poorly segmented text causes the retriever to miss relevant evidence or return noisy context that confuses gen…</span><span>Note 3 of 16 · Read note →</span></a>
+<a class="card" href="./4-embeddings.html"><strong>🔢 4. Embeddings (Core of retrieval)</strong><span>Embeddings are the mathematical backbone of modern retrieval in RAG. Before any vector search can happen, text must be converted into a numeric representation that preserves semantic meaning…</span><span>Note 4 of 16 · Read note →</span></a>
+<a class="card" href="./5-vector-databases.html"><strong>🗄️ 5. Vector Databases (Where embeddings live)</strong><span>Vector databases are the operational home for embeddings in modern retrieval systems. Once text chunks are converted into vectors, those vectors need a storage and search layer that can retu…</span><span>Note 5 of 16 · Read note →</span></a>
+<a class="card" href="./6-retrieval-techniques.html"><strong>🔍 6. Retrieval Techniques (This is where pros stand out)</strong><span>In mature RAG systems, embeddings alone do not create strong answers. Retrieval strategy is what determines whether the model receives the right evidence at the right time under real-world c…</span><span>Note 6 of 16 · Read note →</span></a>
+<a class="card" href="./7-re-ranking.html"><strong>🧠 7. Re-ranking (Huge performance boost)</strong><span>Re-ranking is one of the highest-leverage improvements in production RAG systems. Initial retrieval (vector, lexical, or hybrid) is designed for speed and broad recall, which means it often …</span><span>Note 7 of 16 · Read note →</span></a>
+<a class="card" href="./8-generation-layer.html"><strong>🤖 8. Generation Layer (LLM usage)</strong><span>The generation layer is where retrieved evidence becomes user-facing answers. In production RAG systems, this stage is not just &quot;send chunks to an LLM.&quot; It is a controlled synthesis pipeline…</span><span>Note 8 of 16 · Read note →</span></a>
+<a class="card" href="./9-evaluation.html"><strong>🧪 9. Evaluation (Most people ignore this)</strong><span>Evaluation is the layer that separates &quot;it feels good in demos&quot; from &quot;it is trustworthy in production.&quot; Without rigorous evaluation, RAG systems can look fluent while quietly failing on retr…</span><span>Note 9 of 16 · Read note →</span></a>
+<a class="card" href="./10-advanced-rag-architectures.html"><strong>🔄 10. Advanced RAG Architectures (Once basics are clear, move here)</strong><span>Once you have a solid baseline RAG pipeline (query understanding, retrieval, reranking, grounded generation, and evaluation), the next performance jump usually comes from architecture, not p…</span><span>Note 10 of 16 · Read note →</span></a>
+<a class="card" href="./11-types-of-rag-top-4.html"><strong>🧩 11. Types of RAG (Top 4)</strong><span>As RAG systems evolve from prototypes to production, one major realization appears quickly:</span><span>Note 11 of 16 · Read note →</span></a>
+<a class="card" href="./12-performance-scaling.html"><strong>⚡ 12. Performance &amp; Scaling (For real-world systems)</strong><span>A RAG system can look excellent in prototype demos and still fail in production once traffic, corpus size, and cost constraints show up together.</span><span>Note 12 of 16 · Read note →</span></a>
+<a class="card" href="./13-security-privacy.html"><strong>🔐 13. Security &amp; Privacy (Critical for production trust)</strong><span>RAG systems do not only answer questions; they move sensitive data through multiple stages:</span><span>Note 13 of 16 · Read note →</span></a>
+<a class="card" href="./14-production-system-design.html"><strong>🏗️ 14. Production System Design (Interview gold for real deployments)</strong><span>Prototype RAG systems answer a few curated questions well. Production RAG systems survive noisy users, traffic spikes, partial outages, schema drift, model changes, and strict SLAs without s…</span><span>Note 14 of 16 · Read note →</span></a>
+<a class="card" href="./15-real-world-problems-to-practice.html"><strong>📈 15. Real-world Problems to Practice (Where theory becomes deployment skill)</strong><span>Learning RAG concepts is necessary, but practical strength comes from solving messy, domain-specific problems where data quality, scale, and user intent are imperfect.</span><span>Note 15 of 16 · Read note →</span></a>
+<a class="card" href="./16-emerging-rag-patterns.html"><strong>🧠 16. Emerging RAG Patterns (Optional but powerful)</strong><span>Once you understand core RAG architecture, these advanced topics help you move from &quot;good retrieval system&quot; to &quot;adaptive intelligence platform.&quot;</span><span>Note 16 of 16 · Read note →</span></a></section>
+</main>
+
+
+</body>
+</html>

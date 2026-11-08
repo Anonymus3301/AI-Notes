@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="📈 15. Real-world Problems to Practice (Where theory becomes deployment skill) — RAG Foundations notes">
+<title>📈 15. Real-world Problems to Practice (Where theory becomes deployment skill) | RAG Foundations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../agent-fundamentals.css">
+<script src="../site-nav.js" defer></script>
+</head>
+<body>
+<header class="bar">
+  <nav class="bar-links" aria-label="Main navigation">
+    <a href="./index.html">← RAG Foundations</a>
+    <a href="../m3.html">Module 3: RAG Systems</a>
+  </nav>
+  <nav class="bar-pages" aria-label="Adjacent notes">
+    <a href="./14-production-system-design.html" aria-label="Previous note: 🏗️ 14. Production System Design (Interview gold for real deployments)" title="🏗️ 14. Production System Design (Interview gold for real deployments)">← Previous</a>
+    <a href="./16-emerging-rag-patterns.html" aria-label="Next note: 🧠 16. Emerging RAG Patterns (Optional but powerful)" title="🧠 16. Emerging RAG Patterns (Optional but powerful)">Next →</a>
+  </nav>
+  <span class="grow"></span>
+  <button type="button" onclick="window.print()">Print / PDF</button>
+</header>
+<div class="layout"><nav class="toc" aria-label="Contents"><strong>On this page</strong><a class="sub" href="#why-this-layer-matters">Why This Layer Matters</a>
+<a class="sub" href="#practice-methodology-how-to-use-this-chapter">Practice Methodology (How to use this chapter)</a>
+<a class="sub" href="#problem-1-rag-for-pdfs-research-papers">Problem 1: RAG for PDFs (Research Papers)</a>
+<a class="sub" href="#problem-2-rag-for-internal-company-docs">Problem 2: RAG for Internal Company Docs</a>
+<a class="sub" href="#problem-3-rag-for-customer-support-chatbot">Problem 3: RAG for Customer Support Chatbot</a>
+<a class="sub" href="#problem-4-rag-for-codebase-assistant">Problem 4: RAG for Codebase Assistant</a>
+<a class="sub" href="#cross-cutting-challenge-1-handle-noisy-data">Cross-Cutting Challenge 1: Handle Noisy Data</a>
+<a class="sub" href="#cross-cutting-challenge-2-handle-large-datasets">Cross-Cutting Challenge 2: Handle Large Datasets</a>
+<a class="sub" href="#cross-cutting-challenge-3-handle-ambiguous-queries">Cross-Cutting Challenge 3: Handle Ambiguous Queries</a>
+<a class="sub" href="#integrated-practice-roadmap-recommended-order">Integrated Practice Roadmap (Recommended order)</a>
+<a class="sub" href="#interview-ready-framing-how-to-discuss-your-practice">Interview-Ready Framing (How to discuss your practice)</a>
+<a class="sub" href="#real-world-practice-checklist">Real-world Practice Checklist</a></nav>
+<main>
+<header class="cover"><h1>📈 15. Real-world Problems to Practice (Where theory becomes deployment skill)</h1><p class="sub">RAG Foundations · Note 15 of 16</p></header>
+<article><p>Learning RAG concepts is necessary, but practical strength comes from solving messy, domain-specific problems where data quality, scale, and user intent are imperfect.</p>
+<p>This chapter gives you high-value practice projects that mirror real production demand:</p>
+<ol><li>RAG for PDFs (research papers).</li><li>RAG for internal company docs.</li><li>RAG for customer support chatbot.</li><li>RAG for codebase assistant.</li></ol>
+<p>Across all four, you will also train for three universal failure patterns:</p>
+<ul><li>Noisy data.</li><li>Large datasets.</li><li>Ambiguous queries.</li></ul>
+<p>The goal is not only to get &quot;an answer&quot; but to build systems that stay grounded, auditable, and useful under real-world constraints.</p>
+<h3 id="why-this-layer-matters">Why This Layer Matters</h3>
+<p>Most RAG projects fail after a good demo because real environments introduce:</p>
+<ul><li>Inconsistent document quality.</li><li>Fast-changing data.</li><li>Conflicting user intent.</li><li>Performance and cost pressure.</li><li>Trust, security, and correctness requirements.</li></ul>
+<p>Practicing with realistic problem types builds the engineering muscle to make retrieval quality resilient instead of fragile.</p>
+<h3 id="practice-methodology-how-to-use-this-chapter">Practice Methodology (How to use this chapter)</h3>
+<p>For each project below, train yourself to define:</p>
+<ol><li><strong>Success metric:</strong> what &quot;good&quot; means (accuracy, latency, deflection, developer productivity).</li><li><strong>Data contract:</strong> expected schema, metadata requirements, and freshness windows.</li><li><strong>Retrieval strategy:</strong> chunking, indexing, filtering, and reranking path.</li><li><strong>Evaluation set:</strong> representative queries with grounded reference answers.</li><li><strong>Failure strategy:</strong> how the system responds when retrieval confidence is low.</li></ol>
+<p>If you can articulate and implement these five parts, you are practicing RAG like an engineer, not only like a prompt writer.</p>
+<h3 id="problem-1-rag-for-pdfs-research-papers">Problem 1: RAG for PDFs (Research Papers)</h3>
+<p>Research-paper RAG is one of the best training grounds because PDFs combine dense technical language, structure variance, equations, references, and long-context dependencies.</p>
+<h4 id="typical-objective">Typical Objective</h4>
+<p>Build a system that can answer questions such as:</p>
+<ul><li>&quot;What is the core contribution of this paper?&quot;</li><li>&quot;How does method A differ from baseline B?&quot;</li><li>&quot;What are the limitations reported in experiments?&quot;</li><li>&quot;Which datasets and metrics were used?&quot;</li></ul>
+<h4 id="data-and-parsing-realities">Data and Parsing Realities</h4>
+<p>PDFs are rarely clean text sources. You should expect:</p>
+<ol><li>Broken line wraps and hyphenation artifacts.</li><li>Header/footer duplication on every page.</li><li>Multi-column extraction errors.</li><li>Tables and figures that lose structure when converted to plain text.</li><li>Citation sections that dominate retrieval if not controlled.</li></ol>
+<p>A strong pipeline for paper PDFs includes:</p>
+<ul><li>OCR fallback for scanned pages.</li><li>Layout-aware extraction when possible.</li><li>Section segmentation (<code>abstract</code>, <code>method</code>, <code>results</code>, <code>limitations</code>).</li><li>Metadata tagging (<code>title</code>, <code>authors</code>, <code>year</code>, <code>venue</code>, <code>section</code>, <code>page</code>).</li></ul>
+<h4 id="recommended-retrieval-design">Recommended Retrieval Design</h4>
+<ul><li><strong>Chunking:</strong> section-aware chunks are better than fixed-size only. Keep section boundaries explicit.</li><li><strong>Metadata filters:</strong> allow query-time filtering by paper/year/section.</li><li><strong>Hybrid retrieval:</strong> lexical + semantic improves handling for formulas, named methods, and exact metric terms.</li><li><strong>Reranking:</strong> use cross-encoder reranking for top-k precision on technical questions.</li><li><strong>Citation-first output:</strong> require page/section citations in final answer format.</li></ul>
+<h4 id="evaluation-targets">Evaluation Targets</h4>
+<p>Your test set should include:</p>
+<ol><li>Definition questions (concept clarity).</li><li>Comparison questions (method vs baseline).</li><li>Evidence questions (where in paper this claim appears).</li><li>Failure questions (ask for non-existent claims to test hallucination resistance).</li></ol>
+<h4 id="common-pitfalls">Common Pitfalls</h4>
+<ul><li>Over-chunking by token count and breaking argument flow.</li><li>Retrieval dominated by reference list due to repeated citation tokens.</li><li>Returning claims without evidence page.</li><li>Ignoring equations/tables and then answering confidently.</li></ul>
+<h3 id="problem-2-rag-for-internal-company-docs">Problem 2: RAG for Internal Company Docs</h3>
+<p>Internal-doc RAG simulates enterprise knowledge systems where quality depends on access control, freshness, and policy-aware retrieval.</p>
+<h4 id="typical-objective-2">Typical Objective</h4>
+<p>Answer internal questions such as:</p>
+<ul><li>&quot;What is our PTO policy for contractors?&quot;</li><li>&quot;How do we onboard a new production service?&quot;</li><li>&quot;What changed in the security incident process last quarter?&quot;</li><li>&quot;Who approves purchases above threshold X?&quot;</li></ul>
+<h4 id="data-and-governance-realities">Data and Governance Realities</h4>
+<p>Internal corpora usually include:</p>
+<ul><li>Wikis.</li><li>Notion/Confluence pages.</li><li>Docs and slide exports.</li><li>Standard operating procedures.</li><li>Policy PDFs.</li><li>Chat transcripts and meeting notes.</li></ul>
+<p>Challenges:</p>
+<ol><li>Contradictory documents (old policy vs updated policy).</li><li>Permission-sensitive content by team/role.</li><li>Rapid updates with stale index risk.</li><li>Inconsistent authorship and formatting style.</li></ol>
+<h4 id="recommended-retrieval-design-2">Recommended Retrieval Design</h4>
+<ul><li><strong>Document versioning:</strong> mark effective date and last-updated metadata.</li><li><strong>Access-aware indexing:</strong> propagate role/department/tenant tags to chunk level.</li><li><strong>Freshness strategy:</strong> prioritize newer docs when policies conflict.</li><li><strong>Canonical source boosting:</strong> weight official policy docs above informal notes.</li><li><strong>Conflict-aware responses:</strong> when sources disagree, surface discrepancy explicitly.</li></ul>
+<h4 id="evaluation-targets-2">Evaluation Targets</h4>
+<p>Include scenario-based tests:</p>
+<ol><li>Time-sensitive policy queries (&quot;as of this month&quot;).</li><li>Role-specific queries (same question, different allowed answer per role).</li><li>Contradiction tests (old vs new policy docs).</li><li>Operational &quot;how-to&quot; questions requiring multi-step retrieval.</li></ol>
+<h4 id="common-pitfalls-2">Common Pitfalls</h4>
+<ul><li>Treating all sources as equally trustworthy.</li><li>No freshness weighting, causing outdated answers.</li><li>Missing access filters at retrieval time.</li><li>Citing documents users are not authorized to view.</li></ul>
+<h3 id="problem-3-rag-for-customer-support-chatbot">Problem 3: RAG for Customer Support Chatbot</h3>
+<p>Support RAG is excellent practice for relevance, latency, tone control, and safe fallback behavior under high query variability.</p>
+<h4 id="typical-objective-3">Typical Objective</h4>
+<p>Handle customer intents such as:</p>
+<ul><li>&quot;Why was my card charged twice?&quot;</li><li>&quot;How do I reset 2FA if I lost my device?&quot;</li><li>&quot;Where is my order?&quot;</li><li>&quot;How can I cancel and get a refund?&quot;</li></ul>
+<h4 id="data-and-interaction-realities">Data and Interaction Realities</h4>
+<p>Support knowledge sources often include:</p>
+<ul><li>Help-center articles.</li><li>Policy and refund terms.</li><li>Troubleshooting runbooks.</li><li>Product release notes.</li><li>Historical ticket resolutions.</li></ul>
+<p>Reality constraints:</p>
+<ol><li>Users ask incomplete, emotional, or typo-heavy questions.</li><li>Same intent appears in many phrasings.</li><li>Incorrect answer can directly harm trust and retention.</li><li>Escalation to human agents must be smooth and context-preserving.</li></ol>
+<h4 id="recommended-retrieval-design-3">Recommended Retrieval Design</h4>
+<ul><li><strong>Intent + retrieval routing:</strong> classify intent to route to relevant knowledge subset.</li><li><strong>Short-latency pipeline:</strong> aggressive caching and small top-k before rerank for response speed.</li><li><strong>Policy certainty checks:</strong> high-risk intents (billing, security, legal) require stricter grounding thresholds.</li><li><strong>Structured answer templates:</strong> steps, prerequisites, policy conditions, and clear next action.</li><li><strong>Escalation fallback:</strong> if confidence is low, provide handoff with summarized context.</li></ul>
+<h4 id="evaluation-targets-3">Evaluation Targets</h4>
+<p>Measure product-level impact, not only text similarity:</p>
+<ol><li>First-response resolution rate.</li><li>Human escalation rate (and quality of escalation summary).</li><li>Policy violation rate in generated answers.</li><li>User satisfaction proxy (thumbs-up/down or CSAT-linked signals).</li></ol>
+<h4 id="common-pitfalls-3">Common Pitfalls</h4>
+<ul><li>Optimizing for fluent language over policy correctness.</li><li>No distinction between informational and transactional intents.</li><li>Missing guardrails for sensitive flows (payments, identity, security).</li><li>No calibrated fallback when confidence is uncertain.</li></ul>
+<h3 id="problem-4-rag-for-codebase-assistant">Problem 4: RAG for Codebase Assistant</h3>
+<p>Codebase RAG is a high-skill project because correctness depends on repository structure, symbol relationships, and version alignment.</p>
+<h4 id="typical-objective-4">Typical Objective</h4>
+<p>Answer developer questions such as:</p>
+<ul><li>&quot;Where is auth token validation implemented?&quot;</li><li>&quot;How is invoice status computed?&quot;</li><li>&quot;What breaks if I change this interface?&quot;</li><li>&quot;Show me similar examples of this API usage.&quot;</li></ul>
+<h4 id="data-and-code-realities">Data and Code Realities</h4>
+<p>Code corpora include:</p>
+<ul><li>Source files.</li><li>Tests.</li><li>READMEs and architecture docs.</li><li>API schemas.</li><li>Migration scripts.</li><li>Commit history and PR discussions (optional).</li></ul>
+<p>Hard parts:</p>
+<ol><li>Rapidly changing code invalidates stale embeddings.</li><li>Semantic meaning depends on imports, symbols, and call graphs.</li><li>Similar names can exist across services/modules.</li><li>Wrong guidance can create production bugs.</li></ol>
+<h4 id="recommended-retrieval-design-4">Recommended Retrieval Design</h4>
+<ul><li><strong>Syntax-aware chunking:</strong> chunk by symbol/function/class boundaries, not naive token windows.</li><li><strong>Rich metadata:</strong> include file path, module, language, symbol name, commit hash/branch.</li><li><strong>Hybrid search:</strong> combine lexical search for exact identifiers with semantic retrieval for conceptual questions.</li><li><strong>Dependency-aware reranking:</strong> boost chunks near referenced symbols or call chain.</li><li><strong>Version pinning:</strong> tie retrieval to commit SHA or branch to prevent mixed-version guidance.</li></ul>
+<h4 id="evaluation-targets-4">Evaluation Targets</h4>
+<p>Use repository-grounded tasks:</p>
+<ol><li>Locate implementation questions.</li><li>Explain behavior with citations to exact files/functions.</li><li>Refactor-impact questions (&quot;what depends on this?&quot;).</li><li>Regression traps (ensure assistant avoids stale/deleted code references).</li></ol>
+<h4 id="common-pitfalls-4">Common Pitfalls</h4>
+<ul><li>Treating code as plain text without symbol boundaries.</li><li>Ignoring branch/commit context in retrieval.</li><li>Returning examples from deprecated modules.</li><li>No confidence signal when evidence is weak.</li></ul>
+<h3 id="cross-cutting-challenge-1-handle-noisy-data">Cross-Cutting Challenge 1: Handle Noisy Data</h3>
+<p>Noise is unavoidable in every real corpus. Your system quality depends on whether the pipeline can isolate signal from contamination.</p>
+<h4 id="what-noisy-means-in-practice">What &quot;Noisy&quot; Means in Practice</h4>
+<ul><li>Duplicate content across versions.</li><li>Boilerplate/legal text repeated everywhere.</li><li>OCR errors and broken encodings.</li><li>Partial documents and malformed exports.</li><li>Irrelevant but high-frequency terms.</li></ul>
+<h4 id="mitigation-strategy">Mitigation Strategy</h4>
+<ol><li><strong>Normalization:</strong> whitespace cleanup, encoding fixes, de-duplication fingerprints.</li><li><strong>Boilerplate control:</strong> detect and down-weight repeated low-information segments.</li><li><strong>Quality scoring:</strong> assign ingest quality metrics and exclude extremely low-quality chunks.</li><li><strong>Metadata enrichment:</strong> preserve source reliability, doc type, and effective dates.</li><li><strong>Retrieval filtering:</strong> prefer high-quality, high-authority chunks before generation.</li></ol>
+<h4 id="practice-exercise">Practice Exercise</h4>
+<p>Create a synthetic noisy dataset by injecting duplicates, OCR-like errors, and outdated versions. Benchmark retrieval precision before and after cleanup pipeline changes.</p>
+<h3 id="cross-cutting-challenge-2-handle-large-datasets">Cross-Cutting Challenge 2: Handle Large Datasets</h3>
+<p>Scale pressure appears as both performance and relevance problems:</p>
+<ul><li>Retrieval gets slower.</li><li>Candidate sets get noisier.</li><li>Re-ranking cost increases.</li><li>Index rebuilds become operationally expensive.</li></ul>
+<h4 id="scaling-strategy">Scaling Strategy</h4>
+<p>Use staged retrieval instead of a single heavy query path:</p>
+<ol><li>Coarse candidate retrieval over partitioned indexes.</li><li>Metadata filtering to narrow scope early.</li><li>Lightweight ranking pass.</li><li>High-quality reranking on small candidate set.</li><li>Prompt assembly with strict token budget.</li></ol>
+<h4 id="index-and-ops-tactics">Index and Ops Tactics</h4>
+<ul><li>Shard by tenant/domain/time where appropriate.</li><li>Use hot/warm tiering for frequently accessed vs archival data.</li><li>Adopt incremental indexing and background compaction.</li><li>Track p50/p95/p99 latency by retrieval stage.</li><li>Monitor cost per successful grounded answer.</li></ul>
+<h4 id="practice-exercise-2">Practice Exercise</h4>
+<p>Scale corpus size in steps (for example 10k -&gt; 100k -&gt; 1M chunks) and observe:</p>
+<ul><li>Latency curve.</li><li>Retrieval quality drift.</li><li>Cost profile by stage.</li></ul>
+<p>Then redesign candidate-generation and rerank budget to recover quality-latency balance.</p>
+<h3 id="cross-cutting-challenge-3-handle-ambiguous-queries">Cross-Cutting Challenge 3: Handle Ambiguous Queries</h3>
+<p>Ambiguity is a core user-behavior reality, not an edge case.</p>
+<p>Examples:</p>
+<ul><li>&quot;Explain the policy changes.&quot; (which policy?)</li><li>&quot;Fix the issue in auth.&quot; (which service? what issue?)</li><li>&quot;How does this work?&quot; (what is &quot;this&quot;?)</li></ul>
+<h4 id="ambiguity-handling-strategy">Ambiguity Handling Strategy</h4>
+<ol><li><strong>Intent detection:</strong> estimate probable domain(s) and uncertainty score.</li><li><strong>Disambiguation prompts:</strong> ask focused clarifying questions when confidence is low.</li><li><strong>Multi-hypothesis retrieval:</strong> retrieve candidates across top interpretations before deciding.</li><li><strong>Assumption transparency:</strong> explicitly state interpretation when answering.</li><li><strong>Safe fallback:</strong> provide possible interpretations rather than hallucinating certainty.</li></ol>
+<h4 id="clarification-design-principles">Clarification Design Principles</h4>
+<ul><li>Ask minimum-friction clarifiers (&quot;Do you mean X or Y?&quot;).</li><li>Prefer multiple-choice clarification over open-ended follow-ups.</li><li>Avoid repeated clarification loops; escalate if unresolved.</li><li>Preserve user trust by showing why clarification is required.</li></ul>
+<h4 id="practice-exercise-3">Practice Exercise</h4>
+<p>Build an ambiguity benchmark with intentionally underspecified queries. Measure:</p>
+<ul><li>Clarification rate.</li><li>Clarification success rate.</li><li>Wrong-assumption answer rate.</li></ul>
+<h3 id="integrated-practice-roadmap-recommended-order">Integrated Practice Roadmap (Recommended order)</h3>
+<p>Follow this sequence to build real capability progressively:</p>
+<ol><li>Start with <strong>PDF RAG</strong> for extraction and citation discipline.</li><li>Move to <strong>internal-doc RAG</strong> for governance, freshness, and access control.</li><li>Build <strong>support chatbot RAG</strong> for production UX, fallback, and trust constraints.</li><li>Finish with <strong>codebase assistant RAG</strong> for high-precision technical retrieval.</li></ol>
+<p>At each stage, deliberately test noisy data, large dataset behavior, and ambiguous-query handling instead of postponing them.</p>
+<h3 id="interview-ready-framing-how-to-discuss-your-practice">Interview-Ready Framing (How to discuss your practice)</h3>
+<p>When presenting these projects in interviews or architecture reviews, describe each with:</p>
+<ol><li>Problem context and risk profile.</li><li>Retrieval and ranking design choices.</li><li>Evaluation methodology and metrics.</li><li>Failure handling and fallback behavior.</li><li>What changed after observing real errors.</li></ol>
+<p>This framing shows that you can own RAG systems as products, not only experiments.</p>
+<h3 id="real-world-practice-checklist">Real-world Practice Checklist</h3>
+<p>Use this checklist before calling any project &quot;ready&quot;:</p>
+<ol><li>Data contracts and metadata schema are explicit.</li><li>Retrieval path is measurable and reproducible.</li><li>Evaluation set includes hard negatives and ambiguity cases.</li><li>Noisy-data cleanup and quality filters are active.</li><li>Large-scale performance is tested with staged growth.</li><li>Ambiguous-query policy includes clarification and safe fallback.</li><li>Final answers include evidence/citations where domain requires it.</li></ol>
+<p>If you can execute this checklist across the four practice problems, you are operating at real-world RAG engineering level rather than tutorial level.</p></article>
+<nav class="page-nav" aria-label="Note navigation"><a href="./14-production-system-design.html">← 🏗️ 14. Production System Design (Interview gold for real deployments)</a><a href="./16-emerging-rag-patterns.html">🧠 16. Emerging RAG Patterns (Optional but powerful) →</a></nav>
+</main>
+</div>
+<script>
+const links = [...document.querySelectorAll(".toc a")];
+const observer = new IntersectionObserver(entries => {
+  for (const entry of entries) {
+    if (!entry.isIntersecting) continue;
+    links.forEach(link => link.classList.toggle("active", link.hash === "#" + entry.target.id));
+  }
+}, { rootMargin: "-15% 0px -72% 0px" });
+document.querySelectorAll("main h2[id], main h3[id]").forEach(heading => observer.observe(heading));
+</script>
+</body>
+</html>

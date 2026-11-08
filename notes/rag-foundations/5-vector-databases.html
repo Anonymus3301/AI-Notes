@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="🗄️ 5. Vector Databases (Where embeddings live) — RAG Foundations notes">
+<title>🗄️ 5. Vector Databases (Where embeddings live) | RAG Foundations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../agent-fundamentals.css">
+<script src="../site-nav.js" defer></script>
+</head>
+<body>
+<header class="bar">
+  <nav class="bar-links" aria-label="Main navigation">
+    <a href="./index.html">← RAG Foundations</a>
+    <a href="../m3.html">Module 3: RAG Systems</a>
+  </nav>
+  <nav class="bar-pages" aria-label="Adjacent notes">
+    <a href="./4-embeddings.html" aria-label="Previous note: 🔢 4. Embeddings (Core of retrieval)" title="🔢 4. Embeddings (Core of retrieval)">← Previous</a>
+    <a href="./6-retrieval-techniques.html" aria-label="Next note: 🔍 6. Retrieval Techniques (This is where pros stand out)" title="🔍 6. Retrieval Techniques (This is where pros stand out)">Next →</a>
+  </nav>
+  <span class="grow"></span>
+  <button type="button" onclick="window.print()">Print / PDF</button>
+</header>
+<div class="layout"><nav class="toc" aria-label="Contents"><strong>On this page</strong><a class="sub" href="#what-is-a-vector-database">What Is a Vector Database</a>
+<a class="sub" href="#ann-approximate-nearest-neighbor-search">ANN (Approximate Nearest Neighbor) Search</a>
+<a class="sub" href="#indexing-algorithms">Indexing Algorithms</a>
+<a class="sub" href="#hnsw">HNSW</a>
+<a class="sub" href="#ivf">IVF</a>
+<a class="sub" href="#popular-tools">Popular Tools</a>
+<a class="sub" href="#faiss">FAISS</a>
+<a class="sub" href="#pinecone">Pinecone</a>
+<a class="sub" href="#weaviate">Weaviate</a>
+<a class="sub" href="#chroma">Chroma</a>
+<a class="sub" href="#filtering-metadata-queries">Filtering + Metadata Queries</a>
+<a class="sub" href="#hybrid-search-vector-keyword">Hybrid Search (Vector + Keyword)</a>
+<a class="sub" href="#practical-design-checklist">Practical Design Checklist</a></nav>
+<main>
+<header class="cover"><h1>🗄️ 5. Vector Databases (Where embeddings live)</h1><p class="sub">RAG Foundations · Note 5 of 16</p></header>
+<article><p>Vector databases are the operational home for embeddings in modern retrieval systems. Once text chunks are converted into vectors, those vectors need a storage and search layer that can return semantically similar results fast, at scale, and with filtering constraints.</p>
+<p>In RAG, embedding quality matters, but retrieval infrastructure determines whether that quality is usable in production. A strong vector database setup translates semantic geometry into low-latency, high-relevance retrieval for real user queries.</p>
+<h3 id="what-is-a-vector-database">What Is a Vector Database</h3>
+<p>A vector database is a system optimized to store, index, and retrieve high-dimensional vectors (embeddings) by similarity instead of exact key lookup. Traditional relational databases are built for exact matching and structured joins; vector databases are built for nearest-neighbor lookup in spaces with hundreds or thousands of dimensions.</p>
+<p>Core responsibilities of a vector database:</p>
+<ul><li>Store vectors efficiently alongside IDs and metadata.</li><li>Build specialized similarity indexes for fast nearest-neighbor search.</li><li>Execute top-k retrieval for a query vector under strict latency budgets.</li><li>Support filtering by structured fields (tenant, language, source, date, tags, permissions).</li><li>Handle updates/deletes and keep index consistency over time.</li></ul>
+<p>Why vector DBs became essential:</p>
+<ul><li>Brute-force search over millions of vectors is too slow for most interactive workloads.</li><li>Semantic retrieval requires geometric proximity search, not lexical matching only.</li><li>Production systems need filtering, multi-tenant controls, and operational reliability.</li></ul>
+<h3 id="ann-approximate-nearest-neighbor-search">ANN (Approximate Nearest Neighbor) Search</h3>
+<p>Nearest neighbor search asks: &quot;Which vectors are closest to this query vector?&quot; In very large collections, exact nearest-neighbor search becomes computationally expensive. ANN (Approximate Nearest Neighbor) search returns very close matches much faster by trading a small amount of recall for large speed gains.</p>
+<p>ANN tradeoff intuition:</p>
+<ul><li>Exact NN: highest theoretical recall, often too slow at scale.</li><li>ANN: much lower latency and cost, with near-exact relevance when tuned well.</li></ul>
+<p>Key ANN concepts:</p>
+<ul><li><strong>Recall vs latency:</strong> Increasing search depth usually improves recall but adds latency.</li><li><strong>Index build time vs query speed:</strong> Heavier index construction can produce faster retrieval later.</li><li><strong>Memory vs accuracy:</strong> Richer index structures can improve quality but consume more RAM.</li></ul>
+<p>Why ANN is standard in RAG:</p>
+<ul><li>RAG quality depends on returning relevant context in milliseconds.</li><li>Query throughput can be high (interactive chat, agents, APIs).</li><li>Most systems prefer controllable approximation over slow exact search.</li></ul>
+<h3 id="indexing-algorithms">Indexing Algorithms</h3>
+<p>Indexing algorithms define how vectors are organized for ANN search. Different algorithms favor different scale, memory, update, and latency profiles.</p>
+<h3 id="hnsw">HNSW</h3>
+<p>HNSW (Hierarchical Navigable Small World) is a graph-based ANN method that organizes vectors into layered proximity graphs. Search starts at upper layers (coarse navigation) and descends into denser lower layers for refined neighbors.</p>
+<p>How HNSW works conceptually:</p>
+<ol><li>Each vector becomes a node connected to nearby nodes.</li><li>Multiple graph layers are built, with fewer nodes in upper layers.</li><li>Query traversal starts from an entry point and greedily moves toward closer nodes.</li><li>Candidate sets are expanded and refined until top-k results are produced.</li></ol>
+<p>Why HNSW is popular:</p>
+<ul><li>Strong recall-latency balance in many production workloads.</li><li>Great for low-latency interactive semantic search.</li><li>Flexible tuning via parameters such as <code>M</code>, <code>efConstruction</code>, and <code>efSearch</code>.</li></ul>
+<p>Tradeoffs:</p>
+<ul><li>High memory usage compared with compressed or partitioned methods.</li><li>Index build can be heavier than simpler structures.</li><li>Large-scale dynamic updates require careful tuning and maintenance.</li></ul>
+<p>Best fit:</p>
+<ul><li>Mid-to-large corpora where quality and low latency matter more than minimal memory footprint.</li></ul>
+<h3 id="ivf">IVF</h3>
+<p>IVF (Inverted File Index) is a partition-based ANN method. Instead of searching all vectors, IVF first selects likely clusters, then searches only vectors in those clusters.</p>
+<p>How IVF works conceptually:</p>
+<ol><li>Training step creates coarse centroids (cluster representatives).</li><li>Each vector is assigned to one centroid bucket (list).</li><li>At query time, the system finds nearest centroids to the query.</li><li>Search is performed in a subset of lists (<code>nprobe</code>) rather than all data.</li></ol>
+<p>Why IVF is useful:</p>
+<ul><li>Scales well when vector counts become very large.</li><li>Supports controllable speed/quality by adjusting probe count.</li><li>Often paired with compression (like product quantization) for memory efficiency.</li></ul>
+<p>Tradeoffs:</p>
+<ul><li>Requires training/calibration of coarse quantizer.</li><li>Poor clustering can reduce recall.</li><li>Parameter sensitivity (<code>nlist</code>, <code>nprobe</code>) demands benchmark-based tuning.</li></ul>
+<p>Best fit:</p>
+<ul><li>Very large datasets where memory and throughput constraints are strict and approximate search is acceptable.</li></ul>
+<h3 id="popular-tools">Popular Tools</h3>
+<p>Different vector tools optimize for different priorities: pure performance, managed operations, integrated hybrid retrieval, or developer simplicity.</p>
+<h3 id="faiss">FAISS</h3>
+<p>FAISS (Facebook AI Similarity Search) is a high-performance open-source library for vector similarity search, commonly used as a core engine rather than a full managed database.</p>
+<p>Strengths:</p>
+<ul><li>Excellent performance for ANN and exact vector search.</li><li>Multiple index types (Flat, HNSW, IVF, IVF+PQ, etc.).</li><li>GPU acceleration options for large-scale workloads.</li></ul>
+<p>Limitations:</p>
+<ul><li>Library-level building block, not a full hosted database experience.</li><li>You handle persistence, scaling, replication, filtering architecture, and operations.</li><li>Extra engineering needed for multi-tenant production services.</li></ul>
+<p>Best fit:</p>
+<ul><li>Teams needing maximal low-level control and performance tuning in custom infrastructure.</li></ul>
+<h3 id="pinecone">Pinecone</h3>
+<p>Pinecone is a managed vector database platform designed to reduce operational complexity for production vector search.</p>
+<p>Strengths:</p>
+<ul><li>Managed infrastructure with scaling and reliability features.</li><li>Developer-friendly API and indexing workflows.</li><li>Good fit for teams that want fast production deployment.</li></ul>
+<p>Limitations:</p>
+<ul><li>Managed-service cost considerations at high scale.</li><li>Less low-level index control than self-hosted engines in some setups.</li><li>Platform-specific architecture decisions may affect portability.</li></ul>
+<p>Best fit:</p>
+<ul><li>Teams prioritizing speed to production and managed operations over deep infrastructure ownership.</li></ul>
+<h3 id="weaviate">Weaviate</h3>
+<p>Weaviate is an open-source and managed vector database with rich schema, metadata handling, and hybrid retrieval support.</p>
+<p>Strengths:</p>
+<ul><li>Strong metadata and filtering model for structured + semantic retrieval.</li><li>Hybrid search capabilities (vector + lexical).</li><li>Ecosystem for modular integrations and application-layer features.</li></ul>
+<p>Limitations:</p>
+<ul><li>Operational complexity can increase with advanced deployments.</li><li>Requires schema and index planning for best performance.</li><li>Resource tuning is important for large workloads.</li></ul>
+<p>Best fit:</p>
+<ul><li>Teams wanting an integrated retrieval platform with robust metadata and hybrid features.</li></ul>
+<h3 id="chroma">Chroma</h3>
+<p>Chroma is a developer-friendly vector database often used for local development, rapid prototyping, and lightweight production use cases.</p>
+<p>Strengths:</p>
+<ul><li>Fast onboarding and simple API ergonomics.</li><li>Useful for experiments, local tools, and early-stage RAG systems.</li><li>Strong adoption in prototyping workflows.</li></ul>
+<p>Limitations:</p>
+<ul><li>Large-scale operational capabilities may be more limited than enterprise-focused managed systems.</li><li>Architecture decisions for high-scale durability and multi-region setups need careful evaluation.</li></ul>
+<p>Best fit:</p>
+<ul><li>Teams iterating quickly on RAG prototypes or smaller deployments before scaling infrastructure.</li></ul>
+<h3 id="filtering-metadata-queries">Filtering + Metadata Queries</h3>
+<p>Vector similarity alone is rarely sufficient in production. Real retrieval systems must enforce constraints like tenant boundaries, access control, document type, recency windows, and language preferences. Metadata filtering ensures retrieved vectors are not only semantically similar but also contextually valid.</p>
+<p>Typical metadata fields:</p>
+<ul><li><code>tenant_id</code> for strict multi-tenant isolation.</li><li><code>source</code> / <code>document_type</code> for routing by content class.</li><li><code>created_at</code> / <code>updated_at</code> for freshness constraints.</li><li><code>lang</code> for language-specific retrieval.</li><li><code>permissions</code> / <code>acl</code> for security filtering.</li><li><code>tags</code> for domain categorization.</li></ul>
+<p>Why filtering is critical:</p>
+<ul><li>Prevents semantically similar but unauthorized results.</li><li>Reduces irrelevant retrieval by narrowing search scope.</li><li>Improves precision for domain-specific workflows.</li></ul>
+<p>Operational considerations:</p>
+<ul><li>Some databases apply filters before ANN candidate generation; others post-filter candidates.</li><li>Highly selective filters can hurt recall if candidate pool is too small.</li><li>Query planners and index design must consider both vector and metadata paths.</li></ul>
+<p>Practical pattern:</p>
+<ol><li>Apply mandatory security and tenancy filters first.</li><li>Run ANN retrieval within eligible subset.</li><li>Optionally rerank results with query-aware signals.</li></ol>
+<h3 id="hybrid-search-vector-keyword">Hybrid Search (Vector + Keyword)</h3>
+<p>Hybrid search combines semantic vector retrieval with lexical keyword matching (for example BM25-style scoring). This improves robustness because semantic similarity captures conceptual meaning while keyword methods capture exact terms, entities, and identifiers.</p>
+<p>Why hybrid search is valuable:</p>
+<ul><li>Pure vector search can miss exact tokens (error codes, model names, legal clauses).</li><li>Pure keyword search can miss paraphrases and semantic variants.</li><li>Combining both typically improves relevance across mixed query styles.</li></ul>
+<p>Common hybrid scenarios:</p>
+<ul><li>Product docs where users ask conceptual questions but also include exact API names.</li><li>Support logs containing IDs, error strings, and version numbers.</li><li>Compliance/policy content needing both exact terminology and semantic context.</li></ul>
+<p>Fusion strategies:</p>
+<ul><li><strong>Weighted score fusion:</strong> Normalize vector and keyword scores, then combine by tuned weights.</li><li><strong>Reciprocal rank fusion (RRF):</strong> Merge ranked lists by reciprocal rank contributions.</li><li><strong>Two-stage retrieval:</strong> One retriever generates candidates; another method reranks or augments.</li></ul>
+<p>Tuning guidance:</p>
+<ul><li>Build evaluation sets that include semantic-only, keyword-heavy, and mixed queries.</li><li>Tune blend weights and top-k sizes against recall/precision goals.</li><li>Validate with real user query logs, not benchmark data alone.</li></ul>
+<h3 id="practical-design-checklist">Practical Design Checklist</h3>
+<p>When implementing vector retrieval in production RAG:</p>
+<ul><li>Choose ANN index based on scale, latency budget, update frequency, and memory limits.</li><li>Evaluate HNSW and IVF under your real query distribution, not synthetic assumptions.</li><li>Select tooling (FAISS/Pinecone/Weaviate/Chroma) based on operational ownership preference.</li><li>Treat metadata filtering and access control as first-class retrieval requirements.</li><li>Add hybrid retrieval when users rely on exact identifiers and semantic intent together.</li></ul>
+<p>Vector databases are not just storage for embeddings. They are the retrieval execution layer that turns representation quality into usable context for generation. In mature RAG systems, index strategy, filtering discipline, and hybrid search design are often the difference between &quot;technically working&quot; and &quot;consistently trustworthy.&quot;</p></article>
+<nav class="page-nav" aria-label="Note navigation"><a href="./4-embeddings.html">← 🔢 4. Embeddings (Core of retrieval)</a><a href="./6-retrieval-techniques.html">🔍 6. Retrieval Techniques (This is where pros stand out) →</a></nav>
+</main>
+</div>
+<script>
+const links = [...document.querySelectorAll(".toc a")];
+const observer = new IntersectionObserver(entries => {
+  for (const entry of entries) {
+    if (!entry.isIntersecting) continue;
+    links.forEach(link => link.classList.toggle("active", link.hash === "#" + entry.target.id));
+  }
+}, { rootMargin: "-15% 0px -72% 0px" });
+document.querySelectorAll("main h2[id], main h3[id]").forEach(heading => observer.observe(heading));
+</script>
+</body>
+</html>

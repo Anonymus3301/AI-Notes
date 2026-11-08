@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="🧠 7. Re-ranking (Huge performance boost) — RAG Foundations notes">
+<title>🧠 7. Re-ranking (Huge performance boost) | RAG Foundations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../agent-fundamentals.css">
+<script src="../site-nav.js" defer></script>
+</head>
+<body>
+<header class="bar">
+  <nav class="bar-links" aria-label="Main navigation">
+    <a href="./index.html">← RAG Foundations</a>
+    <a href="../m3.html">Module 3: RAG Systems</a>
+  </nav>
+  <nav class="bar-pages" aria-label="Adjacent notes">
+    <a href="./6-retrieval-techniques.html" aria-label="Previous note: 🔍 6. Retrieval Techniques (This is where pros stand out)" title="🔍 6. Retrieval Techniques (This is where pros stand out)">← Previous</a>
+    <a href="./8-generation-layer.html" aria-label="Next note: 🤖 8. Generation Layer (LLM usage)" title="🤖 8. Generation Layer (LLM usage)">Next →</a>
+  </nav>
+  <span class="grow"></span>
+  <button type="button" onclick="window.print()">Print / PDF</button>
+</header>
+<div class="layout"><nav class="toc" aria-label="Contents"><strong>On this page</strong><a class="sub" href="#why-initial-retrieval-is-often-noisy">Why Initial Retrieval Is Often Noisy</a>
+<a class="sub" href="#cross-encoder-models-for-reranking">Cross-Encoder Models for Reranking</a>
+<a class="sub" href="#learning-to-rank-basics">Learning-to-Rank Basics</a>
+<a class="sub" href="#tools-cohere-rerank">Tools: Cohere Rerank</a>
+<a class="sub" href="#latency-vs-accuracy-tradeoff">Latency vs Accuracy Tradeoff</a>
+<a class="sub" href="#recommended-production-pattern">Recommended Production Pattern</a></nav>
+<main>
+<header class="cover"><h1>🧠 7. Re-ranking (Huge performance boost)</h1><p class="sub">RAG Foundations · Note 7 of 16</p></header>
+<article><p>Re-ranking is one of the highest-leverage improvements in production RAG systems. Initial retrieval (vector, lexical, or hybrid) is designed for speed and broad recall, which means it often returns a candidate set that contains useful evidence mixed with irrelevant or weakly relevant chunks.</p>
+<p>A reranking stage fixes that quality gap by reordering the retrieved candidates using a stronger relevance model. The result is usually better context quality, better answer accuracy, and lower hallucination risk without rebuilding the entire retrieval stack.</p>
+<p>In practical deployments, re-ranking is often the point where a &quot;good demo&quot; becomes a &quot;reliable system.&quot;</p>
+<h3 id="why-initial-retrieval-is-often-noisy">Why Initial Retrieval Is Often Noisy</h3>
+<p>Most first-stage retrievers are optimized for fast candidate generation, not deep semantic precision. This is an intentional design choice: if the first pass is too strict, recall collapses and important evidence is missed.</p>
+<p>Why noise appears in the first stage:</p>
+<ul><li><strong>Embedding similarity is broad:</strong> Chunks can be semantically related to the query topic but still not answer the exact user intent.</li><li><strong>Lexical retrieval is literal:</strong> BM25 and keyword search can over-prioritize surface term overlap, even when the passage is contextually wrong.</li><li><strong>Chunk granularity mismatch:</strong> Chunks may be too large (mixed topics) or too small (insufficient context), causing unstable ranking quality.</li><li><strong>Domain-specific ambiguity:</strong> Terms can be overloaded (for example &quot;index&quot;, &quot;agent&quot;, &quot;latency&quot;), and first-pass ranking may select the wrong sense.</li><li><strong>Multi-intent queries:</strong> A single query can contain comparison, constraint, and reasoning requirements that first-stage models do not fully capture.</li></ul>
+<p>Typical symptoms of retrieval noise:</p>
+<ul><li>Top results repeat similar information but miss the key fact needed for the answer.</li><li>High-scoring chunks are &quot;about&quot; the topic but do not contain actionable evidence.</li><li>Correct evidence appears lower in the list (for example rank 15), outside the final context window.</li><li>Generated responses sound fluent but cite shallow or weak support.</li></ul>
+<p>Why this matters in RAG:</p>
+<ul><li>The LLM can only reason over supplied context. If relevant evidence is buried below the cutoff, answer quality drops.</li><li>Noisy context increases the chance of confident but wrong synthesis.</li><li>Token budget gets wasted on low-value chunks, reducing room for truly useful evidence.</li></ul>
+<p>Core insight:</p>
+<ol><li>First-stage retrieval should maximize recall and speed.</li><li>Re-ranking should maximize precision on that candidate set.</li><li>Together, they create a strong retrieval pipeline with balanced quality and latency.</li></ol>
+<h3 id="cross-encoder-models-for-reranking">Cross-Encoder Models for Reranking</h3>
+<p>Cross-encoders are the most common high-precision reranking models. Unlike bi-encoder retrieval (which embeds query and documents separately), a cross-encoder reads the query and candidate chunk together in one forward pass and outputs a relevance score.</p>
+<p>Why cross-encoders are strong:</p>
+<ul><li>They model fine-grained interactions between query tokens and passage tokens directly.</li><li>They can capture nuanced intent such as negation, constraints, and specific entity relations.</li><li>They generally outperform pure embedding similarity when ranking a small candidate set.</li></ul>
+<p>How cross-encoder reranking works:</p>
+<ol><li>Retrieve an initial candidate set (for example top-50 from vector/hybrid retrieval).</li><li>For each candidate, form a pair input: <code>[query] + [candidate chunk]</code>.</li><li>Run the pair through the cross-encoder to obtain a relevance score.</li><li>Sort candidates by cross-encoder score.</li><li>Keep final top-N chunks (for example 5-10) for prompt assembly.</li></ol>
+<p>Why this is usually a two-stage pattern:</p>
+<ul><li>Cross-encoders are computationally expensive when applied to entire corpora.</li><li>They are ideal for reranking a limited candidate pool, not for full index search.</li><li>This preserves first-stage speed while adding second-stage precision.</li></ul>
+<p>Important implementation details:</p>
+<ul><li><strong>Candidate pool size:</strong> Too small and recall is capped; too large and latency/cost increases.</li><li><strong>Chunk quality:</strong> Better chunk boundaries improve reranker signal quality.</li><li><strong>Model/domain fit:</strong> General rerankers work well, but domain-adapted models can improve ranking in specialized corpora.</li><li><strong>Truncation behavior:</strong> Long chunks may get truncated; prioritize high-density, answer-bearing passages.</li></ul>
+<p>Common operational pattern:</p>
+<ul><li>Stage 1: Hybrid retrieve top-30 to top-100 candidates.</li><li>Stage 2: Cross-encoder rerank candidates.</li><li>Stage 3: Optional compression/merging to reduce redundancy.</li><li>Stage 4: Send top context to generator LLM.</li></ul>
+<h3 id="learning-to-rank-basics">Learning-to-Rank Basics</h3>
+<p>Learning-to-rank (LTR) is a broader framework for training ranking systems to order candidates by expected relevance. Cross-encoders can be part of an LTR stack, but LTR also includes feature-based and ensemble ranking approaches.</p>
+<p>LTR objective in RAG:</p>
+<ul><li>Given a query and a set of candidate chunks, learn a scoring/ranking function that places the most useful evidence at the top.</li></ul>
+<p>Core LTR paradigms:</p>
+<ul><li><strong>Pointwise:</strong> Predict relevance score for each query-document pair independently.</li><li><strong>Pairwise:</strong> Learn which of two candidates should rank higher for a query.</li><li><strong>Listwise:</strong> Optimize quality over the entire ranked list directly.</li></ul>
+<p>In production retrieval, LTR can combine multiple signals:</p>
+<ul><li>Vector similarity score</li><li>BM25 or lexical score</li><li>Cross-encoder relevance score</li><li>Metadata priors (freshness, trusted source, document type)</li><li>Behavioral signals (click-through, answer acceptance, user feedback)</li></ul>
+<p>Why LTR is powerful:</p>
+<ul><li>It merges heterogeneous retrieval signals into one learned ranking policy.</li><li>It adapts ranking behavior to your real workload and relevance labels.</li><li>It can outperform single-signal ranking once enough high-quality data is available.</li></ul>
+<p>Evaluation metrics commonly used:</p>
+<ul><li><strong>NDCG@k:</strong> Rewards correct ordering near the top.</li><li><strong>MRR:</strong> Focuses on how quickly the first relevant result appears.</li><li><strong>Recall@k:</strong> Measures coverage of relevant evidence in top-k.</li><li><strong>Precision@k:</strong> Measures relevance density in final context window.</li></ul>
+<p>Data and labeling considerations:</p>
+<ul><li>Human relevance labels are high quality but expensive.</li><li>Weak labels from click logs are scalable but noisy.</li><li>Continuous evaluation is required because query distributions drift over time.</li></ul>
+<p>Practical LTR adoption path:</p>
+<ol><li>Start with hybrid retrieval + cross-encoder rerank baseline.</li><li>Log rich features and outcomes.</li><li>Build relevance dataset from offline labels and online signals.</li><li>Train and evaluate LTR model against baseline.</li><li>Roll out gradually with A/B testing and guardrails.</li></ol>
+<h3 id="tools-cohere-rerank">Tools: Cohere Rerank</h3>
+<p>Cohere Rerank is a managed API for high-quality document reranking. It is commonly used as a drop-in second-stage ranker after vector or hybrid candidate retrieval.</p>
+<p>Why teams adopt it quickly:</p>
+<ul><li>Fast integration with standard retrieval stacks.</li><li>Strong out-of-the-box relevance quality for many domains.</li><li>No need to host and serve your own reranker model infrastructure.</li></ul>
+<p>Typical usage pattern:</p>
+<ol><li>Retrieve top-k candidates from your primary retriever.</li><li>Send query + candidate documents to Cohere Rerank.</li><li>Receive reranked results with relevance scores.</li><li>Select top-N for prompt context.</li></ol>
+<p>Where it fits best:</p>
+<ul><li>Teams that want quality gains without building custom reranker training pipelines.</li><li>Applications where second-stage API latency is acceptable within SLA.</li><li>Systems that need rapid iteration and measurable relevance lift.</li></ul>
+<p>Operational considerations:</p>
+<ul><li><strong>Cost:</strong> Charged per rerank call or tokenized workload (plan-dependent).</li><li><strong>Latency:</strong> Adds extra network + inference hop; candidate size matters.</li><li><strong>Privacy/compliance:</strong> Review data-handling policies before sending sensitive content.</li><li><strong>Fallbacks:</strong> Define behavior when API errors, rate limits, or timeouts occur.</li></ul>
+<p>Best practices with managed rerank APIs:</p>
+<ul><li>Keep candidate pool reasonably sized (for example 20-80).</li><li>Pre-filter obvious low-value chunks before rerank to reduce spend.</li><li>Cache rerank outputs for repeated queries where feasible.</li><li>Track rerank impact on answer correctness, not only rerank scores.</li></ul>
+<h3 id="latency-vs-accuracy-tradeoff">Latency vs Accuracy Tradeoff</h3>
+<p>Re-ranking introduces one of the most important system-level tradeoffs in RAG: better relevance quality versus additional latency and compute cost.</p>
+<p>Why the tradeoff exists:</p>
+<ul><li>Higher-precision models (cross-encoders, stronger rerank APIs) require more computation.</li><li>More candidates reranked increases potential recall/precision but linearly increases scoring work.</li><li>Real-time products operate under strict user experience latency budgets.</li></ul>
+<p>Levers that control latency-accuracy balance:</p>
+<ul><li><strong>Initial candidate count (<code>k1</code>):</strong> Larger <code>k1</code> helps recall but increases rerank workload.</li><li><strong>Final context count (<code>k2</code>):</strong> Smaller <code>k2</code> reduces prompt tokens but risks missing supporting evidence.</li><li><strong>Model size/quality:</strong> Stronger models can improve ranking but are slower.</li><li><strong>Batching and parallelism:</strong> Improves throughput and can reduce effective per-query overhead.</li><li><strong>Caching strategy:</strong> Reduces repeated reranking for popular or repeated intents.</li></ul>
+<p>Common operating regimes:</p>
+<ul><li><strong>Low-latency chat assistants:</strong> Smaller candidate sets, aggressive caching, lightweight reranker.</li><li><strong>High-stakes QA/compliance workflows:</strong> Larger candidate sets, stronger reranker, stricter validation.</li><li><strong>Asynchronous research workflows:</strong> More generous latency budget for higher precision reranking.</li></ul>
+<p>A practical tuning loop:</p>
+<ol><li>Set clear SLA targets (for example p95 latency).</li><li>Benchmark multiple <code>(k1, reranker, k2)</code> configurations.</li><li>Measure end-to-end outcomes: answer quality, factuality, latency, and cost.</li><li>Pick the best Pareto point for your product context.</li><li>Re-tune periodically as corpus, query mix, and models evolve.</li></ol>
+<h3 id="recommended-production-pattern">Recommended Production Pattern</h3>
+<p>For most systems, the strongest default is a staged retrieval architecture:</p>
+<ol><li><strong>Candidate generation:</strong> Hybrid retrieval optimized for recall and speed.</li><li><strong>Precision upgrade:</strong> Cross-encoder or managed reranker on top candidates.</li><li><strong>Context shaping:</strong> Deduplicate/compress and enforce token budget.</li><li><strong>Generation + verification:</strong> Produce answer, optionally with citation validation.</li></ol>
+<p>This pattern provides consistent gains because each stage has a clear role:</p>
+<ul><li>Stage 1 finds what might be relevant.</li><li>Stage 2 decides what is actually most relevant.</li><li>Stage 3 ensures context budget is used efficiently.</li></ul>
+<p>When teams skip reranking, they often compensate by increasing top-k and prompt size, which usually increases cost faster than it improves quality. Re-ranking is the cleaner and more controllable quality lift.</p></article>
+<nav class="page-nav" aria-label="Note navigation"><a href="./6-retrieval-techniques.html">← 🔍 6. Retrieval Techniques (This is where pros stand out)</a><a href="./8-generation-layer.html">🤖 8. Generation Layer (LLM usage) →</a></nav>
+</main>
+</div>
+<script>
+const links = [...document.querySelectorAll(".toc a")];
+const observer = new IntersectionObserver(entries => {
+  for (const entry of entries) {
+    if (!entry.isIntersecting) continue;
+    links.forEach(link => link.classList.toggle("active", link.hash === "#" + entry.target.id));
+  }
+}, { rootMargin: "-15% 0px -72% 0px" });
+document.querySelectorAll("main h2[id], main h3[id]").forEach(heading => observer.observe(heading));
+</script>
+</body>
+</html>

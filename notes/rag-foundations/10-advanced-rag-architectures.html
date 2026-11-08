@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="🔄 10. Advanced RAG Architectures (Once basics are clear, move here) — RAG Foundations notes">
+<title>🔄 10. Advanced RAG Architectures (Once basics are clear, move here) | RAG Foundations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../agent-fundamentals.css">
+<script src="../site-nav.js" defer></script>
+</head>
+<body>
+<header class="bar">
+  <nav class="bar-links" aria-label="Main navigation">
+    <a href="./index.html">← RAG Foundations</a>
+    <a href="../m3.html">Module 3: RAG Systems</a>
+  </nav>
+  <nav class="bar-pages" aria-label="Adjacent notes">
+    <a href="./9-evaluation.html" aria-label="Previous note: 🧪 9. Evaluation (Most people ignore this)" title="🧪 9. Evaluation (Most people ignore this)">← Previous</a>
+    <a href="./11-types-of-rag-top-4.html" aria-label="Next note: 🧩 11. Types of RAG (Top 4)" title="🧩 11. Types of RAG (Top 4)">Next →</a>
+  </nav>
+  <span class="grow"></span>
+  <button type="button" onclick="window.print()">Print / PDF</button>
+</header>
+<div class="layout"><nav class="toc" aria-label="Contents"><strong>On this page</strong><a class="sub" href="#why-advanced-architectures-matter">Why Advanced Architectures Matter</a>
+<a class="sub" href="#multi-hop-rag-reason-across-documents">Multi-hop RAG (Reason Across Documents)</a>
+<a class="sub" href="#graph-rag-knowledge-graphs">Graph RAG (Knowledge Graphs)</a>
+<a class="sub" href="#agentic-rag-llm-decides-retrieval-strategy">Agentic RAG (LLM Decides Retrieval Strategy)</a>
+<a class="sub" href="#conversational-rag-chat-history-aware">Conversational RAG (Chat History Aware)</a>
+<a class="sub" href="#streaming-rag">Streaming RAG</a>
+<a class="sub" href="#tool-augmented-rag">Tool-Augmented RAG</a>
+<a class="sub" href="#cross-cutting-architecture-guidelines">Cross-Cutting Architecture Guidelines</a>
+<a class="sub" href="#choosing-the-right-architecture">Choosing the Right Architecture</a>
+<a class="sub" href="#final-takeaway">Final Takeaway</a></nav>
+<main>
+<header class="cover"><h1>🔄 10. Advanced RAG Architectures (Once basics are clear, move here)</h1><p class="sub">RAG Foundations · Note 10 of 16</p></header>
+<article><p>Once you have a solid baseline RAG pipeline (query understanding, retrieval, reranking, grounded generation, and evaluation), the next performance jump usually comes from architecture, not prompt tweaks.</p>
+<p>Advanced RAG architectures exist because many real-world questions are not single-document lookup tasks. They require:</p>
+<ol><li>Reasoning across multiple sources and steps.</li><li>Handling structured relationships, not just semantic similarity.</li><li>Dynamically choosing retrieval or tools at runtime.</li><li>Preserving context across long conversations and streams.</li></ol>
+<p>At this stage, success depends on orchestration quality: how the system plans, retrieves, validates, and synthesizes under uncertainty, cost, and latency constraints.</p>
+<h3 id="why-advanced-architectures-matter">Why Advanced Architectures Matter</h3>
+<p>A basic RAG flow works well for direct factual questions where one or two chunks contain the answer. It starts to fail when users ask compositional, temporal, or workflow-heavy questions.</p>
+<p>Common signs you need advanced architectures:</p>
+<ul><li>Correct evidence exists, but the model fails to connect it across sources.</li><li>Answers require traversing entities (person -&gt; company -&gt; policy -&gt; timeline).</li><li>Multi-turn chats lose context or repeat retrieval wastefully.</li><li>Users need live updates while retrieval/generation is still running.</li><li>Questions require tools (SQL, APIs, calculators) in addition to text retrieval.</li></ul>
+<p>Core shift in mindset:</p>
+<ol><li>Basic RAG asks: &quot;Can I retrieve relevant chunks?&quot;</li><li>Advanced RAG asks: &quot;Can I orchestrate reasoning, memory, and tools reliably?&quot;</li></ol>
+<h3 id="multi-hop-rag-reason-across-documents">Multi-hop RAG (Reason Across Documents)</h3>
+<p>Multi-hop RAG is designed for questions that need chained evidence from multiple documents, where no single chunk fully answers the query.</p>
+<h4 id="what-it-solves">What It Solves</h4>
+<p>Single-hop retrieval often returns locally relevant chunks but misses bridge facts required for full reasoning.</p>
+<p>Example query type:</p>
+<ul><li>&quot;What policy changed after the acquisition of Company X, and how did that affect region Y operations?&quot;</li></ul>
+<p>This requires at least two hops:</p>
+<ol><li>Find acquisition event details.</li><li>Find policy changes post-acquisition.</li><li>Connect policy impact to region Y operations.</li></ol>
+<h4 id="typical-pipeline">Typical Pipeline</h4>
+<p>A production multi-hop pipeline often looks like:</p>
+<ol><li><strong>Question decomposition:</strong> split query into intermediate sub-questions.</li><li><strong>Hop-1 retrieval:</strong> fetch evidence for first sub-question.</li><li><strong>Intermediate inference:</strong> extract bridge entities/facts.</li><li><strong>Hop-2+ retrieval:</strong> query again using bridge facts.</li><li><strong>Synthesis:</strong> combine evidence into a final grounded answer.</li><li><strong>Verification:</strong> ensure each claim has support from one or more hops.</li></ol>
+<h4 id="architectural-patterns">Architectural Patterns</h4>
+<ul><li><strong>Sequential hopping:</strong> deterministic chain where each hop depends on previous output.</li><li><strong>Branch-and-merge:</strong> run multiple second-hop branches in parallel, then merge.</li><li><strong>Iterative planner loop:</strong> planner decides whether additional hops are needed.</li><li><strong>Retrieve-read-retrieve loop:</strong> repeated retrieval until confidence threshold is met.</li></ul>
+<h4 id="key-design-requirements">Key Design Requirements</h4>
+<ul><li>High recall in early hops, otherwise later hops never recover.</li><li>Stable entity extraction between hops (names, dates, IDs).</li><li>Evidence provenance tracking across hops (which claim came from which step).</li><li>Stopping rules to avoid infinite retrieval loops.</li></ul>
+<h4 id="failure-modes">Failure Modes</h4>
+<ul><li><strong>Bridge entity miss:</strong> first hop misses key connector, collapsing downstream hops.</li><li><strong>Error propagation:</strong> wrong intermediate inference poisons all future retrieval.</li><li><strong>Context overflow:</strong> too many hop artifacts exceed generation context budget.</li><li><strong>Over-hopping:</strong> unnecessary hops increase latency and cost with no quality gain.</li></ul>
+<h4 id="production-best-practices">Production Best Practices</h4>
+<ol><li>Use decomposition prompts or a small planner model for sub-question generation.</li><li>Keep hop artifacts structured (<code>sub_question</code>, <code>evidence_ids</code>, <code>entities</code>, <code>confidence</code>).</li><li>Deduplicate and rerank evidence at every hop, not only at the end.</li><li>Add claim-level support checks before final response.</li><li>Set strict max-hop and max-latency budgets.</li></ol>
+<h4 id="when-to-use">When To Use</h4>
+<p>Use multi-hop RAG when user queries frequently require combining facts across documents, timelines, or domains. If most queries are direct lookups, this may add unnecessary complexity.</p>
+<h3 id="graph-rag-knowledge-graphs">Graph RAG (Knowledge Graphs)</h3>
+<p>Graph RAG combines retrieval with graph-structured knowledge, enabling reasoning through explicit entities and relationships, not only vector similarity.</p>
+<h4 id="what-it-solves-2">What It Solves</h4>
+<p>Vector retrieval is good at semantic closeness but weak at explicit relational traversal.</p>
+<p>Graph RAG helps when questions involve:</p>
+<ul><li>Entity relationships (&quot;Who reports to whom?&quot;)</li><li>Dependency paths (&quot;What service depends on this deprecated API?&quot;)</li><li>Multi-step lineage (&quot;Where did this metric originate?&quot;)</li><li>Compliance or governance links (&quot;Which policy applies to this asset type?&quot;)</li></ul>
+<h4 id="core-architecture">Core Architecture</h4>
+<p>A practical Graph RAG stack usually contains:</p>
+<ol><li><strong>Entity and relation extraction:</strong> convert corpus into nodes and edges.</li><li><strong>Graph store:</strong> persist knowledge graph in a graph database or index.</li><li><strong>Hybrid retriever:</strong> combine graph traversal + vector/keyword retrieval.</li><li><strong>Subgraph builder:</strong> fetch local neighborhood relevant to the query.</li><li><strong>Context constructor:</strong> serialize subgraph + supporting text chunks for generation.</li></ol>
+<h4 id="retrieval-strategies-in-graph-rag">Retrieval Strategies in Graph RAG</h4>
+<ul><li><strong>Node-first retrieval:</strong> identify primary entities, then expand neighbors.</li><li><strong>Path-constrained retrieval:</strong> retrieve specific relation paths (A -&gt; B -&gt; C).</li><li><strong>Community retrieval:</strong> use clusters/subgraphs by topic or domain.</li><li><strong>Hybrid graph+vector:</strong> vector search for recall, graph traversal for precision and explainability.</li></ul>
+<h4 id="why-graph-rag-improves-reasoning">Why Graph RAG Improves Reasoning</h4>
+<ul><li>Makes latent relationships explicit and traversable.</li><li>Improves explainability through paths, not only ranked chunks.</li><li>Supports compositional queries where relation structure is central.</li><li>Helps reduce semantic false positives from pure embedding similarity.</li></ul>
+<h4 id="failure-modes-2">Failure Modes</h4>
+<ul><li><strong>Graph staleness:</strong> extracted graph lags behind document updates.</li><li><strong>Schema drift:</strong> relation types become inconsistent across ingestion pipelines.</li><li><strong>Noisy extraction:</strong> incorrect edges create plausible but wrong reasoning paths.</li><li><strong>Serialization loss:</strong> rich graph signals get flattened poorly in prompts.</li></ul>
+<h4 id="production-best-practices-2">Production Best Practices</h4>
+<ol><li>Define strict ontology/schema for entities and relations early.</li><li>Version and timestamp graph updates for freshness-aware retrieval.</li><li>Keep confidence scores for extracted edges and filter low-confidence paths.</li><li>Merge graph context with raw text evidence so the model can validate claims.</li><li>Evaluate path correctness, not just final answer fluency.</li></ol>
+<h4 id="when-to-use-2">When To Use</h4>
+<p>Graph RAG is strongest when your domain is relation-heavy: enterprise knowledge maps, biomedical literature, legal citations, dependency graphs, and governance systems.</p>
+<h3 id="agentic-rag-llm-decides-retrieval-strategy">Agentic RAG (LLM Decides Retrieval Strategy)</h3>
+<p>Agentic RAG introduces planning and decision-making where the LLM (or controller model) chooses how to retrieve, when to retrieve, and which tools/routes to call.</p>
+<h4 id="what-it-solves-3">What It Solves</h4>
+<p>Static RAG pipelines apply one retrieval strategy to every query. Real traffic is diverse: some questions need keyword search, some need graph traversal, some need SQL/API tools, and some need no retrieval at all.</p>
+<p>Agentic RAG adapts strategy per query.</p>
+<h4 id="typical-agentic-loop">Typical Agentic Loop</h4>
+<p>A common controller loop:</p>
+<ol><li><strong>Route classification:</strong> decide query type and difficulty.</li><li><strong>Plan generation:</strong> choose steps (retrieve, tool-call, re-query, clarify).</li><li><strong>Action execution:</strong> run selected retrievers/tools.</li><li><strong>Observation:</strong> inspect retrieved evidence and tool outputs.</li><li><strong>Replan or finalize:</strong> either continue loop or generate answer.</li></ol>
+<h4 id="decision-dimensions">Decision Dimensions</h4>
+<p>The agent typically decides:</p>
+<ul><li>Which retriever to use (dense, sparse, hybrid, graph).</li><li>How many retrieval iterations are needed.</li><li>Whether to call external tools before/after retrieval.</li><li>Whether to ask user clarifying questions.</li><li>Whether to refuse due to insufficient evidence.</li></ul>
+<h4 id="architectural-components">Architectural Components</h4>
+<ul><li><strong>Policy layer:</strong> prompt- or model-based decision rules.</li><li><strong>Action registry:</strong> allowed retrieval and tool actions.</li><li><strong>State memory:</strong> running context of plans, evidence, and observations.</li><li><strong>Budget controller:</strong> max steps, token budget, timeout constraints.</li><li><strong>Safety/guardrails:</strong> prevent unsafe tool calls or unsupported outputs.</li></ul>
+<h4 id="failure-modes-3">Failure Modes</h4>
+<ul><li><strong>Plan thrashing:</strong> too many replans with minimal quality gain.</li><li><strong>Tool overuse:</strong> agent calls expensive tools unnecessarily.</li><li><strong>Unstable routing:</strong> similar queries take inconsistent paths.</li><li><strong>Opaque behavior:</strong> hard to debug why a particular action was chosen.</li></ul>
+<h4 id="production-best-practices-3">Production Best Practices</h4>
+<ol><li>Start with constrained agent policies before fully open-ended actions.</li><li>Log every decision step (<code>reason</code>, <code>action</code>, <code>inputs</code>, <code>outputs</code>, <code>cost</code>, <code>latency</code>).</li><li>Add deterministic fallbacks for common query classes.</li><li>Enforce hard limits on steps, time, and tool invocations.</li><li>Evaluate route quality, not only final answer quality.</li></ol>
+<h4 id="when-to-use-3">When To Use</h4>
+<p>Use agentic RAG when query diversity is high and fixed pipelines leave obvious quality gaps. Avoid it for narrow workflows where deterministic orchestration is simpler and more reliable.</p>
+<h3 id="conversational-rag-chat-history-aware">Conversational RAG (Chat History Aware)</h3>
+<p>Conversational RAG adapts retrieval and generation using conversation memory so answers remain coherent across turns, references, and evolving user intent.</p>
+<h4 id="what-it-solves-4">What It Solves</h4>
+<p>Standard RAG treats each message in isolation. In real chats, users ask follow-ups like &quot;What about the second option?&quot; or &quot;Compare that with last year&#39;s policy.&quot;</p>
+<p>Without conversation-aware retrieval:</p>
+<ul><li>Core entities are lost between turns.</li><li>Pronouns and ellipsis become ambiguous.</li><li>The system re-retrieves redundant context each turn.</li><li>Long chats degrade quality due to memory drift.</li></ul>
+<h4 id="core-pipeline">Core Pipeline</h4>
+<p>A robust conversational pipeline often includes:</p>
+<ol><li><strong>Turn understanding:</strong> detect intent and references to prior context.</li><li><strong>Query rewriting:</strong> transform follow-up into standalone retrievable query.</li><li><strong>Memory selection:</strong> choose relevant history (not full transcript dump).</li><li><strong>History-aware retrieval:</strong> combine rewritten query + selected memory cues.</li><li><strong>Grounded response generation:</strong> answer current turn with citations and continuity.</li></ol>
+<h4 id="memory-layers">Memory Layers</h4>
+<ul><li><strong>Short-term memory:</strong> recent turns for immediate continuity.</li><li><strong>Long-term memory:</strong> persistent user/profile/task preferences.</li><li><strong>Semantic memory index:</strong> searchable summaries of prior conversation states.</li><li><strong>Session state memory:</strong> active entities, decisions, unresolved questions.</li></ul>
+<h4 id="design-trade-offs">Design Trade-offs</h4>
+<ul><li>More history improves continuity but increases noise and token cost.</li><li>Aggressive summarization reduces cost but may lose critical details.</li><li>Personalization improves UX but adds privacy and governance requirements.</li></ul>
+<h4 id="failure-modes-4">Failure Modes</h4>
+<ul><li><strong>History pollution:</strong> irrelevant old turns bias current answers.</li><li><strong>Reference resolution errors:</strong> &quot;it/that&quot; linked to wrong entity.</li><li><strong>Memory hallucination:</strong> model treats prior speculative content as facts.</li><li><strong>Cross-session leakage:</strong> wrong user/session context appears in answers.</li></ul>
+<h4 id="production-best-practices-4">Production Best Practices</h4>
+<ol><li>Use query rewriting before retrieval for follow-up turns.</li><li>Maintain explicit entity/state trackers, not only raw transcript memory.</li><li>Separate factual memory from conversational style/preference memory.</li><li>Apply strict user/session isolation and privacy controls.</li><li>Periodically summarize long sessions and revalidate key facts.</li></ol>
+<h4 id="when-to-use-4">When To Use</h4>
+<p>Conversational RAG is essential for assistants with ongoing multi-turn workflows: support copilots, research assistants, tutoring systems, and domain advisors.</p>
+<h3 id="streaming-rag">Streaming RAG</h3>
+<p>Streaming RAG provides incremental retrieval and generation so users see useful output quickly instead of waiting for full pipeline completion.</p>
+<h4 id="what-it-solves-5">What It Solves</h4>
+<p>In slower pipelines, users experience dead time while retrieval, reranking, and synthesis finish. Streaming improves perceived responsiveness and supports progressive disclosure of results.</p>
+<h4 id="streaming-architecture-pattern">Streaming Architecture Pattern</h4>
+<p>A common pattern:</p>
+<ol><li><strong>Early retrieval pass:</strong> fetch high-confidence initial evidence quickly.</li><li><strong>Initial answer draft stream:</strong> start response with clearly labeled partial grounding.</li><li><strong>Background enrichment:</strong> continue retrieval/reranking for deeper evidence.</li><li><strong>Answer refinement stream:</strong> append updates, corrections, and additional citations.</li><li><strong>Finalization:</strong> mark stable final answer state.</li></ol>
+<h4 id="streaming-modes">Streaming Modes</h4>
+<ul><li><strong>Token streaming:</strong> stream generated tokens as they are produced.</li><li><strong>Chunk streaming:</strong> stream validated answer segments.</li><li><strong>Evidence streaming:</strong> show retrieved sources before final synthesis.</li><li><strong>Hybrid streaming:</strong> stream answer + source updates in parallel.</li></ul>
+<h4 id="ux-and-reliability-concerns">UX and Reliability Concerns</h4>
+<ul><li>Users must know whether output is preliminary or final.</li><li>Later evidence may contradict earlier streamed claims.</li><li>Citation mapping must remain consistent as content updates.</li><li>Interrupt and cancel behavior must be deterministic.</li></ul>
+<h4 id="failure-modes-5">Failure Modes</h4>
+<ul><li><strong>Premature certainty:</strong> early streamed claims sound final without full evidence.</li><li><strong>Revision confusion:</strong> users miss corrections that arrive later.</li><li><strong>Source mismatch:</strong> citations shift during incremental reranking.</li><li><strong>State race conditions:</strong> retrieval and generation updates arrive out of order.</li></ul>
+<h4 id="production-best-practices-5">Production Best Practices</h4>
+<ol><li>Label phases clearly (<code>draft</code>, <code>updating</code>, <code>final</code>).</li><li>Prefer conservative language in early stream segments.</li><li>Preserve stable source IDs across all streamed revisions.</li><li>Buffer and reorder async events before user display when needed.</li><li>Log stream revisions for auditability and debugging.</li></ol>
+<h4 id="when-to-use-5">When To Use</h4>
+<p>Streaming RAG is ideal for latency-sensitive experiences where fast feedback matters: support chat, research copilots, and long-running retrieval workflows.</p>
+<h3 id="tool-augmented-rag">Tool-Augmented RAG</h3>
+<p>Tool-augmented RAG combines document retrieval with external tools (databases, APIs, calculators, code execution, search endpoints) so the system can answer beyond static corpus knowledge.</p>
+<h4 id="what-it-solves-6">What It Solves</h4>
+<p>Text retrieval alone cannot always provide:</p>
+<ul><li>Real-time values (prices, metrics, inventory, weather, status pages).</li><li>Precise computations (financial math, aggregations, simulations).</li><li>Transactional data from structured systems.</li><li>Action-oriented workflows (ticket creation, report generation).</li></ul>
+<p>Tool augmentation expands RAG from &quot;retrieve and answer&quot; to &quot;retrieve, compute, validate, and answer.&quot;</p>
+<h4 id="common-tool-categories">Common Tool Categories</h4>
+<ul><li><strong>Structured query tools:</strong> SQL/warehouse connectors.</li><li><strong>API tools:</strong> internal service APIs, public endpoints.</li><li><strong>Computation tools:</strong> calculator, Python runtime, stats engine.</li><li><strong>Search tools:</strong> web/domain search for freshness.</li><li><strong>Action tools:</strong> workflow systems, ticketing, notifications.</li></ul>
+<h4 id="orchestration-patterns">Orchestration Patterns</h4>
+<ul><li><strong>Retrieve-then-tool:</strong> use docs to identify what to query via tools.</li><li><strong>Tool-then-retrieve:</strong> fetch fresh structured data, then enrich with documentation.</li><li><strong>Parallel fan-out:</strong> call multiple tools/retrievers concurrently, then fuse.</li><li><strong>Verifier tool pass:</strong> run external checks before final answer.</li></ul>
+<h4 id="trust-and-governance-requirements">Trust and Governance Requirements</h4>
+<ul><li>Tool permissions must be explicit and least-privilege.</li><li>Inputs to tools should be validated and sanitized.</li><li>Outputs need schema checks before generation.</li><li>High-impact actions require confirmation and audit trails.</li></ul>
+<h4 id="failure-modes-6">Failure Modes</h4>
+<ul><li><strong>Tool-result hallucination:</strong> model claims tool output without actual call.</li><li><strong>Schema mismatch:</strong> model misreads tool response fields.</li><li><strong>Stale vs fresh conflict:</strong> tool data disagrees with static docs.</li><li><strong>Unsafe actioning:</strong> unintended side effects from poorly constrained tools.</li></ul>
+<h4 id="production-best-practices-6">Production Best Practices</h4>
+<ol><li>Require tool-call traceability in final responses when relevant.</li><li>Use typed schemas and strict parsing for all tool IO.</li><li>Reconcile conflicts between retrieved docs and live tool outputs explicitly.</li><li>Separate read-only tools from action tools with stronger confirmation gates.</li><li>Add circuit breakers, retries, and fallback logic per tool.</li></ol>
+<h4 id="when-to-use-6">When To Use</h4>
+<p>Use tool-augmented RAG when answers require live data, precise computation, or operational actions. For purely static knowledge Q&amp;A, standard RAG is often simpler and cheaper.</p>
+<h3 id="cross-cutting-architecture-guidelines">Cross-Cutting Architecture Guidelines</h3>
+<p>No matter which advanced architecture you adopt, production reliability usually depends on these shared disciplines:</p>
+<ol><li><strong>Observability:</strong> trace every retrieval hop, route decision, tool call, and citation.</li><li><strong>Evaluation by slice:</strong> benchmark simple, multi-hop, conversational, and tool-heavy query classes separately.</li><li><strong>Budget control:</strong> enforce latency, token, and tool cost guardrails.</li><li><strong>Fallback behavior:</strong> define deterministic fail-safe paths for low-confidence situations.</li><li><strong>Data freshness strategy:</strong> align document/graph/tool update frequencies with business requirements.</li><li><strong>Security and privacy:</strong> isolate sessions, control tool permissions, and audit sensitive flows.</li></ol>
+<h3 id="choosing-the-right-architecture">Choosing the Right Architecture</h3>
+<p>A practical selection heuristic:</p>
+<ul><li>Choose <strong>Multi-hop RAG</strong> when evidence must be chained across documents.</li><li>Choose <strong>Graph RAG</strong> when relationship traversal is central to correctness.</li><li>Choose <strong>Agentic RAG</strong> when query diversity requires dynamic routing/planning.</li><li>Choose <strong>Conversational RAG</strong> when multi-turn continuity is a core product behavior.</li><li>Choose <strong>Streaming RAG</strong> when responsiveness and progressive output are critical.</li><li>Choose <strong>Tool-augmented RAG</strong> when static corpus evidence is insufficient alone.</li></ul>
+<p>In many mature systems, you do not pick only one. You combine them selectively by route, with strict evaluation and guardrails.</p>
+<h3 id="final-takeaway">Final Takeaway</h3>
+<p>Advanced RAG is not about adding complexity for its own sake. It is about matching architecture to question complexity.</p>
+<p>Teams that stay with basic RAG for advanced workloads usually compensate with prompt hacks and still hit quality ceilings. Teams that introduce the right advanced architecture, with clear orchestration and evaluation discipline, unlock better factuality, better user trust, and better product reliability at scale.</p></article>
+<nav class="page-nav" aria-label="Note navigation"><a href="./9-evaluation.html">← 🧪 9. Evaluation (Most people ignore this)</a><a href="./11-types-of-rag-top-4.html">🧩 11. Types of RAG (Top 4) →</a></nav>
+</main>
+</div>
+<script>
+const links = [...document.querySelectorAll(".toc a")];
+const observer = new IntersectionObserver(entries => {
+  for (const entry of entries) {
+    if (!entry.isIntersecting) continue;
+    links.forEach(link => link.classList.toggle("active", link.hash === "#" + entry.target.id));
+  }
+}, { rootMargin: "-15% 0px -72% 0px" });
+document.querySelectorAll("main h2[id], main h3[id]").forEach(heading => observer.observe(heading));
+</script>
+</body>
+</html>

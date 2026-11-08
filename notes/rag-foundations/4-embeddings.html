@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="🔢 4. Embeddings (Core of retrieval) — RAG Foundations notes">
+<title>🔢 4. Embeddings (Core of retrieval) | RAG Foundations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../agent-fundamentals.css">
+<script src="../site-nav.js" defer></script>
+</head>
+<body>
+<header class="bar">
+  <nav class="bar-links" aria-label="Main navigation">
+    <a href="./index.html">← RAG Foundations</a>
+    <a href="../m3.html">Module 3: RAG Systems</a>
+  </nav>
+  <nav class="bar-pages" aria-label="Adjacent notes">
+    <a href="./3-chunking-strategies.html" aria-label="Previous note: ✂️ 3. Chunking Strategies (SUPER important)" title="✂️ 3. Chunking Strategies (SUPER important)">← Previous</a>
+    <a href="./5-vector-databases.html" aria-label="Next note: 🗄️ 5. Vector Databases (Where embeddings live)" title="🗄️ 5. Vector Databases (Where embeddings live)">Next →</a>
+  </nav>
+  <span class="grow"></span>
+  <button type="button" onclick="window.print()">Print / PDF</button>
+</header>
+<div class="layout"><nav class="toc" aria-label="Contents"><strong>On this page</strong><a class="sub" href="#what-embeddings-are-vector-representations">What Embeddings Are (Vector Representations)</a>
+<a class="sub" href="#distance-metrics">Distance Metrics</a>
+<a class="sub" href="#cosine-similarity">Cosine Similarity</a>
+<a class="sub" href="#euclidean-distance">Euclidean Distance</a>
+<a class="sub" href="#dot-product">Dot Product</a>
+<a class="sub" href="#embedding-models">Embedding Models</a>
+<a class="sub" href="#openai-embeddings">OpenAI Embeddings</a>
+<a class="sub" href="#sentence-transformers">Sentence Transformers</a>
+<a class="sub" href="#bge-embeddings">BGE Embeddings</a>
+<a class="sub" href="#domain-specific-embeddings-vs-general-purpose">Domain-Specific Embeddings vs General-Purpose</a>
+<a class="sub" href="#embedding-dimensionality-tradeoffs">Embedding Dimensionality Tradeoffs</a>
+<a class="sub" href="#batch-embedding-pipelines">Batch Embedding Pipelines</a>
+<a class="sub" href="#practical-embedding-evaluation-checklist">Practical Embedding Evaluation Checklist</a></nav>
+<main>
+<header class="cover"><h1>🔢 4. Embeddings (Core of retrieval)</h1><p class="sub">RAG Foundations · Note 4 of 16</p></header>
+<article><p>Embeddings are the mathematical backbone of modern retrieval in RAG. Before any vector search can happen, text must be converted into a numeric representation that preserves semantic meaning well enough for &quot;similar ideas&quot; to land near each other in vector space.</p>
+<p>If chunking defines <em>what</em> semantic unit is represented, embeddings define <em>how</em> that unit is represented for retrieval. Strong embedding design usually produces larger quality gains than changing vector databases alone.</p>
+<h3 id="what-embeddings-are-vector-representations">What Embeddings Are (Vector Representations)</h3>
+<p>An embedding is a dense numeric vector (for example, 384, 768, 1024, or 3072 floating-point values) generated from text by a trained model. Instead of representing language as sparse keyword counts, embeddings map semantic patterns into continuous space where related meanings have geometric proximity.</p>
+<p>Intuition:</p>
+<ul><li>Chunks about &quot;password reset policy&quot; and &quot;credential recovery rules&quot; should be close even if they share few exact words.</li><li>Chunks with the same words but different intent can be separated if semantic context differs.</li><li>Queries and documents can be compared in the same embedding space when produced by the same model family.</li></ul>
+<p>Why this matters in RAG:</p>
+<ul><li>Retrieval generalizes beyond exact lexical overlap.</li><li>Synonyms and paraphrases become retrievable.</li><li>Multilingual and cross-domain retrieval become possible with suitable models.</li></ul>
+<p>Important constraint:</p>
+<ul><li>The embedding model used for indexing and querying must be compatible (ideally identical). Mixing unrelated embedding spaces causes severe relevance degradation because vector geometry is no longer comparable.</li></ul>
+<h3 id="distance-metrics">Distance Metrics</h3>
+<p>Distance (or similarity) metrics define how &quot;closeness&quot; is calculated between query and document vectors. The same embeddings can produce different ranking behavior depending on metric choice.</p>
+<h3 id="cosine-similarity">Cosine Similarity</h3>
+<p>Cosine similarity measures the angle between vectors, ignoring absolute magnitude. It is one of the most common metrics for semantic retrieval.</p>
+<p>Formula intuition:</p>
+<ul><li>Value range is typically -1 to 1.</li><li>Closer to 1 means vectors point in similar directions (higher semantic similarity).</li><li>Around 0 means weak relation.</li><li>Negative values indicate opposing directional patterns (rarely useful in typical text retrieval settings).</li></ul>
+<p>Why teams use it:</p>
+<ul><li>Robust when vector magnitudes vary.</li><li>Works well with normalized embeddings.</li><li>Often stable across mixed-length chunks.</li></ul>
+<p>Operational note:</p>
+<ul><li>Many pipelines L2-normalize embeddings first; for normalized vectors, cosine similarity and dot product become closely related in ranking behavior.</li></ul>
+<h3 id="euclidean-distance">Euclidean Distance</h3>
+<p>Euclidean distance measures straight-line distance between vectors in space. Lower distance means higher similarity.</p>
+<p>Where it helps:</p>
+<ul><li>Useful when vector magnitude itself carries meaningful signal.</li><li>Can be effective in metric-learning setups where models are trained with Euclidean objectives.</li></ul>
+<p>Practical caveats:</p>
+<ul><li>In high-dimensional spaces, raw Euclidean distance can lose discriminative power (distance concentration).</li><li>If embeddings are not scaled consistently, nearest-neighbor quality may become unstable.</li></ul>
+<p>In many text-retrieval systems, Euclidean is less common than cosine unless the embedding model and ANN index are explicitly tuned for it.</p>
+<h3 id="dot-product">Dot Product</h3>
+<p>Dot product captures directional alignment <em>and</em> magnitude influence (unless vectors are normalized).</p>
+<p>Why it is popular:</p>
+<ul><li>Very efficient in many ANN/vector backends.</li><li>Compatible with models trained using inner-product objectives.</li><li>Can prioritize vectors with larger norms when that behavior is desirable.</li></ul>
+<p>Important nuance:</p>
+<ul><li>Without normalization, high-norm vectors may rank higher even when semantic alignment is mediocre.</li><li>With normalization, dot product approximates cosine similarity ranking.</li></ul>
+<p>Metric selection guideline:</p>
+<ul><li>Start with the model provider&#39;s recommended metric.</li><li>Keep metric choice consistent across indexing, ANN configuration, and offline evaluation.</li><li>Validate with retrieval metrics and real query logs rather than intuition alone.</li></ul>
+<h3 id="embedding-models">Embedding Models</h3>
+<p>Embedding model choice defines the representational quality ceiling of your retrieval layer. The best model depends on language coverage, domain specificity, latency budget, and operating cost.</p>
+<h3 id="openai-embeddings">OpenAI Embeddings</h3>
+<p>OpenAI embedding families are widely used for production due to strong semantic quality, robust multilingual behavior, and straightforward API ergonomics.</p>
+<p>Typical strengths:</p>
+<ul><li>High-quality semantic representations on general knowledge and enterprise content.</li><li>Stable API experience and good defaults for teams shipping quickly.</li><li>Reliable performance for mixed query styles (fact lookup + conceptual matching).</li></ul>
+<p>Typical tradeoffs:</p>
+<ul><li>Ongoing API cost at scale.</li><li>Data-governance decisions required for external API usage.</li><li>Less control over low-level model internals compared with self-hosted alternatives.</li></ul>
+<p>Best fit:</p>
+<ul><li>Teams optimizing for time-to-value and strong baseline quality with low operational complexity.</li></ul>
+<h3 id="sentence-transformers">Sentence Transformers</h3>
+<p>Sentence Transformers (often from the SBERT ecosystem) are open and flexible embedding models that can be self-hosted or fine-tuned for specialized use cases.</p>
+<p>Typical strengths:</p>
+<ul><li>Large variety of model sizes and language/domain variants.</li><li>Cost control through local inference and batching.</li><li>Strong ecosystem support for customization and evaluation.</li></ul>
+<p>Typical tradeoffs:</p>
+<ul><li>Model selection burden is on the team (quality variance across checkpoints).</li><li>Requires deployment, scaling, and monitoring ownership.</li><li>May need tuning to match managed-API quality on specific tasks.</li></ul>
+<p>Best fit:</p>
+<ul><li>Teams needing open weights, self-hosting, or task-specific adaptation without full external dependency.</li></ul>
+<h3 id="bge-embeddings">BGE Embeddings</h3>
+<p>BGE (BAAI General Embedding) models are popular open embedding families known for strong retrieval performance across many benchmarks, including multilingual variants and reranking companions.</p>
+<p>Typical strengths:</p>
+<ul><li>Strong retrieval relevance for many semantic search workloads.</li><li>Good open-model ecosystem, including instruction-tuned variants.</li><li>Often paired effectively with BGE rerankers for precision improvements.</li></ul>
+<p>Typical tradeoffs:</p>
+<ul><li>Requires careful version/model-size selection.</li><li>Throughput and latency depend on hosting hardware and quantization strategy.</li><li>Benchmark performance does not guarantee production fit without domain evaluation.</li></ul>
+<p>Best fit:</p>
+<ul><li>Teams wanting high-performing open embeddings and deeper control over model/infrastructure stack.</li></ul>
+<h3 id="domain-specific-embeddings-vs-general-purpose">Domain-Specific Embeddings vs General-Purpose</h3>
+<p>General-purpose embeddings are trained for broad semantic coverage across many domains. Domain-specific embeddings are optimized for specialized language (for example, legal clauses, biomedical entities, finance terminology, code tokens, or support taxonomies).</p>
+<p>General-purpose strengths:</p>
+<ul><li>Strong out-of-the-box performance.</li><li>Better transfer across mixed corpora.</li><li>Lower onboarding complexity.</li></ul>
+<p>General-purpose limits:</p>
+<ul><li>Can miss fine-grained domain distinctions.</li><li>May underperform on jargon-heavy or abbreviation-rich content.</li></ul>
+<p>Domain-specific strengths:</p>
+<ul><li>Better semantic separation for niche concepts.</li><li>Improved recall/precision on specialized query intents.</li><li>Better handling of domain shorthand and implicit context.</li></ul>
+<p>Domain-specific limits:</p>
+<ul><li>Weaker transfer outside target domain.</li><li>Additional maintenance as terminology evolves.</li><li>Requires stronger evaluation discipline and periodic refresh.</li></ul>
+<p>Practical strategy:</p>
+<ul><li>Start with a strong general model baseline.</li><li>Build a domain-focused evaluation set.</li><li>Move to domain-specific (or hybrid multi-index routing) only if measurable gains justify added complexity.</li></ul>
+<h3 id="embedding-dimensionality-tradeoffs">Embedding Dimensionality Tradeoffs</h3>
+<p>Embedding dimensionality is not just a model detail. It affects retrieval quality, storage footprint, index memory, ANN speed, and network transfer cost.</p>
+<p>Higher dimensions (for example, 1024-3072):</p>
+<ul><li>Can encode richer semantic detail.</li><li>May improve separation between subtly different concepts.</li><li>Increase storage, RAM, and latency overhead.</li></ul>
+<p>Lower dimensions (for example, 256-768):</p>
+<ul><li>Faster indexing and search.</li><li>Lower memory and infrastructure cost.</li><li>Can lose nuanced semantic distinctions in complex corpora.</li></ul>
+<p>What changes operationally:</p>
+<ul><li>Index size grows roughly linearly with dimension count.</li><li>ANN tuning (graph degree, probes, ef values, quantization) becomes more important at larger scales.</li><li>Throughput targets can force lower-dimensional choices even when quality is slightly lower.</li></ul>
+<p>Selection guideline:</p>
+<ul><li>Optimize for answer quality at target latency/cost, not for maximum dimension by default.</li><li>Benchmark multiple dimensions on real workloads and track both retrieval and business metrics.</li></ul>
+<h3 id="batch-embedding-pipelines">Batch Embedding Pipelines</h3>
+<p>At production scale, embedding is a data pipeline problem, not a one-off script. Batching improves throughput and cost efficiency, but requires reliability controls.</p>
+<p>Core pipeline design:</p>
+<ol><li>Read document/chunk queue from source of truth.</li><li>Normalize text and enforce deterministic chunk IDs.</li><li>Submit batched embedding requests with bounded concurrency.</li><li>Persist vectors + metadata atomically into index/storage.</li><li>Mark successful chunks with versioned embedding model tag.</li><li>Retry failures with backoff and dead-letter handling.</li></ol>
+<p>Critical reliability patterns:</p>
+<ul><li>Idempotency: reprocessing the same chunk should not create duplicates.</li><li>Checkpointing: resume long runs without restarting all work.</li><li>Versioning: track <code>embedding_model</code>, <code>model_version</code>, and <code>embedded_at</code>.</li><li>Drift safety: when model changes, re-embed affected corpus partitions systematically.</li></ul>
+<p>Performance and cost patterns:</p>
+<ul><li>Tune batch size to provider and hardware limits (too small wastes throughput; too large increases failure blast radius).</li><li>Use async workers and rate-limiters for API quotas.</li><li>Separate high-priority incremental updates from full backfills.</li><li>Consider vector compression/quantization downstream when index growth is large.</li></ul>
+<p>Monitoring signals:</p>
+<ul><li>Embedding job success/failure rate.</li><li>Average latency per batch and per chunk.</li><li>Queue lag and staleness window.</li><li>Retrieval quality before/after re-embedding deployments.</li></ul>
+<h3 id="practical-embedding-evaluation-checklist">Practical Embedding Evaluation Checklist</h3>
+<p>Before locking an embedding strategy, validate across:</p>
+<ul><li>Retrieval metrics: recall@k, precision@k, MRR, nDCG.</li><li>Business scenarios: factual QA, troubleshooting, policy lookup, long-tail queries.</li><li>Robustness: synonym-heavy queries, ambiguous phrasing, multilingual inputs.</li><li>Operations: indexing throughput, infra cost, and refresh cadence.</li></ul>
+<p>The key principle is simple: embedding quality is only meaningful when measured end-to-end inside your real RAG workload. Choose model, metric, and dimensionality as one integrated design decision, then maintain them with disciplined batch pipelines.</p></article>
+<nav class="page-nav" aria-label="Note navigation"><a href="./3-chunking-strategies.html">← ✂️ 3. Chunking Strategies (SUPER important)</a><a href="./5-vector-databases.html">🗄️ 5. Vector Databases (Where embeddings live) →</a></nav>
+</main>
+</div>
+<script>
+const links = [...document.querySelectorAll(".toc a")];
+const observer = new IntersectionObserver(entries => {
+  for (const entry of entries) {
+    if (!entry.isIntersecting) continue;
+    links.forEach(link => link.classList.toggle("active", link.hash === "#" + entry.target.id));
+  }
+}, { rootMargin: "-15% 0px -72% 0px" });
+document.querySelectorAll("main h2[id], main h3[id]").forEach(heading => observer.observe(heading));
+</script>
+</body>
+</html>

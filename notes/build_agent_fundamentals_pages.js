@@ -2,14 +2,46 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const notesDir = __dirname;
-const sourceDir = path.join(
-  notesDir,
-  "..",
-  "SDE-Interview-and-Prep-Roadmap-main",
-  "Agentic AI, LLM Engineering, and AI System Design",
-  "Agent Fundamentals and Decision-Making"
-);
-const outputDir = path.join(notesDir, "agent-fundamentals");
+const configurations = {
+  agent: {
+    sourceDir: path.join(
+      notesDir,
+      "..",
+      "SDE-Interview-and-Prep-Roadmap-main",
+      "Agentic AI, LLM Engineering, and AI System Design",
+      "Agent Fundamentals and Decision-Making"
+    ),
+    outputDir: path.join(notesDir, "agent-fundamentals"),
+    collectionTitle: "Agent Fundamentals and Decision-Making",
+    collectionDescription: "A practical guide to agent loops, autonomy, planning, tools, memory, reflection, and safe stopping.",
+    pageBrand: "Agent Fundamentals",
+    cardSectionLabel: "Agent fundamentals notes",
+    pageCollection: "Agent Fundamentals and Decision-Making",
+    navigationLabel: "Agent Fundamentals",
+    parentHref: "../m5.html",
+    parentTitle: "Module 5: Agentic AI Systems",
+    indexSlug: "agent-fundamentals",
+    numberedOnly: false,
+    numericOrder: false
+  },
+  rag: {
+    sourceDir: path.join(notesDir, "..", "RAG-foundations-main"),
+    outputDir: path.join(notesDir, "rag-foundations"),
+    collectionTitle: "RAG Foundations",
+    collectionDescription: "A structured learning path from retrieval-augmented generation fundamentals to evaluation, security, production design, and emerging patterns.",
+    pageBrand: "RAG Foundations",
+    cardSectionLabel: "RAG Foundations notes",
+    pageCollection: "RAG Foundations",
+    navigationLabel: "RAG Foundations",
+    parentHref: "../m3.html",
+    parentTitle: "Module 3: RAG Systems",
+    indexSlug: "rag-foundations",
+    numberedOnly: true,
+    numericOrder: true
+  }
+};
+const config = configurations[process.argv[2] === "--rag" ? "rag" : "agent"];
+const { sourceDir, outputDir } = config;
 
 const descriptions = {
   "agent-autonomy-levels-and-choosing-the-minimum-sufficient-autonomy":
@@ -42,6 +74,15 @@ function escapeHtml(value) {
     "\"": "&quot;",
     "'": "&#39;"
   })[character]);
+}
+
+function decodeHtmlEntities(value) {
+  return value
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, "\"")
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
 }
 
 function slugify(value) {
@@ -96,8 +137,8 @@ function tableCells(line) {
 
 function renderMarkdown(markdown) {
   const lines = markdown.replace(/\r\n/g, "\n").split("\n");
-  const titleMatch = markdown.match(/^#\s+(.+)$/m);
-  const title = titleMatch ? titleMatch[1].trim() : "Agent Fundamentals";
+  const titleMatch = markdown.match(/^#\s+(.+)$/m) || markdown.match(/^##\s+(.+)$/m);
+  const title = titleMatch ? titleMatch[1].trim() : config.collectionTitle;
   const headings = [];
   const usedIds = new Set();
   const output = [];
@@ -143,10 +184,11 @@ function renderMarkdown(markdown) {
       index++;
       const level = heading[1].length;
       const text = heading[2].trim();
-      if (level === 1 && !firstHeadingSkipped) {
+      if ((level === 1 || level === 2) && !firstHeadingSkipped) {
         firstHeadingSkipped = true;
         continue;
       }
+      firstHeadingSkipped = true;
       const id = headingId(text);
       if (level === 2 || level === 3) headings.push({ level, id, text });
       output.push(`<h${level} id="${id}">${inlineMarkdown(text)}</h${level}>`);
@@ -208,8 +250,8 @@ function readNote(file) {
   const rendered = renderMarkdown(markdown);
   const firstParagraph = rendered.html.match(/<p>(.*?)<\/p>/);
   const description = descriptions[slugify(path.basename(file, ".md"))] || (firstParagraph
-    ? firstParagraph[1].replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").slice(0, 190)
-    : "Practical system-design notes for building reliable agents.");
+    ? decodeHtmlEntities(firstParagraph[1].replace(/<[^>]+>/g, "")).slice(0, 190)
+    : "Practical notes for designing reliable AI systems.");
   return {
     file,
     slug: slugify(path.basename(file, ".md")),
@@ -229,8 +271,8 @@ function pageShell({ title, body, toc = "", isIndex = false, previous, next }) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="${escapeHtml(title)} — Agent Fundamentals notes">
-<title>${escapeHtml(title)} | Agent Fundamentals</title>
+<meta name="description" content="${escapeHtml(title)} — ${escapeHtml(config.pageBrand)} notes">
+<title>${escapeHtml(title)} | ${escapeHtml(config.pageBrand)}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
@@ -240,8 +282,8 @@ function pageShell({ title, body, toc = "", isIndex = false, previous, next }) {
 <body>
 <header class="bar">
   <nav class="bar-links" aria-label="Main navigation">
-    <a href="${isIndex ? "../index.html" : "./index.html"}">${isIndex ? "← All notes" : "← Agent Fundamentals"}</a>
-    <a href="../m5.html">Module 5: Agentic AI Systems</a>
+    <a href="${isIndex ? "../index.html" : "./index.html"}">${isIndex ? "← All notes" : `← ${escapeHtml(config.navigationLabel)}`}</a>
+    <a href="${config.parentHref}">${escapeHtml(config.parentTitle)}</a>
   </nav>${pageLinks}
   <span class="grow"></span>
   ${isIndex ? "" : '<button type="button" onclick="window.print()">Print / PDF</button>'}
@@ -273,8 +315,13 @@ function build() {
   fs.mkdirSync(outputDir, { recursive: true });
 
   const files = fs.readdirSync(sourceDir)
-    .filter(file => file.endsWith(".md"))
-    .sort((left, right) => left.localeCompare(right));
+    .filter(file => file.endsWith(".md") && (!config.numberedOnly || /^\d+-/.test(file)))
+    .sort((left, right) => config.numericOrder
+      ? Number.parseInt(left, 10) - Number.parseInt(right, 10)
+      : left.localeCompare(right));
+  if (!files.length) {
+    throw new Error(`No numbered Markdown notes found in ${sourceDir}`);
+  }
   const notes = files.map(readNote);
 
   for (let index = 0; index < notes.length; index++) {
@@ -285,7 +332,7 @@ function build() {
       `<a class="${heading.level === 3 ? "sub" : ""}" href="#${heading.id}">${escapeHtml(heading.text)}</a>`
     ).join("\n");
     const pageNavigation = `<nav class="page-nav" aria-label="Note navigation">${previous ? `<a href="./${previous.slug}.html">← ${escapeHtml(previous.title)}</a>` : "<span></span>"}${next ? `<a href="./${next.slug}.html">${escapeHtml(next.title)} →</a>` : ""}</nav>`;
-    const body = `<header class="cover"><h1>${escapeHtml(note.title)}</h1><p class="sub">Agent Fundamentals and Decision-Making · Note ${index + 1} of ${notes.length}</p></header>\n<article>${note.html}</article>\n${pageNavigation}`;
+    const body = `<header class="cover"><h1>${escapeHtml(note.title)}</h1><p class="sub">${escapeHtml(config.pageCollection)} · Note ${index + 1} of ${notes.length}</p></header>\n<article>${note.html}</article>\n${pageNavigation}`;
     fs.writeFileSync(
       path.join(outputDir, `${note.slug}.html`),
       pageShell({ title: note.title, body, toc, previous, next }),
@@ -296,13 +343,13 @@ function build() {
   const cards = notes.map((note, index) =>
     `<a class="card" href="./${note.slug}.html"><strong>${escapeHtml(note.title)}</strong><span>${escapeHtml(note.description)}${note.description.length === 190 ? "…" : ""}</span><span>Note ${index + 1} of ${notes.length} · Read note →</span></a>`
   ).join("\n");
-  const body = `<header class="cover"><h1>Agent Fundamentals and Decision-Making</h1><p class="sub">A practical guide to agent loops, autonomy, planning, tools, memory, reflection, and safe stopping.</p></header>\n<section class="cards" aria-label="Agent fundamentals notes">${cards}</section>`;
+  const body = `<header class="cover"><h1>${escapeHtml(config.collectionTitle)}</h1><p class="sub">${escapeHtml(config.collectionDescription)}</p></header>\n<section class="cards" aria-label="${escapeHtml(config.cardSectionLabel)}">${cards}</section>`;
   fs.writeFileSync(
     path.join(outputDir, "index.html"),
-    pageShell({ title: "Agent Fundamentals and Decision-Making", body, isIndex: true }),
+    pageShell({ title: config.collectionTitle, body, isIndex: true }),
     "utf8"
   );
-  console.log(`Generated ${notes.length} Agent Fundamentals pages in ${outputDir}`);
+  console.log(`Generated ${notes.length} ${config.pageCollection} pages in ${outputDir}`);
 }
 
 build();

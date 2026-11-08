@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="✂️ 3. Chunking Strategies (SUPER important) — RAG Foundations notes">
+<title>✂️ 3. Chunking Strategies (SUPER important) | RAG Foundations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../agent-fundamentals.css">
+<script src="../site-nav.js" defer></script>
+</head>
+<body>
+<header class="bar">
+  <nav class="bar-links" aria-label="Main navigation">
+    <a href="./index.html">← RAG Foundations</a>
+    <a href="../m3.html">Module 3: RAG Systems</a>
+  </nav>
+  <nav class="bar-pages" aria-label="Adjacent notes">
+    <a href="./2-data-ingestion-and-preprocessing.html" aria-label="Previous note: 📚 2. Data Ingestion &amp; Preprocessing" title="📚 2. Data Ingestion &amp; Preprocessing">← Previous</a>
+    <a href="./4-embeddings.html" aria-label="Next note: 🔢 4. Embeddings (Core of retrieval)" title="🔢 4. Embeddings (Core of retrieval)">Next →</a>
+  </nav>
+  <span class="grow"></span>
+  <button type="button" onclick="window.print()">Print / PDF</button>
+</header>
+<div class="layout"><nav class="toc" aria-label="Contents"><strong>On this page</strong><a class="sub" href="#why-chunking-is-a-first-class-design-decision">Why Chunking Is a First-Class Design Decision</a>
+<a class="sub" href="#1-fixed-size-chunking">1) Fixed-Size Chunking</a>
+<a class="sub" href="#2-semantic-chunking">2) Semantic Chunking</a>
+<a class="sub" href="#3-recursive-chunking">3) Recursive Chunking</a>
+<a class="sub" href="#4-sliding-window-chunking">4) Sliding Window Chunking</a>
+<a class="sub" href="#5-overlap-strategies">5) Overlap Strategies</a>
+<a class="sub" href="#6-chunk-size-vs-retrieval-quality-tradeoff">6) Chunk Size vs Retrieval Quality Tradeoff</a>
+<a class="sub" href="#7-context-aware-chunking-sections-paragraphs">7) Context-Aware Chunking (Sections, Paragraphs)</a>
+<a class="sub" href="#recommended-tuning-workflow">Recommended Tuning Workflow</a>
+<a class="sub" href="#practical-defaults-then-optimize">Practical Defaults (Then Optimize)</a></nav>
+<main>
+<header class="cover"><h1>✂️ 3. Chunking Strategies (SUPER important)</h1><p class="sub">RAG Foundations · Note 3 of 16</p></header>
+<article><p>Bad chunking = bad RAG. Even with strong embedding models and hybrid retrieval, poorly segmented text causes the retriever to miss relevant evidence or return noisy context that confuses generation.</p>
+<p>In production, chunking is not just a preprocessing step. It is a retrieval-quality lever that directly influences:</p>
+<ul><li>Recall (can the system find relevant evidence at all?).</li><li>Precision (are returned chunks focused on the user intent?).</li><li>Grounding quality (does the model receive enough context to answer correctly?).</li><li>Cost (how many tokens are sent to rerankers and generators?).</li></ul>
+<h3 id="why-chunking-is-a-first-class-design-decision">Why Chunking Is a First-Class Design Decision</h3>
+<p>Chunk boundaries define what the embedding model &quot;sees&quot; as one semantic unit. If a boundary splits a key claim from its qualifier, embeddings become ambiguous. If a boundary merges unrelated topics, vector similarity can retrieve irrelevant text due to mixed semantics.</p>
+<p>This means chunking quality determines whether retrieval candidates are:</p>
+<ul><li>Self-contained enough to support answer generation.</li><li>Focused enough to rank high for the right query.</li><li>Distinct enough to avoid near-duplicate top-k results.</li></ul>
+<h3 id="1-fixed-size-chunking">1) Fixed-Size Chunking</h3>
+<p>Fixed-size chunking splits text into uniform windows, usually by token count (for example, 256, 512, or 1024 tokens), sometimes by characters as a simpler approximation.</p>
+<p>How it works:</p>
+<ul><li>Choose a chunk length.</li><li>Split text sequentially at that interval.</li><li>Optionally add overlap between consecutive chunks.</li></ul>
+<p>Strengths:</p>
+<ul><li>Easy to implement and scale.</li><li>Predictable index characteristics (chunk count and average length).</li><li>Works well for homogeneous prose where topic flow is smooth.</li></ul>
+<p>Weaknesses:</p>
+<ul><li>Ignores document structure and sentence boundaries by default.</li><li>Can split definitions, formulas, or code explanations in unnatural places.</li><li>Can merge unrelated content if a section transition occurs inside a fixed window.</li></ul>
+<p>Where it fits best:</p>
+<ul><li>Baseline systems and early prototypes.</li><li>Corpora with consistent writing style and low structural complexity.</li><li>Pipelines where operational simplicity is prioritized first.</li></ul>
+<h3 id="2-semantic-chunking">2) Semantic Chunking</h3>
+<p>Semantic chunking segments text based on meaning shifts rather than fixed length. Typical implementations detect topic transitions using sentence embeddings, heading signals, discourse markers, or cohesion scores.</p>
+<p>How it works conceptually:</p>
+<ul><li>Break text into small units (sentences or short paragraphs).</li><li>Compute semantic similarity between adjacent units.</li><li>Start a new chunk when similarity drops below a threshold or a topic break is detected.</li></ul>
+<p>Strengths:</p>
+<ul><li>Produces meaning-coherent chunks that align better with user intent.</li><li>Improves retrieval precision when documents contain multi-topic sections.</li><li>Reduces mixed-topic chunks that hurt ranking quality.</li></ul>
+<p>Weaknesses:</p>
+<ul><li>More complex to tune than fixed windows.</li><li>Sensitive to threshold settings (too strict creates tiny fragments; too loose merges topics).</li><li>More preprocessing compute and engineering overhead.</li></ul>
+<p>Where it fits best:</p>
+<ul><li>Knowledge bases with long narrative documents.</li><li>Policy, legal, or research content where topic boundaries matter.</li><li>Systems where retrieval precision is a primary KPI.</li></ul>
+<h3 id="3-recursive-chunking">3) Recursive Chunking</h3>
+<p>Recursive chunking applies hierarchical splitting rules from coarse structure to fine granularity. It attempts high-level boundaries first, then progressively smaller separators until chunks satisfy size constraints.</p>
+<p>Typical separator order:</p>
+<ul><li>Document sections or headings.</li><li>Paragraph breaks.</li><li>Sentence boundaries.</li><li>Token-length fallback splits.</li></ul>
+<p>Strengths:</p>
+<ul><li>Preserves natural structure before forcing token constraints.</li><li>Avoids abrupt cuts when larger semantic boundaries are available.</li><li>Produces robust chunks across mixed-format documents.</li></ul>
+<p>Weaknesses:</p>
+<ul><li>Requires thoughtful separator priority design.</li><li>Can behave inconsistently on messy source text with weak formatting.</li><li>Needs guardrails to prevent very short tail chunks.</li></ul>
+<p>Where it fits best:</p>
+<ul><li>General-purpose RAG systems handling Markdown, HTML, docs, and notes.</li><li>Corpora with inconsistent formatting but detectable structure.</li><li>Teams seeking a strong default strategy before advanced semantic tuning.</li></ul>
+<h3 id="4-sliding-window-chunking">4) Sliding Window Chunking</h3>
+<p>Sliding window chunking generates chunks with a moving window across text. Unlike simple fixed splitting, each next chunk starts before the previous one fully ends, creating intentional continuity.</p>
+<p>How it works:</p>
+<ul><li>Define window size (for example, 400 tokens).</li><li>Define stride (for example, 200 tokens).</li><li>Move the window by stride until the document ends.</li></ul>
+<p>If stride is smaller than window size, chunks overlap automatically.</p>
+<p>Strengths:</p>
+<ul><li>Preserves cross-boundary context for queries that reference transitions.</li><li>Increases chance that a full fact span appears in at least one chunk.</li><li>Works well for procedural or timeline-heavy text.</li></ul>
+<p>Weaknesses:</p>
+<ul><li>Increases index size and retrieval redundancy.</li><li>Can return near-duplicate chunks in top-k results.</li><li>Raises retrieval and reranking compute cost.</li></ul>
+<p>Where it fits best:</p>
+<ul><li>Content where important information often spans adjacent paragraphs.</li><li>QA tasks that require contextual continuity.</li><li>Systems that can afford additional index/storage overhead.</li></ul>
+<h3 id="5-overlap-strategies">5) Overlap Strategies</h3>
+<p>Overlap determines how much content is shared between consecutive chunks. It is often the difference between missing and capturing cross-boundary facts.</p>
+<p>Why overlap helps:</p>
+<ul><li>Preserves references split at boundaries (for example, &quot;this policy&quot; followed by details).</li><li>Keeps definitions and examples together when boundaries are imperfect.</li><li>Improves robustness against brittle query phrasing.</li></ul>
+<p>Common overlap patterns:</p>
+<ul><li>Fixed overlap count (for example, 10-20% of chunk size).</li><li>Structure-aware overlap (repeat last sentence/paragraph when crossing sections).</li><li>Adaptive overlap (higher overlap for dense technical text, lower for short atomic content).</li></ul>
+<p>Risks of excessive overlap:</p>
+<ul><li>Duplicate-heavy retrieval results.</li><li>Larger vector index and higher storage cost.</li><li>Reduced diversity in retrieved evidence.</li></ul>
+<p>Practical guideline:</p>
+<ul><li>Start with moderate overlap (for example, 15-20% by tokens).</li><li>Evaluate duplicate ratio in top-k retrieval.</li><li>Reduce overlap if redundancy dominates; increase only when boundary misses are frequent.</li></ul>
+<h3 id="6-chunk-size-vs-retrieval-quality-tradeoff">6) Chunk Size vs Retrieval Quality Tradeoff</h3>
+<p>Chunk size is a direct tradeoff, not a universal constant.</p>
+<p>Small chunks (for example, 100-250 tokens):</p>
+<ul><li>Higher precision for narrow, specific queries.</li><li>Better ranking discrimination between nearby topics.</li><li>Greater risk of losing necessary context for complete answers.</li></ul>
+<p>Large chunks (for example, 600-1200+ tokens):</p>
+<ul><li>Better local context and self-contained explanations.</li><li>Higher recall for broad conceptual queries.</li><li>More noise per chunk, which can reduce ranking precision.</li></ul>
+<p>How this impacts generation:</p>
+<ul><li>Too small: model sees fragmented evidence and may over-infer missing links.</li><li>Too large: model receives diluted context, increasing distraction risk.</li></ul>
+<p>Operational cost impact:</p>
+<ul><li>Smaller chunks increase chunk count, index size, and candidate evaluation volume.</li><li>Larger chunks reduce index count but raise prompt token cost per retrieved chunk.</li></ul>
+<p>The right size depends on:</p>
+<ul><li>Query shape (fact lookup vs synthesis).</li><li>Content type (API references vs long policy docs).</li><li>Retriever/reranker behavior.</li><li>Generation prompt budget and latency targets.</li></ul>
+<h3 id="7-context-aware-chunking-sections-paragraphs">7) Context-Aware Chunking (Sections, Paragraphs)</h3>
+<p>Context-aware chunking uses document structure signals to form chunks that align with how humans read meaning: by section, subsection, paragraph, list, table, and code block boundaries.</p>
+<p>Core principle:</p>
+<ul><li>Preserve semantic units first, then enforce token constraints second.</li></ul>
+<p>What to preserve explicitly:</p>
+<ul><li>Heading hierarchy (<code>h1-h6</code> or markdown headings).</li><li>Paragraph integrity for argument continuity.</li><li>List blocks so bullets remain grouped.</li><li>Table boundaries and captions.</li><li>Code blocks with nearby explanatory text.</li></ul>
+<p>Benefits:</p>
+<ul><li>Better embedding coherence due to cleaner semantic boundaries.</li><li>Better retrieval interpretability (chunks map to recognizable sections).</li><li>Easier citation and provenance because chunk lineage is clear.</li></ul>
+<p>Key implementation details:</p>
+<ul><li>Carry structural metadata per chunk (<code>section_title</code>, <code>subsection</code>, <code>position</code>, <code>source_id</code>).</li><li>Include parent heading context in chunk text or metadata.</li><li>Avoid merging content across unrelated section boundaries just to hit size targets.</li></ul>
+<h3 id="recommended-tuning-workflow">Recommended Tuning Workflow</h3>
+<p>Treat chunking as an experimentally tuned subsystem, not a one-time static decision.</p>
+<p>Step-by-step approach:</p>
+<ol><li>Establish a baseline (for example, recursive chunking with moderate overlap).</li><li>Build an evaluation query set that reflects real user intents.</li><li>Measure retrieval metrics (precision@k, recall@k, MRR, nDCG) plus answer-level grounding quality.</li><li>Sweep chunk sizes and overlap values in controlled experiments.</li><li>Compare error types (boundary misses, topic dilution, duplicate-heavy top-k, missing qualifiers).</li><li>Lock a default profile per content type, not one global setting for all data.</li></ol>
+<h3 id="practical-defaults-then-optimize">Practical Defaults (Then Optimize)</h3>
+<p>If you need a strong initial setup before deep tuning:</p>
+<ul><li>Start with recursive, structure-first splitting.</li><li>Use 300-700 token chunk targets depending on domain density.</li><li>Apply 15-20% overlap as a starting point.</li><li>Preserve section metadata and source lineage for every chunk.</li><li>Add reranking to improve final candidate ordering when top-k is noisy.</li></ul>
+<p>Then iterate using real query logs and failure analysis. The best chunking strategy is the one that improves grounded answer quality on your actual workload, not on synthetic examples.</p></article>
+<nav class="page-nav" aria-label="Note navigation"><a href="./2-data-ingestion-and-preprocessing.html">← 📚 2. Data Ingestion &amp; Preprocessing</a><a href="./4-embeddings.html">🔢 4. Embeddings (Core of retrieval) →</a></nav>
+</main>
+</div>
+<script>
+const links = [...document.querySelectorAll(".toc a")];
+const observer = new IntersectionObserver(entries => {
+  for (const entry of entries) {
+    if (!entry.isIntersecting) continue;
+    links.forEach(link => link.classList.toggle("active", link.hash === "#" + entry.target.id));
+  }
+}, { rootMargin: "-15% 0px -72% 0px" });
+document.querySelectorAll("main h2[id], main h3[id]").forEach(heading => observer.observe(heading));
+</script>
+</body>
+</html>

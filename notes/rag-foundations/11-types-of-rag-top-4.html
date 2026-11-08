@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="🧩 11. Types of RAG (Top 4) — RAG Foundations notes">
+<title>🧩 11. Types of RAG (Top 4) | RAG Foundations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../agent-fundamentals.css">
+<script src="../site-nav.js" defer></script>
+</head>
+<body>
+<header class="bar">
+  <nav class="bar-links" aria-label="Main navigation">
+    <a href="./index.html">← RAG Foundations</a>
+    <a href="../m3.html">Module 3: RAG Systems</a>
+  </nav>
+  <nav class="bar-pages" aria-label="Adjacent notes">
+    <a href="./10-advanced-rag-architectures.html" aria-label="Previous note: 🔄 10. Advanced RAG Architectures (Once basics are clear, move here)" title="🔄 10. Advanced RAG Architectures (Once basics are clear, move here)">← Previous</a>
+    <a href="./12-performance-scaling.html" aria-label="Next note: ⚡ 12. Performance &amp; Scaling (For real-world systems)" title="⚡ 12. Performance &amp; Scaling (For real-world systems)">Next →</a>
+  </nav>
+  <span class="grow"></span>
+  <button type="button" onclick="window.print()">Print / PDF</button>
+</header>
+<div class="layout"><nav class="toc" aria-label="Contents"><strong>On this page</strong><a class="sub" href="#1-basic-naive-rag">1. Basic / Naive RAG</a>
+<a class="sub" href="#2-hybrid-rag-keyword-vector">2. Hybrid RAG (Keyword + Vector)</a>
+<a class="sub" href="#3-multi-hop-advanced-retrieval-rag">3. Multi-Hop / Advanced Retrieval RAG</a>
+<a class="sub" href="#4-graph-rag-knowledge-graph-based">4. Graph RAG (Knowledge Graph-based)</a>
+<a class="sub" href="#choosing-the-right-rag-type">Choosing the Right RAG Type</a></nav>
+<main>
+<header class="cover"><h1>🧩 11. Types of RAG (Top 4)</h1><p class="sub">RAG Foundations · Note 11 of 16</p></header>
+<article><p>As RAG systems evolve from prototypes to production, one major realization appears quickly:</p>
+<p>there is no single &quot;best&quot; RAG architecture for all problems.</p>
+<p>Different query patterns, data distributions, and latency/cost constraints push teams toward different RAG types. This chapter covers the four most practical and widely used patterns:</p>
+<ol><li>Basic / Naive RAG.</li><li>Hybrid RAG (keyword + vector).</li><li>Multi-Hop / Advanced Retrieval RAG.</li><li>Graph RAG (knowledge graph-based).</li></ol>
+<p>The goal is to understand what each type is, how it works, when to use it, and where it can fail.</p>
+<hr>
+<h3 id="1-basic-naive-rag">1. Basic / Naive RAG</h3>
+<p>Basic RAG is the canonical starting point and the fastest way to operationalize grounding.</p>
+<h4 id="definition">Definition</h4>
+<p>Basic (or naive) RAG is a retrieval-generation pipeline where:</p>
+<ol><li>User query is embedded.</li><li>Similar chunks are retrieved from a vector index.</li><li>Retrieved chunks are appended to prompt context.</li><li>LLM generates an answer using those chunks.</li></ol>
+<p>The architecture is &quot;naive&quot; not because it is bad, but because it assumes a single-pass retrieval route is enough for most questions.</p>
+<h4 id="pipeline-flow">Pipeline Flow</h4>
+<p>A standard basic RAG flow looks like this:</p>
+<ol><li><strong>Ingestion:</strong> collect docs (PDFs, webpages, docs, FAQs).</li><li><strong>Chunking:</strong> split into fixed-size or simple semantic chunks.</li><li><strong>Embedding:</strong> convert chunks into dense vectors.</li><li><strong>Indexing:</strong> store vectors + metadata in vector DB.</li><li><strong>Query embedding:</strong> convert user question into vector.</li><li><strong>Top-k retrieval:</strong> fetch nearest chunks.</li><li><strong>Prompt assembly:</strong> include instruction + retrieved context + question.</li><li><strong>Generation:</strong> LLM returns grounded answer.</li><li><strong>(Optional) citation display:</strong> show source snippets.</li></ol>
+<p>This flow is simple, explainable, and easy to ship in an MVP.</p>
+<h4 id="when-to-use">When to Use</h4>
+<p>Basic RAG is ideal when:</p>
+<ul><li>Domain is narrow and documents are relatively clean.</li><li>Most user questions are single-hop (&quot;find and summarize&quot; style).</li><li>You need quick time-to-market with limited engineering overhead.</li><li>Precision requirements are moderate (internal tools, assistant drafts).</li><li>Corpus size is manageable and metadata complexity is low.</li></ul>
+<p>It is often the right first production milestone before adding complex retrieval orchestration.</p>
+<h4 id="limitations">Limitations</h4>
+<p>Basic RAG breaks down in several common scenarios:</p>
+<ol><li><strong>Lexical mismatch:</strong> vector similarity may miss exact keyword/ID lookup needs.</li><li><strong>Single-hop bias:</strong> it struggles when answer requires joining facts across multiple documents.</li><li><strong>Context dilution:</strong> top-k chunks may include weakly relevant noise.</li><li><strong>No retrieval adaptation:</strong> same strategy is used regardless of query type.</li><li><strong>Limited explainability:</strong> if chunk selection is weak, answers degrade even when source truth exists.</li></ol>
+<p>Operationally, naive RAG can appear good in demos but fragile under diverse real-world query traffic.</p>
+<h4 id="example-use-cases">Example Use Cases</h4>
+<ul><li>Internal HR policy assistant over handbook and SOP docs.</li><li>Customer support bot over product documentation.</li><li>Academic FAQ helper over course notes.</li><li>Startup knowledge bot over Notion/wiki pages.</li><li>First-version legal clause explainer (low-risk tier).</li></ul>
+<hr>
+<h3 id="2-hybrid-rag-keyword-vector">2. Hybrid RAG (Keyword + Vector)</h3>
+<p>Hybrid RAG combines lexical precision with semantic similarity to improve retrieval robustness.</p>
+<h4 id="definition-2">Definition</h4>
+<p>Hybrid RAG retrieves context from two complementary signals:</p>
+<ol><li><strong>Keyword/lexical retrieval</strong> (typically BM25 or inverted index).</li><li><strong>Dense vector retrieval</strong> (embedding similarity).</li></ol>
+<p>Results are then fused (before or after reranking) into a single evidence set for generation.</p>
+<p>The key idea: lexical and semantic retrieval fail differently, so combining both improves overall recall and precision across mixed query types.</p>
+<h4 id="bm25-vs-embeddings">BM25 vs Embeddings</h4>
+<p>Both methods solve relevance, but with different strengths.</p>
+<p><strong>BM25 (keyword / lexical retrieval):</strong></p>
+<ul><li>Excels at exact terms, numbers, IDs, acronyms, code names.</li><li>Handles rare tokens and literal match constraints well.</li><li>Interpretable scoring and stable for deterministic lookup tasks.</li><li>Weak on paraphrases and semantic intent mismatch.</li></ul>
+<p><strong>Embeddings (dense retrieval):</strong></p>
+<ul><li>Excels at semantic similarity and paraphrased intent.</li><li>Better for natural language questions not using exact doc wording.</li><li>Strong for concept-level matching across vocabulary variation.</li><li>Can miss exact string constraints and may retrieve semantically close but wrong facts.</li></ul>
+<p>In practice, enterprise queries contain both patterns in the same session. That is why hybrid retrieval is often a default for production-grade assistants.</p>
+<h4 id="fusion-strategies">Fusion Strategies</h4>
+<p>Common fusion strategies include:</p>
+<ol><li><strong>Weighted score fusion:</strong> normalize lexical and vector scores, then combine with tunable weights.</li><li><strong>Reciprocal rank fusion (RRF):</strong> combine ranks from both retrievers; robust and simple.</li><li><strong>Cascade retrieval:</strong> lexical first for exact constraints, then semantic expansion.</li><li><strong>Parallel retrieval + reranker:</strong> fetch candidates from both channels, rerank with cross-encoder.</li><li><strong>Query-aware dynamic fusion:</strong> adjust lexical/semantic weights by detected query intent.</li></ol>
+<p>A practical pattern is RRF + reranker because it is strong, interpretable, and easy to iterate.</p>
+<h4 id="when-to-use-2">When to Use</h4>
+<p>Hybrid RAG is preferred when:</p>
+<ul><li>Queries mix natural language with precise identifiers.</li><li>Domain includes SKUs, legal references, error codes, tickets, part numbers.</li><li>Users phrase the same question with varied wording.</li><li>Missing relevant evidence is more costly than slightly higher retrieval compute.</li><li>You need a reliable baseline before advanced multi-hop orchestration.</li></ul>
+<h4 id="tradeoffs">Tradeoffs</h4>
+<p>Hybrid retrieval improves robustness, but introduces complexity:</p>
+<ol><li>More infrastructure (lexical + vector indices).</li><li>More tuning surface (weights, cutoffs, normalization, reranking).</li><li>Slightly higher latency due to multiple retrieval passes.</li><li>More observability needs (per-channel contribution tracking).</li><li>Potential over-recall if fusion is not calibrated (more noise chunks).</li></ol>
+<p>The additional complexity is usually justified for heterogeneous enterprise corpora.</p>
+<h4 id="example-use-cases-2">Example Use Cases</h4>
+<ul><li>IT support assistant answering error code + troubleshooting intent.</li><li>E-commerce assistant combining SKU lookup and semantic product Q&amp;A.</li><li>Compliance assistant handling regulation IDs plus policy interpretation.</li><li>Developer docs assistant for API symbols and conceptual explanations.</li><li>Healthcare ops assistant matching procedural codes and free-text guidance.</li></ul>
+<hr>
+<h3 id="3-multi-hop-advanced-retrieval-rag">3. Multi-Hop / Advanced Retrieval RAG</h3>
+<p>Multi-hop RAG is built for questions where one retrieval pass is not enough to collect all required evidence.</p>
+<h4 id="definition-3">Definition</h4>
+<p>Multi-hop (advanced retrieval) RAG performs retrieval as an iterative reasoning process rather than a single top-k fetch.</p>
+<p>Instead of asking &quot;what chunks are closest to this query once?&quot;, it asks:</p>
+<ol><li>What sub-questions must be answered?</li><li>What evidence is missing after first retrieval?</li><li>What follow-up retrieval should be run next?</li></ol>
+<p>This pattern is crucial for compositional questions spanning entities, timelines, and causal chains.</p>
+<h4 id="multi-hop-reasoning">Multi-Hop Reasoning</h4>
+<p>Multi-hop reasoning means answer construction depends on combining evidence from multiple linked facts.</p>
+<p>Example pattern:</p>
+<ul><li>Hop 1: identify the relevant entity/project/policy.</li><li>Hop 2: retrieve latest metric/status tied to that entity.</li><li>Hop 3: retrieve explanatory context (incident notes, change logs, constraints).</li><li>Final: synthesize a grounded answer across all hops.</li></ul>
+<p>Without multi-hop logic, systems often return a partial answer from the first matching chunk and miss the full causal or relational picture.</p>
+<h4 id="query-decomposition">Query Decomposition</h4>
+<p>Query decomposition splits a complex user request into structured sub-queries.</p>
+<p>Typical decomposition workflow:</p>
+<ol><li>Detect whether query is compositional (contains multiple intents/constraints).</li><li>Generate sub-questions with dependency ordering.</li><li>Retrieve evidence per sub-question.</li><li>Track unresolved slots (unknown entity, date window, condition).</li><li>Continue until required evidence set is complete.</li></ol>
+<p>High-quality decomposition significantly improves retrieval precision because each sub-query is narrower and better aligned with source structure.</p>
+<h4 id="iterative-retrieval">Iterative Retrieval</h4>
+<p>Iterative retrieval closes evidence gaps over multiple rounds.</p>
+<p>A robust loop:</p>
+<ol><li>Retrieve initial evidence.</li><li>Evaluate evidence sufficiency (is anything missing/ambiguous?).</li><li>Generate follow-up query from unresolved gaps.</li><li>Retrieve again from targeted sources.</li><li>Merge and deduplicate evidence.</li><li>Stop when confidence threshold or hop limit is reached.</li></ol>
+<p>Guardrails are important:</p>
+<ul><li>Maximum hop count to avoid runaway loops.</li><li>Confidence thresholds for early stopping.</li><li>Contradiction checks across hops.</li><li>Per-hop logging for observability and debugging.</li></ul>
+<h4 id="when-to-use-3">When to Use</h4>
+<p>Use multi-hop RAG when:</p>
+<ul><li>Questions require joins across documents/sources.</li><li>Users ask &quot;why/how&quot; questions, not only &quot;what&quot;.</li><li>Domain requires timeline + entity + policy composition.</li><li>First-pass retrieval often gives incomplete answers.</li><li>High-stakes workflows require deeper evidence coverage.</li></ul>
+<h4 id="example-use-cases-3">Example Use Cases</h4>
+<ul><li>Root-cause analysis assistant over incident, deployment, and monitoring logs.</li><li>Financial research assistant linking company events to metric shifts.</li><li>Clinical ops assistant combining protocol, patient factors, and latest guidelines.</li><li>Legal analysis assistant connecting clauses, precedents, and jurisdiction constraints.</li><li>Enterprise analytics copilot for KPI explanation across multiple data artifacts.</li></ul>
+<hr>
+<h3 id="4-graph-rag-knowledge-graph-based">4. Graph RAG (Knowledge Graph-based)</h3>
+<p>Graph RAG introduces explicit entity-relationship structure to improve relational retrieval and reasoning.</p>
+<h4 id="definition-4">Definition</h4>
+<p>Graph RAG augments (or partially replaces) pure chunk retrieval with a knowledge graph where:</p>
+<ul><li>Nodes represent entities (people, products, systems, concepts, events).</li><li>Edges represent relations (owns, depends<em>on, causes, located</em>in, version<em>of, governed</em>by).</li></ul>
+<p>At query time, the system can traverse graph neighborhoods to collect connected evidence and then ground generation with both graph facts and supporting text.</p>
+<h4 id="graph-construction-entities-relations">Graph Construction (Entities &amp; Relations)</h4>
+<p>Graph quality determines Graph RAG quality.</p>
+<p>A typical graph construction pipeline:</p>
+<ol><li><strong>Entity extraction:</strong> detect canonical entities from documents/tables.</li><li><strong>Entity resolution:</strong> merge aliases and duplicates into unified IDs.</li><li><strong>Relation extraction:</strong> identify typed edges between entities.</li><li><strong>Temporal/context tagging:</strong> attach timestamps, source scope, confidence.</li><li><strong>Graph storage:</strong> persist in graph DB (or graph layer over existing store).</li><li><strong>Back-linking to evidence:</strong> keep provenance to original chunks/docs.</li></ol>
+<p>Best practice is to preserve confidence and provenance on each edge so downstream reasoning can stay auditable.</p>
+<h4 id="graph-traversal-vs-vector-search">Graph Traversal vs Vector Search</h4>
+<p>Both methods can coexist, but they optimize different retrieval goals.</p>
+<p><strong>Graph traversal:</strong></p>
+<ul><li>Strong for relational questions (&quot;how is X connected to Y?&quot;).</li><li>Supports path-based reasoning and neighborhood expansion.</li><li>Better for multi-entity dependency chains.</li><li>Requires graph maintenance and schema discipline.</li></ul>
+<p><strong>Vector search:</strong></p>
+<ul><li>Strong for semantic recall from unstructured text.</li><li>Faster to deploy and simpler to maintain initially.</li><li>Better for broad natural language matching.</li><li>Weaker for precise multi-step relational constraints.</li></ul>
+<p>A common production pattern is <strong>Graph + Vector hybrid</strong>:</p>
+<ol><li>Use graph traversal to identify relevant entity subgraph.</li><li>Use vector retrieval to pull rich textual evidence for those entities.</li><li>Fuse both for grounded answer generation.</li></ol>
+<h4 id="when-to-use-4">When to Use</h4>
+<p>Graph RAG is ideal when:</p>
+<ul><li>Domain is relationship-heavy (org structure, supply chain, biomedical, fraud, legal networks).</li><li>Questions frequently require &quot;connection&quot; or &quot;dependency&quot; reasoning.</li><li>Entity identity consistency matters across many sources.</li><li>You need explainable path-based evidence, not only nearest-neighbor chunks.</li><li>Long-term knowledge curation is a strategic asset.</li></ul>
+<h4 id="tradeoffs-2">Tradeoffs</h4>
+<p>Graph RAG offers strong reasoning structure but costs more to build and operate:</p>
+<ol><li>Higher upfront modeling effort (ontology/schema design).</li><li>Ongoing maintenance for entity resolution and relation quality.</li><li>More complex ingestion and governance workflows.</li><li>Potential brittleness if graph extraction quality is low.</li><li>Extra infrastructure and specialized team knowledge.</li></ol>
+<p>For relationship-centric domains, these costs are often outweighed by better correctness and explainability.</p>
+<h4 id="example-use-cases-4">Example Use Cases</h4>
+<ul><li>Fraud detection assistant over transaction and identity networks.</li><li>Biomedical research assistant over gene-disease-drug relationships.</li><li>Supply chain copilot for upstream/downstream dependency analysis.</li><li>Enterprise architecture assistant mapping service dependencies and incidents.</li><li>Legal intelligence assistant over entities, contracts, obligations, and precedents.</li></ul>
+<hr>
+<h3 id="choosing-the-right-rag-type">Choosing the Right RAG Type</h3>
+<p>In practice, teams rarely stay with a single type forever. Most systems evolve along this path:</p>
+<ol><li>Start with <strong>Basic RAG</strong> for speed.</li><li>Move to <strong>Hybrid RAG</strong> for better retrieval robustness.</li><li>Add <strong>Multi-Hop retrieval</strong> when complex reasoning gaps appear.</li><li>Introduce <strong>Graph RAG</strong> when relational structure becomes core to product value.</li></ol>
+<p>The strongest production systems are often layered hybrids rather than pure forms of one type.</p>
+<p>If you optimize for real workloads (not demo prompts), your architecture naturally converges toward query-aware retrieval orchestration with strong observability and evidence grounding.</p></article>
+<nav class="page-nav" aria-label="Note navigation"><a href="./10-advanced-rag-architectures.html">← 🔄 10. Advanced RAG Architectures (Once basics are clear, move here)</a><a href="./12-performance-scaling.html">⚡ 12. Performance &amp; Scaling (For real-world systems) →</a></nav>
+</main>
+</div>
+<script>
+const links = [...document.querySelectorAll(".toc a")];
+const observer = new IntersectionObserver(entries => {
+  for (const entry of entries) {
+    if (!entry.isIntersecting) continue;
+    links.forEach(link => link.classList.toggle("active", link.hash === "#" + entry.target.id));
+  }
+}, { rootMargin: "-15% 0px -72% 0px" });
+document.querySelectorAll("main h2[id], main h3[id]").forEach(heading => observer.observe(heading));
+</script>
+</body>
+</html>

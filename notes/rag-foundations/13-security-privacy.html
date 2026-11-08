@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="🔐 13. Security &amp; Privacy (Critical for production trust) — RAG Foundations notes">
+<title>🔐 13. Security &amp; Privacy (Critical for production trust) | RAG Foundations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../agent-fundamentals.css">
+<script src="../site-nav.js" defer></script>
+</head>
+<body>
+<header class="bar">
+  <nav class="bar-links" aria-label="Main navigation">
+    <a href="./index.html">← RAG Foundations</a>
+    <a href="../m3.html">Module 3: RAG Systems</a>
+  </nav>
+  <nav class="bar-pages" aria-label="Adjacent notes">
+    <a href="./12-performance-scaling.html" aria-label="Previous note: ⚡ 12. Performance &amp; Scaling (For real-world systems)" title="⚡ 12. Performance &amp; Scaling (For real-world systems)">← Previous</a>
+    <a href="./14-production-system-design.html" aria-label="Next note: 🏗️ 14. Production System Design (Interview gold for real deployments)" title="🏗️ 14. Production System Design (Interview gold for real deployments)">Next →</a>
+  </nav>
+  <span class="grow"></span>
+  <button type="button" onclick="window.print()">Print / PDF</button>
+</header>
+<div class="layout"><nav class="toc" aria-label="Contents"><strong>On this page</strong><a class="sub" href="#why-this-layer-matters">Why This Layer Matters</a>
+<a class="sub" href="#data-leakage-risks">Data Leakage Risks</a>
+<a class="sub" href="#access-control-for-documents">Access Control for Documents</a>
+<a class="sub" href="#on-device-rag-vs-cloud-rag">On-Device RAG vs Cloud RAG</a>
+<a class="sub" href="#pii-handling">PII Handling</a>
+<a class="sub" href="#encryption-strategies">Encryption Strategies</a>
+<a class="sub" href="#security-privacy-operating-model">Security &amp; Privacy Operating Model</a></nav>
+<main>
+<header class="cover"><h1>🔐 13. Security &amp; Privacy (Critical for production trust)</h1><p class="sub">RAG Foundations · Note 13 of 16</p></header>
+<article><p>RAG systems do not only answer questions; they move sensitive data through multiple stages:</p>
+<ol><li>Ingestion and storage.</li><li>Indexing and retrieval.</li><li>Prompt construction and generation.</li><li>Logging, monitoring, and debugging.</li></ol>
+<p>Each stage can leak information if security and privacy are not designed explicitly. This is especially important for local-model deployments, where teams often assume &quot;local = automatically safe,&quot; while practical risk still depends on access controls, endpoint hardening, and data handling policy.</p>
+<p>Security and privacy for RAG is the discipline of protecting:</p>
+<ul><li><strong>Confidentiality:</strong> only authorized actors can access data.</li><li><strong>Integrity:</strong> retrieved context and outputs are not tampered with.</li><li><strong>Availability:</strong> safety controls do not collapse under real traffic.</li><li><strong>Compliance:</strong> handling aligns with legal and contractual obligations.</li></ul>
+<h3 id="why-this-layer-matters">Why This Layer Matters</h3>
+<p>RAG increases attack surface compared to plain LLM chat because:</p>
+<ul><li>It touches proprietary document stores.</li><li>It performs retrieval over potentially regulated data.</li><li>It can expose hidden corpus snippets via model outputs.</li><li>It usually logs rich artifacts for observability.</li><li>It often mixes users, roles, and tenants at scale.</li></ul>
+<p>Common misconception:</p>
+<ol><li>&quot;If we use a local model, privacy is solved.&quot;</li><li>&quot;If the model is private, documents are safe.&quot;</li><li>&quot;If the answer looks harmless, no leakage happened.&quot;</li></ol>
+<p>All three are incomplete. Real protection requires end-to-end controls across storage, retrieval, generation, transport, and operations.</p>
+<h3 id="data-leakage-risks">Data Leakage Risks</h3>
+<p>Data leakage is any unintended exposure of private, restricted, or sensitive information to unauthorized users, systems, or logs.</p>
+<h4 id="where-leakage-happens-in-rag">Where Leakage Happens in RAG</h4>
+<p>High-risk leakage points include:</p>
+<ol><li><strong>Ingestion pipelines:</strong> raw documents copied into staging buckets, temp files, or debug queues.</li><li><strong>Vector indexes:</strong> chunks embedded and stored without proper tenant/role boundaries.</li><li><strong>Retrieval responses:</strong> retriever returns unauthorized chunks before final filtering.</li><li><strong>Prompt assembly:</strong> hidden metadata (IDs, emails, internal notes) injected into prompts.</li><li><strong>Generation output:</strong> model reproduces sensitive context verbatim.</li><li><strong>Application logs:</strong> full prompts/responses logged in plaintext for debugging.</li><li><strong>Cache layers:</strong> shared cache keys accidentally return prior user artifacts.</li><li><strong>Analytics exports:</strong> BI pipelines receive raw query/context payloads.</li></ol>
+<h4 id="leakage-threat-patterns">Leakage Threat Patterns</h4>
+<ul><li><strong>Cross-tenant leakage:</strong> one customer receives another customer&#39;s context.</li><li><strong>Role-bypass leakage:</strong> a user asks broadly and receives admin-only documents.</li><li><strong>Prompt injection exfiltration:</strong> malicious text asks model to reveal hidden context.</li><li><strong>Training contamination leakage:</strong> sensitive data appears in future model behavior due to improper fine-tuning dataset hygiene.</li><li><strong>Operational leakage:</strong> support staff or dashboards expose raw artifacts beyond need-to-know.</li></ul>
+<h4 id="practical-controls-for-leakage-prevention">Practical Controls for Leakage Prevention</h4>
+<p>Implement controls in layers, not as a single gate:</p>
+<ol><li><strong>Pre-ingestion classification:</strong> label documents by sensitivity and policy class before indexing.</li><li><strong>Document minimization:</strong> avoid indexing fields not required for retrieval quality.</li><li><strong>Chunk sanitation:</strong> strip secrets/tokens from chunks before embedding.</li><li><strong>Retrieval-time authorization:</strong> enforce policy before candidate chunks are exposed to prompt builder.</li><li><strong>Output guardrails:</strong> detect and redact sensitive spans in generated text before delivery.</li><li><strong>Scoped logging:</strong> never store raw full prompts by default; keep masked/hashed artifacts.</li><li><strong>Cache segmentation:</strong> key caches by tenant, role, policy version, and model version.</li></ol>
+<h4 id="leakage-monitoring-and-incident-readiness">Leakage Monitoring and Incident Readiness</h4>
+<p>Security posture is weak without detection. Track:</p>
+<ul><li>Sensitive-token appearance rate in outputs.</li><li>Unauthorized retrieval attempts by actor and route.</li><li>Policy-denied chunk counts.</li><li>Cross-tenant cache miss/hit anomalies.</li><li>Redaction trigger rates and false negatives.</li></ul>
+<p>Run periodic red-team prompts that intentionally attempt exfiltration. If leakage is detected, incident workflow should include rapid key rotation, index quarantine, cache invalidation, and scoped user notification based on impact.</p>
+<h3 id="access-control-for-documents">Access Control for Documents</h3>
+<p>Access control in RAG must be enforced at document level, chunk level, and query-time decision level.</p>
+<h4 id="core-principle-retrieval-must-be-policy-aware">Core Principle: Retrieval Must Be Policy-Aware</h4>
+<p>If access control is applied only after retrieval, leakage risk remains high because sensitive chunks may already enter intermediate systems.</p>
+<p>Policy-aware retrieval means:</p>
+<ol><li>Candidate selection is filtered using user identity + role + tenant + attributes.</li><li>Reranker operates only on authorized candidates.</li><li>Prompt builder receives only policy-approved context.</li></ol>
+<h4 id="authorization-models">Authorization Models</h4>
+<p>Use one or combine several:</p>
+<ul><li><strong>RBAC (Role-Based Access Control):</strong> permissions mapped to roles like <code>employee</code>, <code>manager</code>, <code>admin</code>.</li><li><strong>ABAC (Attribute-Based Access Control):</strong> policies use attributes (department, region, clearance, project).</li><li><strong>ReBAC (Relationship-Based Access Control):</strong> permissions derived from graph relationships (owner, team member, delegate).</li></ul>
+<p>For enterprise RAG, ABAC/ReBAC often handle real-world complexity better than pure RBAC.</p>
+<h4 id="policy-propagation-through-the-pipeline">Policy Propagation Through the Pipeline</h4>
+<p>Security labels must survive every transformation:</p>
+<ol><li>Raw document metadata includes policy tags.</li><li>Chunking stage propagates inherited policy labels.</li><li>Embedding/index records carry immutable access metadata.</li><li>Retrieval queries include actor context claims.</li><li>Downstream caches and logs preserve redaction or policy markers.</li></ol>
+<p>If policy tags are dropped at any stage, your enforcement becomes inconsistent and brittle.</p>
+<h4 id="multi-tenant-isolation-requirements">Multi-Tenant Isolation Requirements</h4>
+<p>For multi-tenant systems, enforce separation by design:</p>
+<ul><li>Tenant-scoped namespaces or physically separate indexes.</li><li>Tenant-aware encryption keys.</li><li>Strict query filters with server-side validation (never trust client-provided tenant IDs).</li><li>Tenant-scoped cache and session artifacts.</li><li>Admin tooling with explicit tenant context and audited access.</li></ul>
+<h4 id="auditability-and-forensics">Auditability and Forensics</h4>
+<p>Access controls are only defensible if you can prove what happened:</p>
+<ul><li>Record actor ID, policy decision, document IDs considered, and reason for allow/deny.</li><li>Keep tamper-evident audit logs with retention policy.</li><li>Support replay of authorization decisions for incident analysis.</li><li>Add periodic policy regression tests as access rules evolve.</li></ul>
+<h3 id="on-device-rag-vs-cloud-rag">On-Device RAG vs Cloud RAG</h3>
+<p>Both deployment models can be secure, but they fail in different ways. Choose based on threat model, compliance needs, operational maturity, and latency/cost trade-offs.</p>
+<h4 id="on-device-rag-local-models-local-data">On-Device RAG (Local Models + Local Data)</h4>
+<p>Typical strengths:</p>
+<ul><li>Data stays near endpoint, reducing external transmission exposure.</li><li>Better fit for air-gapped or strict sovereignty environments.</li><li>Lower dependency on external API data policies.</li></ul>
+<p>Typical risks:</p>
+<ol><li>Endpoint compromise (malware, stolen laptop, weak disk protection).</li><li>Local privilege abuse (other users/processes reading model/index files).</li><li>Weaker central governance and patch discipline across devices.</li><li>Difficult incident visibility due to fragmented telemetry.</li></ol>
+<p>Hardening requirements:</p>
+<ul><li>Full-disk encryption and secure boot.</li><li>OS-level account isolation and least privilege.</li><li>Encrypted local vector stores and keychain-backed secret storage.</li><li>Signed model and index artifacts to prevent tampering.</li><li>Remote wipe, device compliance checks, and patch enforcement.</li></ul>
+<h4 id="cloud-rag-managed-or-self-hosted-cloud">Cloud RAG (Managed or Self-Hosted Cloud)</h4>
+<p>Typical strengths:</p>
+<ul><li>Centralized governance, patching, and policy enforcement.</li><li>Better observability, auditing, and incident response.</li><li>Easier key rotation and secrets lifecycle control.</li><li>Scalable IAM integration with enterprise identity systems.</li></ul>
+<p>Typical risks:</p>
+<ol><li>Misconfigured cloud permissions exposing storage/index endpoints.</li><li>Third-party processor risk and jurisdictional concerns.</li><li>Public network exposure if transport/auth are weak.</li><li>Shared infrastructure complexity and dependency risk.</li></ol>
+<p>Hardening requirements:</p>
+<ul><li>Private networking and strict ingress/egress controls.</li><li>Strong IAM boundaries with least privilege service roles.</li><li>KMS/HSM-managed encryption keys and rotation policy.</li><li>Region-aware data residency controls.</li><li>Vendor due diligence and contractual data processing controls.</li></ul>
+<h4 id="hybrid-pattern-common-in-practice">Hybrid Pattern (Common in Practice)</h4>
+<p>Many teams run:</p>
+<ul><li>Local retrieval over sensitive corpus subsets.</li><li>Cloud generation for non-sensitive or sanitized contexts.</li><li>Policy engine deciding route by data sensitivity and user role.</li></ul>
+<p>Hybrid works well only when classification and routing are deterministic and auditable. If routing is ambiguous, leakage risk rises quickly.</p>
+<h3 id="pii-handling">PII Handling</h3>
+<p>PII (Personally Identifiable Information) must be treated as a lifecycle problem, not a one-time redaction step.</p>
+<h4 id="pii-categories-relevant-to-rag">PII Categories Relevant to RAG</h4>
+<p>PII may appear in:</p>
+<ul><li>Direct identifiers (name, phone, email, national ID).</li><li>Quasi-identifiers (location, job title, rare combinations).</li><li>Sensitive attributes (health, finance, legal records).</li><li>Free-form notes where PII appears unpredictably.</li></ul>
+<p>RAG increases risk because semantic retrieval can surface PII from distant or unrelated documents if indexing is broad and policies are weak.</p>
+<h4 id="pii-handling-strategy-by-stage">PII Handling Strategy by Stage</h4>
+<ol><li><strong>Ingestion:</strong> detect and tag PII before indexing.</li><li><strong>Storage:</strong> separate high-risk fields where possible.</li><li><strong>Indexing:</strong> avoid embedding unnecessary raw identifiers.</li><li><strong>Retrieval:</strong> enforce policy-aware filtering for PII sensitivity class.</li><li><strong>Prompting:</strong> minimize sensitive fields included in context.</li><li><strong>Generation:</strong> apply output redaction and policy checks.</li><li><strong>Logging:</strong> mask, tokenize, or avoid storing raw PII in traces.</li></ol>
+<h4 id="detection-and-redaction-techniques">Detection and Redaction Techniques</h4>
+<ul><li>Rule-based detectors for known formats (emails, phone numbers, IDs).</li><li>NER/ML-based detectors for contextual PII.</li><li>Domain-specific recognizers (medical, HR, financial identifiers).</li><li>Confidence thresholding with human-review path for high-impact workflows.</li></ul>
+<p>Redaction modes:</p>
+<ul><li><strong>Masking:</strong> partial hide (<code>a***@domain.com</code>).</li><li><strong>Tokenization:</strong> replace with reversible token managed in secure vault.</li><li><strong>Pseudonymization:</strong> replace identifiers while preserving analytics utility.</li><li><strong>Deletion:</strong> remove entirely when not required downstream.</li></ul>
+<h4 id="data-retention-and-user-rights">Data Retention and User Rights</h4>
+<p>Privacy requirements usually include:</p>
+<ul><li>Data minimization by default.</li><li>Defined retention windows for raw artifacts.</li><li>Right-to-delete workflows that cascade across raw stores, indexes, caches, and backups.</li><li>Access/export workflows for regulated user requests.</li></ul>
+<p>If deletion does not propagate to embeddings and snapshots, compliance claims may be invalid.</p>
+<h3 id="encryption-strategies">Encryption Strategies</h3>
+<p>Encryption is foundational, but only effective when key management and scope boundaries are engineered correctly.</p>
+<h4 id="encryption-in-transit">Encryption in Transit</h4>
+<p>Protect all network paths:</p>
+<ul><li>TLS for client-to-app, app-to-retriever, and app-to-model traffic.</li><li>Mutual TLS for internal service-to-service paths where feasible.</li><li>Certificate rotation and revocation procedures.</li><li>Strict transport policy to prevent downgrade attacks.</li></ul>
+<p>Do not assume internal networks are trusted.</p>
+<h4 id="encryption-at-rest">Encryption at Rest</h4>
+<p>Apply at each storage layer:</p>
+<ol><li>Object/document storage.</li><li>Vector index and metadata store.</li><li>Relational stores for sessions and policy data.</li><li>Backups, snapshots, and export bundles.</li><li>Local endpoint storage for on-device deployments.</li></ol>
+<p>Prefer envelope encryption with centralized key management instead of ad-hoc per-service secrets.</p>
+<h4 id="key-management-and-rotation">Key Management and Rotation</h4>
+<p>Strong encryption fails if key lifecycle is weak. Minimum key management controls:</p>
+<ul><li>Keys stored in KMS/HSM, not in source code or config files.</li><li>Role-scoped key access policies.</li><li>Regular rotation schedule and emergency rotation playbook.</li><li>Key versioning for smooth re-encryption migrations.</li><li>Audit logs for every key usage event.</li></ul>
+<h4 id="tenant-aware-and-field-level-encryption">Tenant-Aware and Field-Level Encryption</h4>
+<p>For high-sensitivity systems:</p>
+<ul><li>Use tenant-specific data keys to reduce blast radius.</li><li>Use field-level encryption for especially sensitive columns (for example national IDs, health fields).</li><li>Isolate encryption contexts by environment (<code>dev</code>, <code>staging</code>, <code>prod</code>) and purpose.</li></ul>
+<p>This limits impact if one key, store, or environment is compromised.</p>
+<h4 id="encryption-trade-offs-you-must-plan-for">Encryption Trade-offs You Must Plan For</h4>
+<ul><li>Extra latency for decrypt/re-encrypt paths.</li><li>Search limitations on encrypted fields.</li><li>Operational complexity in rotation and re-indexing.</li><li>Debugging challenges when plaintext visibility is restricted.</li></ul>
+<p>Design observability that remains useful without exposing raw sensitive payloads.</p>
+<h3 id="security-privacy-operating-model">Security &amp; Privacy Operating Model</h3>
+<p>Controls become reliable only when embedded into daily operations.</p>
+<h4 id="governance-checklist">Governance Checklist</h4>
+<ol><li>Security owner and privacy owner defined.</li><li>Data classification policy mapped to system behavior.</li><li>Threat model reviewed at architecture milestones.</li><li>Access policy tests run in CI for critical routes.</li><li>Incident response runbooks rehearsed quarterly.</li></ol>
+<h4 id="testing-and-validation">Testing and Validation</h4>
+<p>Run continuous validation, not one-time audits:</p>
+<ul><li>Prompt-injection and exfiltration tests.</li><li>Cross-tenant isolation tests.</li><li>Policy regression tests for allow/deny boundaries.</li><li>Redaction quality benchmarks (precision/recall).</li><li>Encryption posture verification and key access audit checks.</li></ul>
+<h4 id="minimal-do-not-ship-without-baseline">Minimal &quot;Do Not Ship Without&quot; Baseline</h4>
+<ul><li>Retrieval-time access control enforced server-side.</li><li>Sensitive logging disabled or masked by default.</li><li>PII detection + output redaction active in production.</li><li>Encryption in transit and at rest with managed keys.</li><li>Audit trail for access decisions and incident triage.</li></ul>
+<p>Without these, RAG can provide useful answers but still fail basic trust and compliance expectations.</p></article>
+<nav class="page-nav" aria-label="Note navigation"><a href="./12-performance-scaling.html">← ⚡ 12. Performance &amp; Scaling (For real-world systems)</a><a href="./14-production-system-design.html">🏗️ 14. Production System Design (Interview gold for real deployments) →</a></nav>
+</main>
+</div>
+<script>
+const links = [...document.querySelectorAll(".toc a")];
+const observer = new IntersectionObserver(entries => {
+  for (const entry of entries) {
+    if (!entry.isIntersecting) continue;
+    links.forEach(link => link.classList.toggle("active", link.hash === "#" + entry.target.id));
+  }
+}, { rootMargin: "-15% 0px -72% 0px" });
+document.querySelectorAll("main h2[id], main h3[id]").forEach(heading => observer.observe(heading));
+</script>
+</body>
+</html>

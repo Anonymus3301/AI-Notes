@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="🧪 9. Evaluation (Most people ignore this) — RAG Foundations notes">
+<title>🧪 9. Evaluation (Most people ignore this) | RAG Foundations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../agent-fundamentals.css">
+<script src="../site-nav.js" defer></script>
+</head>
+<body>
+<header class="bar">
+  <nav class="bar-links" aria-label="Main navigation">
+    <a href="./index.html">← RAG Foundations</a>
+    <a href="../m3.html">Module 3: RAG Systems</a>
+  </nav>
+  <nav class="bar-pages" aria-label="Adjacent notes">
+    <a href="./8-generation-layer.html" aria-label="Previous note: 🤖 8. Generation Layer (LLM usage)" title="🤖 8. Generation Layer (LLM usage)">← Previous</a>
+    <a href="./10-advanced-rag-architectures.html" aria-label="Next note: 🔄 10. Advanced RAG Architectures (Once basics are clear, move here)" title="🔄 10. Advanced RAG Architectures (Once basics are clear, move here)">Next →</a>
+  </nav>
+  <span class="grow"></span>
+  <button type="button" onclick="window.print()">Print / PDF</button>
+</header>
+<div class="layout"><nav class="toc" aria-label="Contents"><strong>On this page</strong><a class="sub" href="#why-evaluation-is-usually-ignored-and-why-that-is-risky">Why Evaluation Is Usually Ignored (And Why That Is Risky)</a>
+<a class="sub" href="#metrics">Metrics</a>
+<a class="sub" href="#frameworks">Frameworks</a>
+<a class="sub" href="#ragas">RAGAS</a>
+<a class="sub" href="#langsmith">LangSmith</a>
+<a class="sub" href="#recommended-evaluation-operating-model">Recommended Evaluation Operating Model</a>
+<a class="sub" href="#final-takeaway">Final Takeaway</a></nav>
+<main>
+<header class="cover"><h1>🧪 9. Evaluation (Most people ignore this)</h1><p class="sub">RAG Foundations · Note 9 of 16</p></header>
+<article><p>Evaluation is the layer that separates &quot;it feels good in demos&quot; from &quot;it is trustworthy in production.&quot; Without rigorous evaluation, RAG systems can look fluent while quietly failing on retrieval coverage, factual grounding, and user usefulness.</p>
+<p>Most teams over-focus on prompts and model choice, then under-invest in measurement. That usually leads to slow debugging, unreliable launches, and expensive guesswork when quality drops.</p>
+<p>In production, evaluation is not a one-time benchmark. It is a continuous discipline across:</p>
+<ol><li><strong>Retrieval quality:</strong> did we fetch the right evidence?</li><li><strong>Generation quality:</strong> did we answer faithfully and usefully from that evidence?</li><li><strong>System outcome quality:</strong> did the full user journey succeed under real constraints?</li></ol>
+<p>If you do this well, evaluation becomes your optimization engine for quality, latency, cost, and trust.</p>
+<h3 id="why-evaluation-is-usually-ignored-and-why-that-is-risky">Why Evaluation Is Usually Ignored (And Why That Is Risky)</h3>
+<p>Evaluation is often skipped because:</p>
+<ul><li>It feels slower than shipping features.</li><li>Labeling high-quality datasets takes effort.</li><li>Teams rely on anecdotal testing with a few hand-picked queries.</li><li>Fluent model outputs create a false sense of correctness.</li></ul>
+<p>What this causes in practice:</p>
+<ul><li>Hidden hallucinations that only appear at scale.</li><li>Silent retrieval misses that no prompt can fix.</li><li>Regression after model/version changes.</li><li>Inability to prove quality improvements objectively.</li></ul>
+<p>Core principle:</p>
+<ol><li>If you cannot measure it, you cannot reliably improve it.</li><li>If you only measure one layer, you will optimize the wrong bottleneck.</li><li>If you do not evaluate continuously, quality drift will eventually surprise you in production.</li></ol>
+<h3 id="metrics">Metrics</h3>
+<p>Evaluation metrics in RAG should be layered, not single-score. You need retrieval metrics, generation metrics, and end-to-end metrics because each catches different failure modes.</p>
+<h4 id="retrieval-metrics">Retrieval Metrics</h4>
+<p>Retrieval metrics answer one question: <strong>Did the system retrieve evidence that could support a correct answer?</strong></p>
+<p>If retrieval is weak, generation cannot reliably recover, even with the best LLM.</p>
+<h5 id="recall-k">Recall@K</h5>
+<p><strong>Definition:</strong> Recall@K measures whether relevant evidence appears anywhere in the top-K retrieved results.</p>
+<p>Simple intuition:</p>
+<ul><li>High Recall@K = the right evidence is present somewhere in the candidate set.</li><li>Low Recall@K = the system is missing crucial evidence before generation even starts.</li></ul>
+<p>Why Recall@K matters:</p>
+<ul><li>It is the best early warning for &quot;answer not found&quot; failures.</li><li>It tells you whether first-stage retrieval is broad enough.</li><li>It prevents false blame on the LLM when retrieval never surfaced the needed context.</li></ul>
+<p>How to interpret it correctly:</p>
+<ul><li>A high recall at very large K can still be useless if your final prompt only includes top-5 chunks.</li><li>Track recall at multiple cutoffs (for example K=5, 10, 20, 50) to understand ranking depth.</li><li>Measure recall by query slice (fact lookup, multi-hop, ambiguous query, long-tail query), not only aggregate average.</li></ul>
+<p>Common pitfalls:</p>
+<ul><li>Defining &quot;relevant&quot; too loosely, which inflates recall and hides quality issues.</li><li>Ignoring chunking strategy; poor chunk boundaries can lower true recall even with good retrievers.</li><li>Optimizing only for recall and flooding prompts with noisy context.</li></ul>
+<p>Practical production usage:</p>
+<ol><li>Use Recall@K to tune candidate retrieval size and hybrid retrieval weights.</li><li>Watch recall drops after corpus updates or embedding model changes.</li><li>Pair recall with Precision@K so you do not trade quality for noise.</li></ol>
+<h5 id="precision-k">Precision@K</h5>
+<p><strong>Definition:</strong> Precision@K measures the fraction of top-K retrieved results that are actually relevant.</p>
+<p>Simple intuition:</p>
+<ul><li>High Precision@K = your final context window is dense with useful evidence.</li><li>Low Precision@K = prompt budget is wasted on irrelevant chunks.</li></ul>
+<p>Why Precision@K matters:</p>
+<ul><li>LLMs are sensitive to noisy context; irrelevant passages increase wrong synthesis risk.</li><li>Better precision often improves factuality and reduces hallucinations.</li><li>Precision directly affects cost because irrelevant chunks consume tokens.</li></ul>
+<p>How to interpret it correctly:</p>
+<ul><li>Precision at small K (for example 3-10) is usually most important for final generation quality.</li><li>Precision without recall can be misleading (you can be precise but miss critical evidence).</li><li>Compare precision before and after reranking to validate reranker value.</li></ul>
+<p>Common pitfalls:</p>
+<ul><li>Over-compressing K to inflate precision while hiding missed evidence.</li><li>Treating all relevant chunks as equally useful; some chunks are only weakly supporting.</li><li>Ignoring domain-specific relevance (for example policy recency, trusted source priority).</li></ul>
+<p>Practical production usage:</p>
+<ol><li>Use Precision@K to tune reranking models and cutoff thresholds.</li><li>Enforce deduplication to improve true precision density.</li><li>Track precision by source type to detect noisy collections.</li></ol>
+<h4 id="generation-metrics">Generation Metrics</h4>
+<p>Generation metrics answer: <strong>Given the retrieved context, did the model produce a grounded and useful answer?</strong></p>
+<p>These metrics capture failure modes that retrieval metrics cannot see.</p>
+<h5 id="faithfulness">Faithfulness</h5>
+<p><strong>Definition:</strong> Faithfulness measures whether generated claims are supported by retrieved evidence, without unsupported additions.</p>
+<p>Simple intuition:</p>
+<ul><li>High faithfulness = the answer stays inside evidence boundaries.</li><li>Low faithfulness = the model invents details, overgeneralizes, or merges facts incorrectly.</li></ul>
+<p>Why faithfulness matters:</p>
+<ul><li>It is the strongest metric for hallucination control in RAG.</li><li>It protects trust in domains where factual accuracy is critical.</li><li>It reveals grounding failures even when answer tone sounds confident and polished.</li></ul>
+<p>What to evaluate under faithfulness:</p>
+<ul><li>Claim-to-evidence support alignment.</li><li>Unsupported factual additions.</li><li>Numeric/date/entity fidelity.</li><li>Correct handling of source disagreement and uncertainty.</li></ul>
+<p>Common pitfalls:</p>
+<ul><li>Scoring faithfulness only with lexical overlap; semantic support is what matters.</li><li>Ignoring partial support cases where only part of a claim is grounded.</li><li>Treating citation presence as proof of faithfulness (citations can still be wrong).</li></ul>
+<p>Practical production usage:</p>
+<ol><li>Require citation-linked claims for high-stakes outputs.</li><li>Add claim-level verification for critical query types.</li><li>Penalize unsupported claims in offline benchmarks and online QA audits.</li></ol>
+<h5 id="answer-relevance">Answer Relevance</h5>
+<p><strong>Definition:</strong> Answer relevance measures how well the generated response addresses the user question and intent.</p>
+<p>Simple intuition:</p>
+<ul><li>High relevance = the answer actually solves what the user asked.</li><li>Low relevance = fluent but off-target response, partial miss, or generic filler.</li></ul>
+<p>Why answer relevance matters:</p>
+<ul><li>A perfectly faithful answer can still be unhelpful if it does not answer the question directly.</li><li>It captures user-centric quality better than pure factuality metrics.</li><li>It highlights query understanding and synthesis quality issues.</li></ul>
+<p>What answer relevance checks should include:</p>
+<ul><li>Intent match (did we answer the real question?).</li><li>Coverage of key sub-questions in compound queries.</li><li>Appropriate level of detail for the user context.</li><li>Directness and actionability, not only correctness.</li></ul>
+<p>Common pitfalls:</p>
+<ul><li>Overweighting verbosity; long answers can sound relevant but miss key ask.</li><li>Ignoring multi-intent queries where only one part gets answered.</li><li>Not accounting for needed clarifying questions when user input is ambiguous.</li></ul>
+<p>Practical production usage:</p>
+<ol><li>Evaluate relevance separately for single-hop vs multi-hop questions.</li><li>Add rubric-based scoring for domain-specific usefulness.</li><li>Pair relevance with faithfulness to prevent &quot;helpful but invented&quot; outputs.</li></ol>
+<h4 id="end-to-end-evaluation">End-to-End Evaluation</h4>
+<p>End-to-end evaluation measures the full pipeline outcome from user query to final response under realistic conditions.</p>
+<p>This is where many teams discover that strong component metrics do not always translate to product success.</p>
+<p>What end-to-end evaluation should measure:</p>
+<ul><li>Final task success rate (did the user goal get solved?).</li><li>User-facing correctness and usefulness.</li><li>Latency (p50/p95/p99) and timeout behavior.</li><li>Cost per successful answer.</li><li>Robustness under noisy, ambiguous, and adversarial inputs.</li></ul>
+<p>Why end-to-end is essential:</p>
+<ul><li>Retrieval and generation can each look strong while orchestration still fails.</li><li>Tooling, routing, and context-window policies create real production failure points.</li><li>It captures tradeoffs directly: quality vs latency vs cost.</li></ul>
+<p>Common end-to-end failure patterns:</p>
+<ul><li>Correct evidence retrieved but dropped due to context budget limits.</li><li>Strong answer quality but unacceptable latency for interactive UX.</li><li>High average quality with severe tail failures on specific query slices.</li></ul>
+<p>Production-grade evaluation slices:</p>
+<ol><li><strong>Happy path:</strong> common, straightforward questions.</li><li><strong>Hard path:</strong> multi-hop, sparse evidence, conflicting sources.</li><li><strong>No-answer path:</strong> query cannot be answered from corpus.</li><li><strong>Safety path:</strong> sensitive or policy-constrained requests.</li><li><strong>Drift path:</strong> new topics, updated docs, changing terminology.</li></ol>
+<h3 id="frameworks">Frameworks</h3>
+<p>Frameworks do not replace evaluation design, but they accelerate repeatable measurement, comparison, and observability.</p>
+<h3 id="ragas">RAGAS</h3>
+<p>RAGAS is a dedicated framework for RAG evaluation with metrics focused on retrieval quality and generation grounding.</p>
+<p>Why teams use RAGAS:</p>
+<ul><li>Purpose-built metrics for RAG workflows.</li><li>Works with synthetic or curated evaluation datasets.</li><li>Enables repeatable offline benchmarking across prompt/model/retriever variants.</li></ul>
+<p>Where RAGAS fits best:</p>
+<ul><li>Rapid experiment loops before production rollout.</li><li>Regression testing when changing retrieval, reranking, or prompts.</li><li>Continuous quality checks in CI-like evaluation pipelines.</li></ul>
+<p>How to use it effectively:</p>
+<ol><li>Build a representative evaluation set, not only easy examples.</li><li>Track core metrics over time (faithfulness, answer relevance, context/retrieval alignment).</li><li>Compare runs by query slice, not only global averages.</li><li>Gate releases when critical metrics regress beyond thresholds.</li></ol>
+<p>Operational cautions:</p>
+<ul><li>Auto-judged metrics are helpful, but human spot checks are still required.</li><li>Synthetic datasets should be validated against real query distributions.</li><li>Metric improvements are only meaningful if they correlate with user outcomes.</li></ul>
+<h3 id="langsmith">LangSmith</h3>
+<p>LangSmith is an observability and evaluation platform that helps teams trace, debug, and benchmark LLM/RAG systems end-to-end.</p>
+<p>Why teams use LangSmith:</p>
+<ul><li>Full execution traces across retrieval, tools, prompts, and generation.</li><li>Dataset-driven evaluations with run comparisons.</li><li>Experiment tracking across model, prompt, and chain changes.</li></ul>
+<p>Where LangSmith is especially valuable:</p>
+<ul><li>Diagnosing why a specific bad answer happened in production.</li><li>Tracking regression after refactors, prompt edits, or model upgrades.</li><li>Building shared evaluation workflows across engineering and product teams.</li></ul>
+<p>How to use it effectively:</p>
+<ol><li>Instrument full traces (query, retrieved docs, prompts, outputs, scores).</li><li>Create representative datasets and run scheduled evaluations.</li><li>Tag runs by experiment variables (model, retriever, prompt version).</li><li>Use trace-level debugging to convert vague failures into actionable fixes.</li></ol>
+<p>Operational cautions:</p>
+<ul><li>Tracing without clear evaluation rubrics produces noisy dashboards.</li><li>You still need explicit pass/fail criteria tied to product goals.</li><li>Observability volume can get expensive without thoughtful sampling and retention policies.</li></ul>
+<h3 id="recommended-evaluation-operating-model">Recommended Evaluation Operating Model</h3>
+<p>A practical production operating model:</p>
+<ol><li><strong>Offline component eval:</strong> retrieval and generation metrics on curated datasets.</li><li><strong>Offline end-to-end eval:</strong> full pipeline benchmarks across realistic slices.</li><li><strong>Pre-release gates:</strong> block deploys on significant quality regressions.</li><li><strong>Online monitoring:</strong> latency, failure traces, and user feedback loops.</li><li><strong>Human review loop:</strong> regular audits for high-risk or high-impact routes.</li></ol>
+<p>What to track as core dashboard KPIs:</p>
+<ul><li>Recall@K and Precision@K (retrieval quality).</li><li>Faithfulness and Answer Relevance (generation quality).</li><li>End-to-end task success, latency, and cost per successful answer.</li><li>Regression delta vs last stable release.</li></ul>
+<h3 id="final-takeaway">Final Takeaway</h3>
+<p>Evaluation is not optional infrastructure around RAG. It is the control system for quality.</p>
+<p>When teams skip it, they chase symptoms with prompt tweaks. When teams operationalize it, they can improve confidently, ship faster, and maintain trust as data, models, and user behavior evolve.</p></article>
+<nav class="page-nav" aria-label="Note navigation"><a href="./8-generation-layer.html">← 🤖 8. Generation Layer (LLM usage)</a><a href="./10-advanced-rag-architectures.html">🔄 10. Advanced RAG Architectures (Once basics are clear, move here) →</a></nav>
+</main>
+</div>
+<script>
+const links = [...document.querySelectorAll(".toc a")];
+const observer = new IntersectionObserver(entries => {
+  for (const entry of entries) {
+    if (!entry.isIntersecting) continue;
+    links.forEach(link => link.classList.toggle("active", link.hash === "#" + entry.target.id));
+  }
+}, { rootMargin: "-15% 0px -72% 0px" });
+document.querySelectorAll("main h2[id], main h3[id]").forEach(heading => observer.observe(heading));
+</script>
+</body>
+</html>

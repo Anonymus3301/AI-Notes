@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="📚 2. Data Ingestion &amp; Preprocessing — RAG Foundations notes">
+<title>📚 2. Data Ingestion &amp; Preprocessing | RAG Foundations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../agent-fundamentals.css">
+<script src="../site-nav.js" defer></script>
+</head>
+<body>
+<header class="bar">
+  <nav class="bar-links" aria-label="Main navigation">
+    <a href="./index.html">← RAG Foundations</a>
+    <a href="../m3.html">Module 3: RAG Systems</a>
+  </nav>
+  <nav class="bar-pages" aria-label="Adjacent notes">
+    <a href="./1-foundations.html" aria-label="Previous note: Retrieval Augmented Generation Foundations" title="Retrieval Augmented Generation Foundations">← Previous</a>
+    <a href="./3-chunking-strategies.html" aria-label="Next note: ✂️ 3. Chunking Strategies (SUPER important)" title="✂️ 3. Chunking Strategies (SUPER important)">Next →</a>
+  </nav>
+  <span class="grow"></span>
+  <button type="button" onclick="window.print()">Print / PDF</button>
+</header>
+<div class="layout"><nav class="toc" aria-label="Contents"><strong>On this page</strong><a class="sub" href="#why-this-stage-is-critical">Why This Stage Is Critical</a>
+<a class="sub" href="#data-types">Data Types</a>
+<a class="sub" href="#1-text-articles-logs">1) Text (Articles, Logs)</a>
+<a class="sub" href="#2-pdfs-structured-vs-scanned">2) PDFs (Structured vs Scanned)</a>
+<a class="sub" href="#3-images-ocr">3) Images (OCR)</a>
+<a class="sub" href="#4-html-web-pages">4) HTML/Web Pages</a>
+<a class="sub" href="#5-tables-csv-sql">5) Tables (CSV, SQL)</a>
+<a class="sub" href="#topics-to-learn">Topics to Learn</a>
+<a class="sub" href="#ocr-tools-like-tesseract-ocr">OCR Tools (Like Tesseract OCR)</a>
+<a class="sub" href="#pdf-parsing-pymupdf-pdfplumber">PDF Parsing (PyMuPDF, pdfplumber)</a>
+<a class="sub" href="#cleaning-pipelines-remove-noise-headers-footers">Cleaning Pipelines (Remove Noise, Headers, Footers)</a>
+<a class="sub" href="#metadata-extraction-title-author-date-source">Metadata Extraction (Title, Author, Date, Source)</a>
+<a class="sub" href="#document-structuring-sections-headings">Document Structuring (Sections, Headings)</a>
+<a class="sub" href="#recommended-end-to-end-workflow">Recommended End-to-End Workflow</a></nav>
+<main>
+<header class="cover"><h1>📚 2. Data Ingestion &amp; Preprocessing</h1><p class="sub">RAG Foundations · Note 2 of 16</p></header>
+<article><p>Since many real-world RAG systems depend on PDFs, scanned documents, images, web content, and structured datasets, ingestion and preprocessing are not optional plumbing. They are the quality gate that determines whether retrieval can surface trustworthy evidence later.</p>
+<p>Strong preprocessing does three things at once:</p>
+<ul><li>Preserves meaning and structure from source documents.</li><li>Removes noise that harms embeddings and retrieval ranking.</li><li>Carries metadata that enables filtering, governance, and traceability.</li></ul>
+<h3 id="why-this-stage-is-critical">Why This Stage Is Critical</h3>
+<p>Most retrieval failures are not caused by vector search itself. They are caused by weak upstream data preparation: broken extraction, missing headings, lost table rows, duplicated boilerplate, or absent metadata.</p>
+<p>In practical terms:</p>
+<ul><li>Clean, structured text improves chunk coherence.</li><li>Better chunks improve embedding quality.</li><li>Better embeddings improve recall and precision.</li><li>Better retrieval directly reduces hallucination risk in generation.</li></ul>
+<h3 id="data-types">Data Types</h3>
+<h3 id="1-text-articles-logs">1) Text (Articles, Logs)</h3>
+<p>Plain text sources are the easiest to ingest, but they still require discipline.</p>
+<p>Typical sources:</p>
+<ul><li>Product docs and knowledge-base articles</li><li>Support transcripts and incident timelines</li><li>Application logs and operational notes</li></ul>
+<p>Preprocessing priorities:</p>
+<ul><li>Normalize encoding (for example UTF-8) and whitespace.</li><li>Standardize line breaks and bullet formatting.</li><li>Detect and remove repetitive boilerplate like cookie notices or legal footers copied into exports.</li><li>Preserve source boundaries (document ID, section, paragraph order).</li></ul>
+<p>Special note for logs:</p>
+<ul><li>Timestamp and service metadata often carry more value than free-text messages alone.</li><li>Convert log lines into structured fields (<code>timestamp</code>, <code>service</code>, <code>level</code>, <code>message</code>, <code>trace_id</code>) before embedding narrative fields.</li><li>For long traces, group related events into coherent windows rather than embedding one noisy line at a time.</li></ul>
+<h3 id="2-pdfs-structured-vs-scanned">2) PDFs (Structured vs Scanned)</h3>
+<p>PDFs are common in enterprise knowledge systems and are a major ingestion challenge because not all PDFs are machine-readable.</p>
+<p>Structured PDFs:</p>
+<ul><li>Text exists as selectable character data.</li><li>Extraction tools can map words, blocks, and page coordinates.</li><li>Better candidate tools include PyMuPDF and pdfplumber.</li></ul>
+<p>Scanned PDFs:</p>
+<ul><li>Pages are image-only; there is no selectable text layer.</li><li>OCR is mandatory before downstream chunking.</li><li>Layout recovery is harder because headings, columns, and tables may be visually clear but not textually encoded.</li></ul>
+<p>Key preprocessing steps for PDFs:</p>
+<ul><li>Classify each PDF first (structured vs scanned vs mixed).</li><li>Run extraction path by type (parser-only for structured, OCR pipeline for scanned).</li><li>Preserve page number and section lineage in metadata.</li><li>Detect headers/footers and page numbers to avoid repeated noise across chunks.</li><li>Reconstruct reading order for multi-column layouts to prevent semantic scrambling.</li></ul>
+<h3 id="3-images-ocr">3) Images (OCR)</h3>
+<p>Images become RAG-usable only after reliable text extraction and contextual tagging.</p>
+<p>Common image sources:</p>
+<ul><li>Screenshots of dashboards or chats</li><li>Invoices and forms</li><li>Photos of whiteboards, labels, or printed pages</li></ul>
+<p>OCR considerations:</p>
+<ul><li>Use preprocessing before OCR (deskew, denoise, contrast normalization, binarization) to improve recognition accuracy.</li><li>Prefer language-aware OCR models when multilingual text appears.</li><li>Keep bounding boxes and region coordinates when possible to preserve layout context.</li></ul>
+<p>Quality control patterns:</p>
+<ul><li>Store OCR confidence per block or line.</li><li>Route low-confidence text to review or fallback workflows.</li><li>Attach the original image reference so answers can be audited against source visual evidence.</li></ul>
+<h3 id="4-html-web-pages">4) HTML/Web Pages</h3>
+<p>Web content introduces dynamic markup, navigation noise, and repeated templates that can pollute embeddings if not cleaned.</p>
+<p>Extraction goals:</p>
+<ul><li>Keep primary content (title, headings, article body, code blocks, important tables).</li><li>Remove low-value UI chrome (menus, sidebars, cookie banners, comment widgets, promotional blocks).</li><li>Resolve relative links and preserve canonical URL.</li></ul>
+<p>Critical preprocessing details:</p>
+<ul><li>Parse semantic tags (<code>h1-h6</code>, <code>p</code>, <code>li</code>, <code>table</code>) instead of flattening to one text blob.</li><li>Retain heading hierarchy to support structure-aware chunking.</li><li>Capture crawl timestamp, last-modified metadata, and language.</li><li>Deduplicate near-identical pages (printer versions, tracking-parameter variants, mirrored docs).</li></ul>
+<h3 id="5-tables-csv-sql">5) Tables (CSV, SQL)</h3>
+<p>Tabular data is high-value but often poorly represented if converted to raw row dumps.</p>
+<p>Common sources:</p>
+<ul><li>CSV exports from BI tools</li><li>SQL query outputs</li><li>Operational metrics and catalogs</li></ul>
+<p>Preprocessing for table-aware retrieval:</p>
+<ul><li>Validate schema, column types, null behavior, and unit consistency.</li><li>Normalize dates, currencies, and categorical labels.</li><li>Add human-readable descriptions for column semantics.</li><li>Decide retrieval granularity (row-level, grouped summaries, or hybrid).</li></ul>
+<p>Practical strategy:</p>
+<ul><li>Keep original structured table data for deterministic lookups.</li><li>Also create narrative representations (for example, row summaries or KPI snapshots) for semantic retrieval.</li><li>Include provenance metadata (<code>db</code>, <code>table</code>, <code>query_time</code>, <code>filters</code>) so generated answers remain auditable.</li></ul>
+<h3 id="topics-to-learn">Topics to Learn</h3>
+<h3 id="ocr-tools-like-tesseract-ocr">OCR Tools (Like Tesseract OCR)</h3>
+<p>What to learn deeply:</p>
+<ul><li>OCR engine trade-offs: speed, language support, handwriting tolerance, and layout fidelity.</li><li>Preprocessing impact on OCR quality (deskewing and denoising often outperform model switching alone).</li><li>Confidence scoring and post-correction pipelines.</li></ul>
+<p>Why it matters in RAG:</p>
+<ul><li>OCR errors become embedding errors.</li><li>Embedding errors become retrieval misses.</li><li>Retrieval misses become hallucination risk.</li></ul>
+<h3 id="pdf-parsing-pymupdf-pdfplumber">PDF Parsing (PyMuPDF, pdfplumber)</h3>
+<p>What to learn deeply:</p>
+<ul><li>How each library handles text blocks, coordinates, reading order, and table extraction.</li><li>Failure modes: ligatures, column reflow, hidden text layers, and malformed PDFs.</li><li>When to combine parsing + OCR in a hybrid pipeline for mixed-content files.</li></ul>
+<p>Operational best practices:</p>
+<ul><li>Benchmark extraction quality on representative documents, not toy examples.</li><li>Build file-type detection early so each PDF follows the right extraction route.</li><li>Store page-level references for citation-ready responses.</li></ul>
+<h3 id="cleaning-pipelines-remove-noise-headers-footers">Cleaning Pipelines (Remove Noise, Headers, Footers)</h3>
+<p>What to learn deeply:</p>
+<ul><li>Rule-based cleaning (regex and structural rules) for repeated boilerplate.</li><li>Heuristic filters for navigation/UI remnants in HTML and document exports.</li><li>Near-duplicate detection strategies to reduce index pollution.</li></ul>
+<p>Pipeline design principle:</p>
+<ul><li>Clean aggressively enough to remove repeated noise.</li><li>Preserve enough context to keep meaning intact.</li></ul>
+<p>A good cleaning pipeline is versioned, testable, and reversible so extraction changes can be audited over time.</p>
+<h3 id="metadata-extraction-title-author-date-source">Metadata Extraction (Title, Author, Date, Source)</h3>
+<p>What to learn deeply:</p>
+<ul><li>Core metadata schema design (<code>title</code>, <code>author</code>, <code>created_at</code>, <code>updated_at</code>, <code>source_url</code>, <code>document_type</code>, <code>access_scope</code>).</li><li>Field normalization (date formats, canonical source names, stable IDs).</li><li>Confidence and fallback policies when metadata fields are missing.</li></ul>
+<p>Why metadata is central:</p>
+<ul><li>Enables high-precision filtering at query time.</li><li>Supports permission-aware retrieval and governance.</li><li>Improves ranking and reranking by giving context beyond pure semantic similarity.</li></ul>
+<h3 id="document-structuring-sections-headings">Document Structuring (Sections, Headings)</h3>
+<p>What to learn deeply:</p>
+<ul><li>Heading detection and hierarchy reconstruction.</li><li>Section-aware chunking vs fixed-token chunking.</li><li>Boundary preservation for lists, code blocks, callouts, and tables.</li></ul>
+<p>Why structure matters:</p>
+<ul><li>Chunks aligned to semantic sections embed better.</li><li>Retrieval returns more self-contained evidence.</li><li>Generation can cite and reason over clearer context.</li></ul>
+<h3 id="recommended-end-to-end-workflow">Recommended End-to-End Workflow</h3>
+<p>Use a modular ingestion pipeline with explicit stages:</p>
+<p>Source detection -&gt; Type-specific extraction -&gt; Cleaning -&gt; Metadata enrichment -&gt; Structure reconstruction -&gt; Chunking -&gt; Validation -&gt; Indexing</p>
+<p>At each stage, track quality metrics:</p>
+<ul><li>OCR confidence and extraction success rate</li><li>Duplicate rate and noise removal ratio</li><li>Metadata completeness percentage</li><li>Chunk coherence and retrieval hit quality on test queries</li></ul>
+<p>The guiding principle is simple: treat ingestion as a product, not a script. If preprocessing is robust, every downstream RAG component becomes easier to optimize and trust.</p></article>
+<nav class="page-nav" aria-label="Note navigation"><a href="./1-foundations.html">← Retrieval Augmented Generation Foundations</a><a href="./3-chunking-strategies.html">✂️ 3. Chunking Strategies (SUPER important) →</a></nav>
+</main>
+</div>
+<script>
+const links = [...document.querySelectorAll(".toc a")];
+const observer = new IntersectionObserver(entries => {
+  for (const entry of entries) {
+    if (!entry.isIntersecting) continue;
+    links.forEach(link => link.classList.toggle("active", link.hash === "#" + entry.target.id));
+  }
+}, { rootMargin: "-15% 0px -72% 0px" });
+document.querySelectorAll("main h2[id], main h3[id]").forEach(heading => observer.observe(heading));
+</script>
+</body>
+</html>

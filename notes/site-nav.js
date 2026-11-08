@@ -8,10 +8,12 @@
   const links = [
     { label: "Tutorials", url: new URL("../index.html", scriptUrl) },
     { label: "All notes", url: notesUrl },
-    { label: "Agent Fundamentals", url: new URL("agent-fundamentals/index.html", scriptUrl) }
+    { label: "Agent Fundamentals", url: new URL("agent-fundamentals/index.html", scriptUrl) },
+    { label: "RAG Foundations", url: new URL("rag-foundations/index.html", scriptUrl) }
   ];
   const pageUrl = new URL(window.location.href);
   const isAgentPage = pageUrl.pathname.includes("/notes/agent-fundamentals/");
+  const isRagPage = pageUrl.pathname.includes("/notes/rag-foundations/");
   const isNotesIndex = pageUrl.pathname.endsWith("/notes/index.html");
   const isTutorialsHome = pageUrl.pathname.endsWith("/index.html") &&
     !pageUrl.pathname.includes("/notes/");
@@ -45,6 +47,7 @@
 
   for (const link of links) {
     if ((isAgentPage && link.label === "Agent Fundamentals") ||
+        (isRagPage && link.label === "RAG Foundations") ||
         (isNotesIndex && link.label === "All notes") ||
         (isTutorialsHome && link.label === "Tutorials")) {
       continue;

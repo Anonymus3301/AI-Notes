@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="🏗️ 14. Production System Design (Interview gold for real deployments) — RAG Foundations notes">
+<title>🏗️ 14. Production System Design (Interview gold for real deployments) | RAG Foundations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../agent-fundamentals.css">
+<script src="../site-nav.js" defer></script>
+</head>
+<body>
+<header class="bar">
+  <nav class="bar-links" aria-label="Main navigation">
+    <a href="./index.html">← RAG Foundations</a>
+    <a href="../m3.html">Module 3: RAG Systems</a>
+  </nav>
+  <nav class="bar-pages" aria-label="Adjacent notes">
+    <a href="./13-security-privacy.html" aria-label="Previous note: 🔐 13. Security &amp; Privacy (Critical for production trust)" title="🔐 13. Security &amp; Privacy (Critical for production trust)">← Previous</a>
+    <a href="./15-real-world-problems-to-practice.html" aria-label="Next note: 📈 15. Real-world Problems to Practice (Where theory becomes deployment skill)" title="📈 15. Real-world Problems to Practice (Where theory becomes deployment skill)">Next →</a>
+  </nav>
+  <span class="grow"></span>
+  <button type="button" onclick="window.print()">Print / PDF</button>
+</header>
+<div class="layout"><nav class="toc" aria-label="Contents"><strong>On this page</strong><a class="sub" href="#why-this-layer-matters">Why This Layer Matters</a>
+<a class="sub" href="#pipeline-architecture">Pipeline Architecture</a>
+<a class="sub" href="#microservices-vs-monolith">Microservices vs Monolith</a>
+<a class="sub" href="#async-processing">Async Processing</a>
+<a class="sub" href="#queue-systems-kafka-rabbitmq">Queue Systems (Kafka, RabbitMQ)</a>
+<a class="sub" href="#monitoring-logging">Monitoring &amp; Logging</a>
+<a class="sub" href="#failure-handling">Failure Handling</a>
+<a class="sub" href="#versioning-embeddings">Versioning Embeddings</a>
+<a class="sub" href="#production-design-checklist-quick-interview-wrap-up">Production Design Checklist (Quick Interview Wrap-Up)</a></nav>
+<main>
+<header class="cover"><h1>🏗️ 14. Production System Design (Interview gold for real deployments)</h1><p class="sub">RAG Foundations · Note 14 of 16</p></header>
+<article><p>Prototype RAG systems answer a few curated questions well. Production RAG systems survive noisy users, traffic spikes, partial outages, schema drift, model changes, and strict SLAs without silently degrading quality.</p>
+<p>Production system design is the discipline of turning a promising pipeline into an operational product that is:</p>
+<ol><li>Reliable under variable load.</li><li>Observable during failures.</li><li>Recoverable after incidents.</li><li>Evolvable as models and data versions change.</li><li>Economically sustainable over time.</li></ol>
+<p>If this layer is weak, teams usually face one of these outcomes:</p>
+<ul><li>Good answers but unstable latency.</li><li>High quality but frequent downtime during updates.</li><li>Fast responses with hidden grounding failures.</li><li>Growing technical debt that blocks future improvements.</li></ul>
+<h3 id="why-this-layer-matters">Why This Layer Matters</h3>
+<p>In interviews and real architecture reviews, production design is where candidates separate &quot;I built a demo&quot; from &quot;I can run this at scale.&quot;</p>
+<p>RAG adds complexity because you are orchestrating:</p>
+<ul><li>Data pipelines (ingestion, chunking, embedding, indexing).</li><li>Online retrieval and ranking.</li><li>Prompt construction and generation.</li><li>Access policy enforcement.</li><li>Monitoring and incident response.</li></ul>
+<p>The key production mindset:</p>
+<ol><li>Design for failure first, not only for happy-path speed.</li><li>Make each stage observable and versioned.</li><li>Keep interfaces explicit so components can evolve independently.</li></ol>
+<h3 id="pipeline-architecture">Pipeline Architecture</h3>
+<p>Pipeline architecture defines how data and requests move from raw input to final grounded response.</p>
+<h4 id="reference-end-to-end-pipeline">Reference End-to-End Pipeline</h4>
+<p>A robust production pipeline usually has these stages:</p>
+<ol><li><strong>Ingestion layer:</strong> pull files/events from source systems (docs, DBs, APIs, streams).</li><li><strong>Normalization layer:</strong> parse formats, clean text, attach metadata, classify sensitivity.</li><li><strong>Chunking layer:</strong> split content with deterministic strategies and boundary rules.</li><li><strong>Embedding layer:</strong> generate vectors with explicit model/version tagging.</li><li><strong>Indexing layer:</strong> write vectors + metadata into searchable stores.</li><li><strong>Serving layer:</strong> retrieve candidates, rerank, and assemble prompt context.</li><li><strong>Generation layer:</strong> produce answer with citations/confidence artifacts.</li><li><strong>Post-processing layer:</strong> redact, validate, and format output for downstream clients.</li></ol>
+<p>Each stage should have:</p>
+<ul><li>Clear input/output contract.</li><li>Retry/idempotency policy.</li><li>Metrics and structured logs.</li><li>Version tags for reproducibility.</li></ul>
+<h4 id="separation-of-offline-vs-online-paths">Separation of Offline vs Online Paths</h4>
+<p>Production systems should separate two major paths:</p>
+<ul><li><strong>Offline path (data freshness):</strong> ingestion, chunking, embeddings, index builds.</li><li><strong>Online path (user latency):</strong> query handling, retrieval, ranking, generation.</li></ul>
+<p>Benefits:</p>
+<ol><li>Offline heavy compute does not hurt user-facing latency.</li><li>Online serving remains lightweight and predictable.</li><li>Backfills/re-indexing can run safely without blocking requests.</li></ol>
+<h4 id="contract-driven-stage-design">Contract-Driven Stage Design</h4>
+<p>Avoid tightly coupled stage assumptions. Define contracts explicitly:</p>
+<ul><li>Canonical document schema.</li><li>Chunk schema (IDs, parent doc, policy labels, timestamps).</li><li>Embedding record schema (model ID, dim, version hash).</li><li>Retrieval response schema (source, score, retrieval route, policy decision).</li></ul>
+<p>When contracts are explicit, teams can replace one component (for example reranker or vector DB) without rewriting the full system.</p>
+<h3 id="microservices-vs-monolith">Microservices vs Monolith</h3>
+<p>This is a common interview decision question. There is no universal winner; the right choice depends on team size, expected scale, and operational maturity.</p>
+<h4 id="monolith-approach">Monolith Approach</h4>
+<p>A monolith keeps ingestion orchestration, retrieval, ranking, and generation in one deployable service.</p>
+<p>Typical strengths:</p>
+<ul><li>Faster initial development and simpler local testing.</li><li>Easier end-to-end debugging in early stages.</li><li>Lower operational overhead (fewer deployables, fewer network hops).</li></ul>
+<p>Typical risks:</p>
+<ol><li>Scale is coupled: one hot path can force scaling everything.</li><li>Change blast radius is larger.</li><li>Team ownership boundaries are harder as system complexity grows.</li></ol>
+<p>Best fit:</p>
+<ul><li>Early-stage product.</li><li>Small team (for example 2-6 engineers).</li><li>Evolving requirements where speed of iteration is critical.</li></ul>
+<h4 id="microservices-approach">Microservices Approach</h4>
+<p>Microservices split responsibilities (ingestion service, embedding worker, retrieval API, ranking service, generation gateway, policy service).</p>
+<p>Typical strengths:</p>
+<ul><li>Independent scaling by workload profile.</li><li>Better fault isolation between domains.</li><li>Clear ownership boundaries and parallel team velocity.</li></ul>
+<p>Typical risks:</p>
+<ol><li>Higher complexity in service discovery, auth, retries, and tracing.</li><li>More distributed failure modes (timeouts, partial responses, version skew).</li><li>Heavier platform requirements (observability, deployment automation, contract testing).</li></ol>
+<p>Best fit:</p>
+<ul><li>High scale or strict SLO environments.</li><li>Multiple teams with distinct ownership.</li><li>Systems with heterogeneous compute profiles (GPU-heavy vs CPU-heavy paths).</li></ul>
+<h4 id="practical-interview-grade-recommendation">Practical Interview-Grade Recommendation</h4>
+<p>A strong practical stance:</p>
+<ol><li>Start with a modular monolith (clear internal boundaries and interfaces).</li><li>Extract services only where there is clear pressure:</li><li>Independent scaling need.</li><li>Isolated deployment requirement.</li><li>Team ownership split.</li><li>Keep shared contracts versioned from day one to make extraction low-risk later.</li></ol>
+<p>This avoids premature microservice complexity while preserving a growth path.</p>
+<h3 id="async-processing">Async Processing</h3>
+<p>Asynchronous processing is essential for production RAG because many tasks are expensive, bursty, and non-interactive.</p>
+<h4 id="what-should-be-async">What Should Be Async</h4>
+<p>Move these workloads out of the synchronous user request path:</p>
+<ol><li>Bulk ingestion and re-ingestion.</li><li>Parsing/OCR/transcoding large documents.</li><li>Embedding generation and re-embedding.</li><li>Index rebuilds and compaction.</li><li>Cache warming and quality evaluation jobs.</li><li>Analytics rollups and retention workflows.</li></ol>
+<p>Interactive path should stay focused on low-latency query serving.</p>
+<h4 id="async-design-principles">Async Design Principles</h4>
+<ul><li><strong>Idempotent jobs:</strong> retries should not duplicate side effects.</li><li><strong>Durable checkpoints:</strong> long jobs can resume safely after worker restarts.</li><li><strong>Backpressure control:</strong> queue depth should signal producers to slow down.</li><li><strong>Priority classes:</strong> user-impacting jobs outrank non-critical maintenance.</li><li><strong>Dead-letter handling:</strong> poison messages are quarantined, not retried forever.</li></ul>
+<h4 id="common-failure-pattern">Common Failure Pattern</h4>
+<p>A common anti-pattern is synchronous embedding inside user upload requests. This causes unpredictable timeouts and poor UX during traffic spikes.</p>
+<p>Preferred flow:</p>
+<ol><li>Accept request quickly.</li><li>Persist job descriptor.</li><li>Process asynchronously.</li><li>Notify completion/event status.</li><li>Serve with last known-good index until update is ready.</li></ol>
+<h3 id="queue-systems-kafka-rabbitmq">Queue Systems (Kafka, RabbitMQ)</h3>
+<p>Queue systems decouple producers and consumers, absorb burst traffic, and make async workflows reliable.</p>
+<h4 id="kafka-vs-rabbitmq-architectural-fit">Kafka vs RabbitMQ: Architectural Fit</h4>
+<p><strong>Kafka</strong> (distributed log) is generally stronger for:</p>
+<ul><li>High-throughput event streams.</li><li>Replayable event history.</li><li>Multiple independent consumers per topic.</li><li>Analytics + operational pipelines sharing the same event backbone.</li></ul>
+<p><strong>RabbitMQ</strong> (message broker) is generally stronger for:</p>
+<ul><li>Task distribution patterns.</li><li>Flexible routing keys and exchanges.</li><li>Lower-throughput but operationally straightforward job queues.</li><li>Request-workflow orchestration with acknowledgments and per-message handling.</li></ul>
+<h4 id="selection-heuristic">Selection Heuristic</h4>
+<p>Use this practical decision rule:</p>
+<ol><li>Need event replay and long-lived stream semantics -&gt; favor Kafka.</li><li>Need classic work queue/task routing with simple operations -&gt; favor RabbitMQ.</li><li>At scale, some teams combine both (Kafka for event backbone, RabbitMQ for task execution lanes).</li></ol>
+<h4 id="production-queue-design-considerations">Production Queue Design Considerations</h4>
+<p>Regardless of tool, define:</p>
+<ul><li>Message schema and schema evolution policy.</li><li>Partition/routing key strategy.</li><li>Retry policy with bounded attempts and jitter.</li><li>Dead-letter queue policy and triage ownership.</li><li>Consumer lag/throughput SLOs.</li><li>Exactly-once expectations (usually replaced by at-least-once + idempotency).</li></ul>
+<h4 id="queue-failure-modes-to-discuss-in-interviews">Queue Failure Modes to Discuss in Interviews</h4>
+<p>Strong interview answers mention these explicitly:</p>
+<ul><li>Consumer lag silently increasing while dashboards show healthy producer rates.</li><li>Poison messages repeatedly failing and blocking partitions.</li><li>Retry storms during downstream outages.</li><li>Out-of-order event handling causing stale index reads.</li><li>Missing idempotency causing duplicate indexing and inconsistent metadata.</li></ul>
+<h3 id="monitoring-logging">Monitoring &amp; Logging</h3>
+<p>If you cannot see your system, you cannot trust your system.</p>
+<p>Production RAG observability must track quality, latency, reliability, and cost together.</p>
+<h4 id="three-pillar-observability-model">Three-Pillar Observability Model</h4>
+<ol><li><strong>Metrics:</strong> numeric health and SLO tracking.</li><li><strong>Logs:</strong> structured event-level debugging context.</li><li><strong>Traces:</strong> end-to-end request path across services.</li></ol>
+<p>All three are required. Metrics alone cannot explain root cause; logs alone cannot detect trends early.</p>
+<h4 id="core-metrics-to-instrument">Core Metrics to Instrument</h4>
+<ul><li>Query volume by route/user segment.</li><li>Retrieval latency (p50/p95/p99) by source/index.</li><li>Reranker latency vs candidate count.</li><li>Generation TTFT/TTLT and token usage.</li><li>Answer grounding score or citation coverage rate.</li><li>Error rate by component and failure class.</li><li>Queue depth, consumer lag, and job age.</li><li>Cost per successful answer (model + retrieval + infra).</li></ul>
+<h4 id="logging-standards">Logging Standards</h4>
+<p>Use structured logs with correlation IDs that flow across all services:</p>
+<ul><li><code>request_id</code>, <code>trace_id</code>, <code>tenant_id</code>, <code>user_scope</code>.</li><li>pipeline route and component version.</li><li>retrieval IDs and policy decisions (allow/deny reason).</li><li>safe summaries, not raw sensitive payloads.</li></ul>
+<p>Log redaction should be default-on to reduce leakage risk and compliance burden.</p>
+<h4 id="alerting-philosophy">Alerting Philosophy</h4>
+<p>Alert on user-impact, not only system noise:</p>
+<ol><li>SLO burn alerts (latency/error budget consumption).</li><li>Grounding-quality degradation alerts.</li><li>Queue backlog growth alerts.</li><li>Dependency health and timeout spike alerts.</li></ol>
+<p>Avoid alert fatigue by tiering severities and mapping each alert to a clear runbook.</p>
+<h3 id="failure-handling">Failure Handling</h3>
+<p>Production design is largely failure design. The goal is graceful degradation, not perfect prevention.</p>
+<h4 id="failure-taxonomy">Failure Taxonomy</h4>
+<p>Classify failures by behavior:</p>
+<ol><li><strong>Transient:</strong> short network blips, temporary rate limits.</li><li><strong>Persistent:</strong> bad deployment, incompatible schema, corrupted index shard.</li><li><strong>Partial:</strong> one dependency fails while others remain healthy.</li><li><strong>Systemic:</strong> cross-component outage or cascading failures.</li></ol>
+<p>Each class should have a different remediation strategy.</p>
+<h4 id="resilience-patterns">Resilience Patterns</h4>
+<ul><li><strong>Timeout budgets:</strong> fail fast per stage to protect global latency.</li><li><strong>Retries with backoff:</strong> only for idempotent operations and transient errors.</li><li><strong>Circuit breakers:</strong> stop calling failing dependencies temporarily.</li><li><strong>Bulkheads:</strong> isolate resource pools to prevent noisy-neighbor collapse.</li><li><strong>Fallback paths:</strong> return constrained but useful answers when deep path fails.</li><li><strong>Last known-good artifacts:</strong> keep previous healthy index/model route available.</li></ul>
+<h4 id="degradation-strategy-for-user-experience">Degradation Strategy for User Experience</h4>
+<p>When failures happen, degrade intentionally:</p>
+<ol><li>Reduce retrieval fan-out.</li><li>Skip expensive reranking path.</li><li>Use smaller/faster generation model.</li><li>Return partial result with explicit confidence disclaimer.</li><li>Offer retry option with request correlation token.</li></ol>
+<p>Transparent degraded behavior is better than silent hallucination or hard failure.</p>
+<h4 id="operational-readiness">Operational Readiness</h4>
+<p>Failure handling is incomplete without drills:</p>
+<ul><li>Run chaos-style tests for dependency outages.</li><li>Rehearse index rollback procedures.</li><li>Validate on-call runbooks regularly.</li><li>Measure recovery metrics (MTTD, MTTR, rollback success rate).</li></ul>
+<h3 id="versioning-embeddings">Versioning Embeddings</h3>
+<p>Embedding versioning is one of the most overlooked production requirements. If embedding changes are not versioned, retrieval behavior changes become untraceable and rollback becomes risky.</p>
+<h4 id="what-must-be-versioned">What Must Be Versioned</h4>
+<p>Treat embedding output as a versioned artifact with immutable lineage:</p>
+<ol><li>Embedding model name and provider revision.</li><li>Model hyperparameters/dimension.</li><li>Preprocessing rules (normalization, language handling, stopword policy).</li><li>Chunking algorithm and chunk size/overlap policy.</li><li>Metadata schema and filtering logic.</li></ol>
+<p>Any change in these inputs can shift vector space behavior.</p>
+<h4 id="versioning-strategy">Versioning Strategy</h4>
+<p>Use explicit version IDs such as:</p>
+<ul><li><code>embed_v1</code>, <code>embed_v2</code>, <code>embed_v3</code></li><li>plus machine-readable manifests for reproducibility.</li></ul>
+<p>Store version fields on every indexed chunk and every retrieval event so you can audit which version produced a given answer.</p>
+<h4 id="safe-migration-patterns">Safe Migration Patterns</h4>
+<p>Preferred rollout patterns:</p>
+<ol><li><strong>Dual-write:</strong> index new content to both old and new embedding versions.</li><li><strong>Shadow-read:</strong> evaluate new version retrieval quality without affecting user results.</li><li><strong>Canary rollout:</strong> route a small traffic percentage to new embedding index.</li><li><strong>Progressive cutover:</strong> increase traffic only if quality/latency/cost metrics stay within guardrails.</li><li><strong>Rollback readiness:</strong> keep previous index warm until migration is proven stable.</li></ol>
+<h4 id="common-versioning-pitfalls">Common Versioning Pitfalls</h4>
+<ul><li>Mixing embeddings from different models in one index without tagging.</li><li>Re-embedding incrementally while query encoder already switched versions.</li><li>Missing metadata lineage, making incident forensics impossible.</li><li>No parity evaluation before full migration.</li></ul>
+<h4 id="interview-strong-answer">Interview-Strong Answer</h4>
+<p>A strong answer explicitly says:</p>
+<ol><li>Embedding and index changes are treated like code deployments.</li><li>Every retrieval event is traceable to embedding version.</li><li>Migration uses canary + rollback, not big-bang replacement.</li></ol>
+<h3 id="production-design-checklist-quick-interview-wrap-up">Production Design Checklist (Quick Interview Wrap-Up)</h3>
+<p>Use this as a concise architecture checklist:</p>
+<ol><li>Pipeline stages are contract-driven and independently observable.</li><li>Monolith vs microservices is chosen by scale and team needs, not trend-following.</li><li>Async workloads are queue-backed with idempotent consumers.</li><li>Queue topology includes retry, dead-letter, lag monitoring, and ownership.</li><li>Metrics/logs/traces are unified with correlation IDs and SLO-based alerts.</li><li>Failure handling supports graceful degradation and tested rollback.</li><li>Embedding versioning is explicit, auditable, and safely migratable.</li></ol>
+<p>If you can explain these seven points clearly in an interview, you demonstrate production ownership, not just model experimentation.</p></article>
+<nav class="page-nav" aria-label="Note navigation"><a href="./13-security-privacy.html">← 🔐 13. Security &amp; Privacy (Critical for production trust)</a><a href="./15-real-world-problems-to-practice.html">📈 15. Real-world Problems to Practice (Where theory becomes deployment skill) →</a></nav>
+</main>
+</div>
+<script>
+const links = [...document.querySelectorAll(".toc a")];
+const observer = new IntersectionObserver(entries => {
+  for (const entry of entries) {
+    if (!entry.isIntersecting) continue;
+    links.forEach(link => link.classList.toggle("active", link.hash === "#" + entry.target.id));
+  }
+}, { rootMargin: "-15% 0px -72% 0px" });
+document.querySelectorAll("main h2[id], main h3[id]").forEach(heading => observer.observe(heading));
+</script>
+</body>
+</html>
