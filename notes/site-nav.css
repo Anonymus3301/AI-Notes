@@ -6,10 +6,12 @@
   margin-right: 10px;
 }
 .site-navigation a {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   padding: 5px 9px;
   border-radius: 6px;
   white-space: nowrap;
+  min-height: 40px;
 }
 header.bar .site-navigation a {
   color: inherit;
@@ -44,8 +46,31 @@ header.bar .site-navigation a:hover {
 }
 @media (max-width: 600px) {
   .site-navigation { gap: 2px; margin-right: 0; }
-  .site-navigation a { padding: 5px 7px; font-size: 13px; }
+  .site-navigation a { padding: 5px 7px; font-size: 13px; white-space: normal; }
   .site-nav-header { padding: 8px 12px; }
+}
+@media (max-width: 850px) {
+  .site-navigation { flex-basis: 100%; margin-right: 0; }
+  .bar-pages { flex: 1 1 100%; justify-content: space-between; }
+  .bar-pages a { display: inline-flex; min-height: 40px; align-items: center; }
+  :where(main, article, #content, .layout, .wrap, .hub) { min-width: 0; }
+  :where(.table-wrap, .tblwrap, .tw) {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  :where(.table-wrap, .tblwrap, .tw) table { width: max-content; min-width: 100%; }
+  :where(.fig, .mermaid, .hl, pre) { max-width: 100%; }
+  :where(img, video, iframe) { max-width: 100%; height: auto; }
+  :where(main, article) a { overflow-wrap: anywhere; }
+  :where(main, article) code { overflow-wrap: anywhere; }
+}
+@media (max-width: 600px) {
+  .site-navigation { gap: 2px; }
+  .site-navigation a { flex: 1 1 auto; text-align: center; }
+  .page-nav { flex-direction: column; align-items: stretch; }
+  .page-nav a,
+  .page-nav a:last-child { max-width: none; margin-left: 0; text-align: left; }
 }
 @media print {
   .site-nav-header { display: none; }
