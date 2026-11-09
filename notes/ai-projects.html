@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Three practical AI portfolio projects with four-week build plans and a progress checklist.">
+<title>AI Projects to Build</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="site-nav.js" defer></script>
+<style>
+:root {
+  --bg: #f3f5f8;
+  --paper: #fff;
+  --ink: #16202e;
+  --muted: #5b6778;
+  --line: #dde3ea;
+  --accent: #0a6c8f;
+  --accent-soft: #e3f1f6;
+  --done: #12724a;
+}
+:root[data-theme="dark"] {
+  --bg: #0e141c;
+  --paper: #151d28;
+  --ink: #e4e9f0;
+  --muted: #97a3b4;
+  --line: #27323f;
+  --accent: #52b8da;
+  --accent-soft: #12303c;
+  --done: #6fd3a0;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e141c;
+    --paper: #151d28;
+    --ink: #e4e9f0;
+    --muted: #97a3b4;
+    --line: #27323f;
+    --accent: #52b8da;
+    --accent-soft: #12303c;
+    --done: #6fd3a0;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 17px/1.65 "Source Serif 4", Georgia, serif;
+}
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 10px 20px;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+  font: 14px "Space Grotesk", "Segoe UI", sans-serif;
+}
+.bar a { color: var(--accent); text-decoration: none; }
+.bar a:hover { text-decoration: underline; }
+.bar .spacer { flex: 1; }
+.bar button, .reset {
+  min-height: 40px;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+.bar button:hover, .reset:hover { border-color: var(--accent); }
+.page { max-width: 1080px; margin: 0 auto; padding: 34px 22px 72px; }
+.hero { padding: 8px 0 24px; border-bottom: 2px solid var(--ink); }
+h1, h2, h3 { font-family: "Space Grotesk", "Segoe UI", sans-serif; line-height: 1.25; }
+h1 { margin: 0 0 10px; font-size: clamp(2rem, 5vw, 3rem); letter-spacing: -.02em; }
+.subtitle { max-width: 72ch; margin: 0; color: var(--muted); }
+.hero-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 22px; }
+.progress-track { flex: 1 1 220px; height: 10px; overflow: hidden; border-radius: 99px; background: var(--line); }
+.progress-track span { display: block; width: 0; height: 100%; background: var(--done); transition: width .2s ease; }
+.progress-count { min-width: 110px; color: var(--muted); font: 14px "Space Grotesk", sans-serif; }
+.reset { font-size: 14px; }
+.project-list { display: grid; gap: 22px; margin-top: 26px; }
+.project {
+  min-width: 0;
+  padding: clamp(16px, 3vw, 26px);
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--accent);
+  border-radius: 12px;
+  background: var(--paper);
+}
+.project-heading { display: flex; align-items: flex-start; gap: 12px; }
+.project-heading input, .task input {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  margin: 5px 0 0;
+  accent-color: var(--done);
+}
+.project-heading h2 { margin: 0; font-size: clamp(1.35rem, 3vw, 1.8rem); }
+.project-heading p { margin: 5px 0 0; color: var(--muted); }
+.proof { display: flex; flex-wrap: wrap; gap: 7px; margin: 15px 0 0; padding: 0; list-style: none; }
+.proof li { padding: 3px 10px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); font: 12px "Space Grotesk", sans-serif; }
+.project-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); gap: 14px; margin-top: 18px; }
+.panel { min-width: 0; padding: 14px 16px; border: 1px solid var(--line); border-radius: 9px; }
+.panel h3 { margin: 0 0 9px; font-size: 1rem; }
+.panel p { margin: 0; }
+.stack { color: var(--muted); font-size: .94rem; overflow-wrap: anywhere; }
+.task-list { display: grid; gap: 9px; margin: 0; padding: 0; list-style: none; }
+.task { display: flex; align-items: flex-start; gap: 9px; min-width: 0; }
+.task label { cursor: pointer; }
+.task span { min-width: 0; }
+.task input { width: 18px; height: 18px; margin-top: 3px; }
+.week { color: var(--accent); font: 600 .77rem "Space Grotesk", sans-serif; text-transform: uppercase; letter-spacing: .06em; }
+details { margin-top: 14px; border-top: 1px solid var(--line); }
+summary { padding: 13px 0 2px; color: var(--accent); font: 600 14px "Space Grotesk", sans-serif; cursor: pointer; }
+details .panel { margin: 10px 0 4px; }
+.source { margin: 26px 0 0; color: var(--muted); font-size: .88rem; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+@media (max-width: 600px) {
+  .bar { gap: 6px; padding: 8px 12px; }
+  .bar .spacer { display: none; }
+  .page { padding: 22px 14px 52px; }
+  .hero-tools { align-items: stretch; }
+  .reset { flex: 1 1 100%; }
+}
+@media print {
+  .bar, .hero-tools { display: none; }
+  .page { max-width: none; padding: 0; }
+  .project { break-inside: avoid; }
+  details > * { display: block !important; }
+}
+</style>
+</head>
+<body>
+<header class="bar">
+  <a href="../index.html">← AI tutorials</a>
+  <a href="index.html">All notes</a>
+  <span class="spacer"></span>
+  <button id="theme" type="button" aria-label="Toggle theme">Theme</button>
+</header>
+
+<main class="page">
+  <header class="hero">
+    <h1>AI Projects to Build</h1>
+    <p class="subtitle">Three portfolio projects that demonstrate retrieval, reliable tool use, and practical data analysis. Each plan is broken into four weekly milestones; check off your progress as you build.</p>
+    <div class="hero-tools">
+      <div class="progress-track" role="progressbar" aria-label="Project tasks completed" aria-valuemin="0" aria-valuemax="15" aria-valuenow="0"><span id="progress"></span></div>
+      <span class="progress-count" id="progress-count" aria-live="polite">0 of 15 tasks complete</span>
+      <button class="reset" id="reset-progress" type="button">Reset progress</button>
+    </div>
+  </header>
+
+  <div class="project-list">
+    <article class="project" id="document-assistant">
+      <header class="project-heading">
+        <input id="project-document" type="checkbox" data-progress aria-label="Mark AI Document Assistant complete">
+        <div>
+          <h2><label for="project-document">1. AI Document Assistant</label></h2>
+          <p>Ask questions about uploaded documents and get evidence-linked answers instead of hunting through pages.</p>
+          <ul class="proof"><li>RAG</li><li>Evaluation</li><li>Source citations</li></ul>
+        </div>
+      </header>
+      <div class="project-grid">
+        <section class="panel">
+          <h3>What to build</h3>
+          <p>Accept one or more PDFs, extract and chunk the text, index embeddings, retrieve relevant passages for each question, and answer with document and page references. Include a clear “not found” response when evidence is missing, plus chat history for follow-ups.</p>
+          <details>
+            <summary>Suggested stack and stretch goals</summary>
+            <div class="panel">
+              <h3>Suggested stack</h3>
+              <p class="stack">Python · PyMuPDF or pypdf · embeddings · Chroma (then pgvector) · LLM API · FastAPI · Streamlit · Docker</p>
+              <h3>Stretch goals</h3>
+              <ul>
+                <li>Compare hybrid keyword and vector retrieval with a re-ranker.</li>
+                <li>Support two answer languages and side-by-side document comparison.</li>
+                <li>Track answer quality, cost, and latency in a small dashboard.</li>
+              </ul>
+            </div>
+          </details>
+          <details>
+            <summary>What to discuss in interviews</summary>
+            <div class="panel"><p>Use evaluation results to explain chunking and retrieval choices, how you reduce unsupported answers, how the system behaves when evidence is absent, and what would change at a much larger corpus size.</p></div>
+          </details>
+        </section>
+        <section class="panel">
+          <h3>Four-week build plan</h3>
+          <ol class="task-list">
+            <li class="task"><input id="doc-week-1" type="checkbox" data-progress><label for="doc-week-1"><span class="week">Week 1</span><br>Complete a basic RAG loop: one PDF, chunking, embeddings, top-three retrieval, and a terminal answer.</label></li>
+            <li class="task"><input id="doc-week-2" type="checkbox" data-progress><label for="doc-week-2"><span class="week">Week 2</span><br>Create a small evaluation set with expected answers; compare chunk sizes, overlap, and retrieval depth.</label></li>
+            <li class="task"><input id="doc-week-3" type="checkbox" data-progress><label for="doc-week-3"><span class="week">Week 3</span><br>Add a chat interface, multiple files, page citations, highlighted passages, and follow-up history.</label></li>
+            <li class="task"><input id="doc-week-4" type="checkbox" data-progress><label for="doc-week-4"><span class="week">Week 4</span><br>Handle scanned or unusually large files; containerize, deploy, document, and record a short demo.</label></li>
+          </ol>
+        </section>
+      </div>
+    </article>
+
+    <article class="project" id="support-agent">
+      <header class="project-heading">
+        <input id="project-support" type="checkbox" data-progress aria-label="Mark AI Customer Support Agent complete">
+        <div>
+          <h2><label for="project-support">2. AI Customer Support Agent</label></h2>
+          <p>Answer support questions from an approved knowledge base, perform a small set of verified actions, and hand off when needed.</p>
+          <ul class="proof"><li>RAG</li><li>Tool calling</li><li>Safety and escalation</li></ul>
+        </div>
+      </header>
+      <div class="project-grid">
+        <section class="panel">
+          <h3>What to build</h3>
+          <p>Ground policy answers in help-center content. Add mock order-status and return-request tools; verify ownership and inputs in application code, ask for confirmation before changes, and route uncertain or difficult cases to a person.</p>
+          <details>
+            <summary>Suggested stack and stretch goals</summary>
+            <div class="panel">
+              <h3>Suggested stack</h3>
+              <p class="stack">Python · LLM tool calling · SQLite or Postgres mock orders · Chroma knowledge base · FastAPI · chat UI · structured logs</p>
+              <h3>Stretch goals</h3>
+              <ul>
+                <li>Remember conversations across sessions with user consent.</li>
+                <li>Detect frustration and route the conversation to support staff.</li>
+                <li>Add an admin view of conversations and tool activity, or multilingual replies.</li>
+              </ul>
+            </div>
+          </details>
+          <details>
+            <summary>What to discuss in interviews</summary>
+            <div class="panel"><p>Explain where authorization, validation, and confirmation happen; how answers stay grounded in policy; and one failure found and fixed by your test conversations.</p></div>
+          </details>
+        </section>
+        <section class="panel">
+          <h3>Four-week build plan</h3>
+          <ol class="task-list">
+            <li class="task"><input id="support-week-1" type="checkbox" data-progress><label for="support-week-1"><span class="week">Week 1</span><br>Build a grounded FAQ assistant over a small, clearly sourced help center.</label></li>
+            <li class="task"><input id="support-week-2" type="checkbox" data-progress><label for="support-week-2"><span class="week">Week 2</span><br>Add mock order lookup and return-request tools, and record tool activity.</label></li>
+            <li class="task"><input id="support-week-3" type="checkbox" data-progress><label for="support-week-3"><span class="week">Week 3</span><br>Add ownership checks, input validation, user confirmation, refusals, and human escalation.</label></li>
+            <li class="task"><input id="support-week-4" type="checkbox" data-progress><label for="support-week-4"><span class="week">Week 4</span><br>Test normal and edge-case conversations, fix observed failures, and deploy.</label></li>
+          </ol>
+        </section>
+      </div>
+    </article>
+
+    <article class="project" id="data-analyst">
+      <header class="project-heading">
+        <input id="project-analyst" type="checkbox" data-progress aria-label="Mark AI Data Analyst complete">
+        <div>
+          <h2><label for="project-analyst">3. AI Data Analyst</label></h2>
+          <p>Let people ask questions about spreadsheets in plain language and inspect the numbers, chart, and analysis behind each answer.</p>
+          <ul class="proof"><li>Python and data</li><li>Constrained execution</li><li>Charts</li></ul>
+        </div>
+      </header>
+      <div class="project-grid">
+        <section class="panel">
+          <h3>What to build</h3>
+          <p>Accept CSV or Excel files, show detected columns and sample rows, produce Pandas or SQL analysis, and present the result with a useful chart and the generated query or code. Keep execution constrained and make errors understandable.</p>
+          <details>
+            <summary>Suggested stack and stretch goals</summary>
+            <div class="panel">
+              <h3>Suggested stack</h3>
+              <p class="stack">Python · Pandas · DuckDB or SQLite · LLM API · Plotly or Matplotlib · Streamlit · Docker</p>
+              <h3>Stretch goals</h3>
+              <ul>
+                <li>Join multiple related files or export a PDF insights report.</li>
+                <li>Support follow-up questions about earlier results.</li>
+                <li>Compare SQL and Pandas analysis on a known test set.</li>
+              </ul>
+            </div>
+          </details>
+          <details>
+            <summary>What to discuss in interviews</summary>
+            <div class="panel"><p>Show how you limit generated code, how you handle ambiguous questions and messy data, and how measured accuracy improved after fixing a test failure.</p></div>
+          </details>
+        </section>
+        <section class="panel">
+          <h3>Four-week build plan</h3>
+          <ol class="task-list">
+            <li class="task"><input id="analyst-week-1" type="checkbox" data-progress><label for="analyst-week-1"><span class="week">Week 1</span><br>Send schema and sample rows with a question, run generated Pandas code, and show its result.</label></li>
+            <li class="task"><input id="analyst-week-2" type="checkbox" data-progress><label for="analyst-week-2"><span class="week">Week 2</span><br>Constrain execution, add bounded error recovery, and measure against questions with known answers.</label></li>
+            <li class="task"><input id="analyst-week-3" type="checkbox" data-progress><label for="analyst-week-3"><span class="week">Week 3</span><br>Generate suitable charts, summarize each dataset, and add a compact dashboard.</label></li>
+            <li class="task"><input id="analyst-week-4" type="checkbox" data-progress><label for="analyst-week-4"><span class="week">Week 4</span><br>Improve support for missing values and unusual dates; deploy, document, and record a demo.</label></li>
+          </ol>
+        </section>
+      </div>
+    </article>
+  </div>
+
+  <p class="source">Project ideas and four-week milestones are summarized and paraphrased from Hemant (@hemant_careerbytes), <cite>The AI Engineer Playbook: Projects, Interviews, Compensation</cite> (2026). Suggested technologies and optional extensions are starting points; choose tools that fit your own implementation.</p>
+</main>
+
+<script>
+(() => {
+  const storageKey = "ai-projects-checklist-v1";
+  const inputs = [...document.querySelectorAll("[data-progress]")];
+  const progress = document.querySelector(".progress-track");
+  const progressBar = document.getElementById("progress");
+  const progressCount = document.getElementById("progress-count");
+  const themeButton = document.getElementById("theme");
+  const root = document.documentElement;
+
+  function readProgress() {
+    try {
+      return JSON.parse(localStorage.getItem(storageKey) || "{}");
+    } catch (error) {
+      console.error("Could not read saved project progress.", error);
+      return {};
+    }
+  }
+
+  function saveProgress(state) {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(state));
+    } catch (error) {
+      console.error("Could not save project progress.", error);
+    }
+  }
+
+  function updateProgress() {
+    const completed = inputs.filter(input => input.checked).length;
+    progressBar.style.width = `${inputs.length ? completed / inputs.length * 100 : 0}%`;
+    progress.setAttribute("aria-valuemax", inputs.length);
+    progress.setAttribute("aria-valuenow", completed);
+    progressCount.textContent = `${completed} of ${inputs.length} tasks complete`;
+  }
+
+  const state = readProgress();
+  for (const input of inputs) {
+    input.checked = state[input.id] === true;
+    input.addEventListener("change", () => {
+      const current = readProgress();
+      current[input.id] = input.checked;
+      saveProgress(current);
+      updateProgress();
+    });
+  }
+  updateProgress();
+
+  document.getElementById("reset-progress").addEventListener("click", () => {
+    for (const input of inputs) input.checked = false;
+    saveProgress({});
+    updateProgress();
+  });
+
+  themeButton.addEventListener("click", () => {
+    const currentTheme = root.getAttribute("data-theme");
+    const isDark = currentTheme
+      ? currentTheme === "dark"
+      : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    root.setAttribute("data-theme", isDark ? "light" : "dark");
+  });
+})();
+</script>
+</body>
+</html>

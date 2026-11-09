@@ -1,4 +1,4 @@
-const CACHE_NAME = "ai-notes-pwa-v4";
+const CACHE_NAME = "ai-notes-pwa-v5";
 const PRECACHE_URLS = [
   "./index.html",
   "./mcp.html",
@@ -13,6 +13,7 @@ const PRECACHE_URLS = [
   "./notes/m6.html",
   "./notes/m7.html",
   "./notes/projects.html",
+  "./notes/ai-projects.html",
   "./notes/sd.html",
   "./notes/stack.html",
   "./notes/agent-fundamentals/index.html",
