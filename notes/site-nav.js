@@ -23,6 +23,42 @@
   stylesheet.href = new URL("site-nav.css", scriptUrl).href;
   document.head.appendChild(stylesheet);
 
+  const manifest = document.createElement("link");
+  manifest.rel = "manifest";
+  manifest.href = new URL("../manifest.webmanifest", scriptUrl).href;
+  document.head.appendChild(manifest);
+
+  const appleIcon = document.createElement("link");
+  appleIcon.rel = "apple-touch-icon";
+  appleIcon.href = new URL("../assets/icons/icon-192.png", scriptUrl).href;
+  document.head.appendChild(appleIcon);
+
+  const favicon = document.createElement("link");
+  favicon.rel = "icon";
+  favicon.type = "image/svg+xml";
+  favicon.href = new URL("../assets/icons/icon.svg", scriptUrl).href;
+  document.head.appendChild(favicon);
+
+  const themeColor = document.createElement("meta");
+  themeColor.name = "theme-color";
+  themeColor.content = "#17365d";
+  document.head.appendChild(themeColor);
+
+  const appleAppMode = document.createElement("meta");
+  appleAppMode.name = "apple-mobile-web-app-capable";
+  appleAppMode.content = "yes";
+  document.head.appendChild(appleAppMode);
+
+  const appleAppTitle = document.createElement("meta");
+  appleAppTitle.name = "apple-mobile-web-app-title";
+  appleAppTitle.content = "AI Notes";
+  document.head.appendChild(appleAppTitle);
+
+  if ("serviceWorker" in navigator && window.isSecureContext) {
+    navigator.serviceWorker.register(new URL("../service-worker.js", scriptUrl))
+      .catch(error => console.error("AI Notes service worker registration failed.", error));
+  }
+
   let header = document.querySelector("header.bar");
   let container;
   if (header) {
@@ -77,4 +113,38 @@
       container.insertBefore(navigation, container.firstChild);
     }
   }
+
+  const installButton = document.createElement("button");
+  installButton.className = "install-app";
+  installButton.type = "button";
+  installButton.textContent = "Install app";
+  installButton.hidden = true;
+  installButton.setAttribute("aria-label", "Install AI Notes app");
+  navigation.appendChild(installButton);
+
+  let installPrompt;
+  window.addEventListener("beforeinstallprompt", event => {
+    event.preventDefault();
+    installPrompt = event;
+    installButton.hidden = false;
+  });
+
+  installButton.addEventListener("click", async () => {
+    if (!installPrompt) return;
+
+    const prompt = installPrompt;
+    installPrompt = null;
+    installButton.hidden = true;
+    try {
+      await prompt.prompt();
+      await prompt.userChoice;
+    } catch (error) {
+      console.error("AI Notes install prompt failed.", error);
+    }
+  });
+
+  window.addEventListener("appinstalled", () => {
+    installPrompt = null;
+    installButton.hidden = true;
+  });
 })();

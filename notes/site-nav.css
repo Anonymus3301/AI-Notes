@@ -13,6 +13,17 @@
   white-space: nowrap;
   min-height: 40px;
 }
+.site-navigation .install-app {
+  min-height: 40px;
+  padding: 5px 9px;
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.site-navigation .install-app[hidden] { display: none; }
 header.bar .site-navigation a {
   color: inherit;
   text-decoration: none;
