@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="A simple daily study tracker for focused study time and personal challenges.">
+<title>Daily Study Tracker</title>
+<style>
+:root{
+  color-scheme:light;
+  --bg:#f3f5f8; --surface:#fff; --text:#16202e; --muted:#5b6778;
+  --line:#dde3ea; --accent:#0a6c8f; --accent-soft:#e3f1f6; --done:#12724a;
+  --danger:#a4440b; --shadow:0 12px 36px rgba(22,32,46,.07);
+  --sun:#ffd166; --sun-soft:#fff5d8;
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0e141c; --surface:#151d28; --text:#e4e9f0; --muted:#97a3b4;
+  --line:#27323f; --accent:#52b8da; --accent-soft:#12303c; --done:#6fd3a0;
+  --danger:#f2a066; --shadow:0 12px 36px rgba(0,0,0,.2);
+  --sun:#ffd166; --sun-soft:#332b18;
+}
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0e141c; --surface:#151d28; --text:#e4e9f0; --muted:#97a3b4;
+    --line:#27323f; --accent:#52b8da; --accent-soft:#12303c; --done:#6fd3a0;
+    --danger:#f2a066; --shadow:0 12px 36px rgba(0,0,0,.2);
+    --sun:#ffd166; --sun-soft:#332b18;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:var(--accent)}
+button,input{font:inherit}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.top button,.button{min-height:44px}
+.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.top-inner{max-width:980px;margin:auto;padding:8px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.home-link{color:var(--accent);text-decoration:none;font-weight:600}
+.spacer{flex:1}
+.top button,.button{border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--text);padding:8px 14px;cursor:pointer;transition:transform .15s ease,border-color .15s ease,filter .15s ease}
+.top button:hover,.button:hover{border-color:var(--accent)}
+.button:active{transform:scale(.97)}
+.wrap{max-width:800px;margin:0 auto;padding:32px 20px 72px}
+.intro{position:relative;overflow:hidden;margin-bottom:22px;padding:26px 28px;border:1px solid var(--line);border-radius:20px;background:linear-gradient(135deg,var(--accent-soft),var(--surface) 72%);box-shadow:var(--shadow)}
+.intro:after{content:"✦";position:absolute;right:26px;top:14px;color:var(--accent);font-size:clamp(3rem,12vw,6rem);line-height:1;opacity:.16;transform:rotate(12deg);pointer-events:none}
+.eyebrow{display:inline-flex;align-items:center;gap:6px;margin:0 0 12px;padding:5px 10px;border-radius:999px;background:var(--surface);color:var(--accent);font-size:.76rem;font-weight:750;letter-spacing:.07em;text-transform:uppercase}
+h1,h2,h3,p{margin-top:0}
+h1{position:relative;z-index:1;font-size:clamp(2rem,6vw,2.8rem);line-height:1.12;letter-spacing:-.04em;margin-bottom:8px}
+.intro p{position:relative;z-index:1;max-width:48ch;color:var(--muted);margin-bottom:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;margin:14px 0;box-shadow:var(--shadow)}
+.date-row{display:grid;grid-template-columns:44px minmax(0,1fr) 44px auto;align-items:center;gap:8px;margin-top:12px}
+.date-row input{width:100%;min-width:0;min-height:44px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--text);padding:7px 10px}
+.date-row button{min-width:44px;min-height:44px;padding:6px}
+.day-label{font-size:.9rem;color:var(--muted);margin:10px 0 0}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:18px 0}
+.stat{position:relative;overflow:hidden;background:var(--accent-soft);border-radius:12px;padding:14px}
+.stat:before{display:block;margin-bottom:4px;font-size:1.05rem}
+.stat:first-child:before{content:"⏱️"}
+.stat:last-child:before{content:"✨"}
+.stat strong{display:block;font-size:1.55rem;line-height:1.25;letter-spacing:-.03em}
+.stat span{font-size:.85rem;color:var(--muted)}
+.progress{height:10px;border-radius:20px;background:var(--line);overflow:hidden;margin:16px 0 8px}
+.progress span{display:block;height:100%;width:0;border-radius:inherit;background:linear-gradient(90deg,var(--accent),var(--done));transition:width .3s ease}
+.progress-label{color:var(--muted);font-size:.9rem;font-weight:600;margin:0}
+.day-card.is-complete{border-color:var(--done)}
+.day-card.is-complete .progress-label{color:var(--done)}
+.section-heading{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+h2{font-size:1.18rem;margin-bottom:4px}
+.hint{font-size:.86rem;color:var(--muted);margin:0}
+.challenges{list-style:none;padding:0;margin:16px 0 0}
+.challenge{display:flex;gap:12px;align-items:center;padding:11px 10px;border-top:1px solid var(--line);border-radius:10px;transition:background .15s ease}
+.challenge:hover{background:var(--bg)}
+.challenge input{width:22px;height:22px;margin:0;accent-color:var(--done);flex:none;cursor:pointer}
+.challenge label{display:flex;align-items:center;gap:10px;flex:1;min-height:30px;cursor:pointer}
+.challenge-icon{display:inline-grid;place-items:center;width:34px;height:34px;flex:none;border-radius:10px;background:var(--accent-soft);font-size:1rem}
+.challenge.done .challenge-icon{background:var(--sun-soft)}
+.challenge.done label{color:var(--muted)}
+.challenge.done .challenge-text{text-decoration:line-through;text-decoration-thickness:1px}
+.empty{color:var(--muted);font-size:.92rem;padding:10px 0}
+.add-form{display:flex;gap:8px;margin-top:16px}
+.add-form input{flex:1;min-width:0;min-height:46px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--text);padding:9px 12px}
+.add-form input::placeholder,.field input::placeholder{color:var(--muted);opacity:.8}
+.timer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:18px 0;padding:16px;border-radius:14px;background:linear-gradient(135deg,var(--accent-soft),var(--bg))}
+.clock{font-variant-numeric:tabular-nums;font-size:clamp(2rem,8vw,2.7rem);font-weight:750;letter-spacing:-.04em}
+.button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.button.primary:hover{filter:brightness(1.08)}
+.timer-note{font-size:.85rem;color:var(--muted);margin:0}
+.manual-form{display:flex;align-items:end;gap:10px;flex-wrap:wrap;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+.field{display:grid;gap:5px}
+.field label{font-size:.85rem;color:var(--muted)}
+.field input{width:130px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);padding:9px 11px}
+.notice{min-height:1.5em;color:var(--muted);font-size:.9rem;margin:12px 0 0}
+.notice.error{color:var(--danger)}
+footer{color:var(--muted);font-size:.85rem;padding:8px 0}
+@media(max-width:600px){
+  .top-inner{padding:7px 14px;gap:8px}
+  .site-nav-header .site-navigation{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .site-nav-header .site-navigation::-webkit-scrollbar{display:none}
+  .site-nav-header .site-navigation a{flex:0 0 auto;padding:5px 3px;font-size:12px;white-space:nowrap}
+  .wrap{padding:18px 12px 44px}
+  .intro{padding:22px 18px;border-radius:16px;margin-bottom:16px}
+  .intro:after{right:14px;top:14px}
+  .eyebrow{font-size:.7rem;margin-bottom:10px}
+  .card{padding:16px;border-radius:14px;margin:10px 0}
+  .section-heading{display:block}
+  .section-heading .hint{margin-top:4px}
+  .date-row{grid-template-columns:44px minmax(0,1fr) 44px;gap:7px}
+  .date-row #today{grid-column:1/-1;width:100%}
+  .date-row input{font-size:16px}
+  .stats{gap:8px;margin:14px 0}
+  .stat{padding:11px;border-radius:10px}
+  .stat strong{font-size:1.35rem}
+  .challenge{gap:9px;padding:10px 5px}
+  .challenge-icon{width:32px;height:32px}
+  .challenge label{gap:8px;font-size:.95rem;line-height:1.4}
+  .add-form{flex-direction:column;align-items:stretch}
+  .add-form button,.manual-form button{width:100%}
+  .timer{gap:10px;padding:12px}
+  .timer .clock{font-size:clamp(1.8rem,9vw,2.45rem)}
+  .manual-form{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+  .field input{width:100%;min-height:46px}
+  footer{font-size:.82rem}
+}
+@media(max-width:360px){
+  .date-row{grid-template-columns:40px minmax(0,1fr) 40px;gap:5px}
+  .date-row button{min-width:40px}
+  .timer{align-items:flex-start;flex-direction:column}
+}
+@media print{.top,.date-row button,.add-form,.timer button,.manual-form{display:none!important}.wrap{max-width:none;padding:0}.card{box-shadow:none}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
+</style>
+<script src="notes/site-nav.js" defer></script>
+</head>
+<body>
+<div class="top"><div class="top-inner">
+  <a class="home-link" href="index.html">← Home</a>
+  <span class="spacer"></span>
+  <button id="theme" type="button" aria-label="Toggle color theme">Theme</button>
+</div></div>
+<main class="wrap">
+  <header class="intro">
+    <p class="eyebrow">✨ Your daily quest</p>
+    <h1>Make today count.</h1>
+    <p>Little by little adds up. Pick a few challenges, find your focus, and celebrate showing up.</p>
+  </header>
+
+  <section class="card day-card" id="day-card" aria-labelledby="day-heading">
+    <div class="section-heading">
+      <h2 id="day-heading">Your day</h2>
+      <p class="hint" id="day-type"></p>
+    </div>
+    <div class="date-row">
+      <button class="button" id="previous-day" type="button" aria-label="Previous day">←</button>
+      <input id="selected-date" type="date" aria-label="Select a day">
+      <button class="button" id="next-day" type="button" aria-label="Next day">→</button>
+      <button class="button" id="today" type="button">Today</button>
+    </div>
+    <div class="stats">
+      <div class="stat"><strong id="study-time">0m</strong><span>Study time</span></div>
+      <div class="stat"><strong id="challenge-count">0 / 0</strong><span>Challenges complete</span></div>
+    </div>
+    <div class="progress" role="progressbar" aria-label="Daily challenge progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress"><span id="progress-fill"></span></div>
+    <p class="progress-label" id="progress-label" aria-live="polite">Start with one small challenge.</p>
+  </section>
+
+  <section class="card" aria-labelledby="challenges-heading">
+    <div class="section-heading">
+      <h2 id="challenges-heading">Today's quests</h2>
+      <p class="hint" id="challenge-hint">A simple starting point; add your own for this day.</p>
+    </div>
+    <ul class="challenges" id="challenges"></ul>
+    <form class="add-form" id="add-challenge">
+      <input id="new-challenge" type="text" maxlength="100" placeholder="Add a personal challenge" aria-label="New challenge" required>
+      <button class="button" type="submit">Add challenge</button>
+    </form>
+  </section>
+
+  <section class="card" aria-labelledby="time-heading">
+    <div class="section-heading">
+      <h2 id="time-heading">Focus time</h2>
+      <p class="hint">Use the timer or add time from a session you already completed.</p>
+    </div>
+    <div class="timer">
+      <span class="clock" id="timer-display" aria-live="off">00:00:00</span>
+      <button class="button primary" id="timer-toggle" type="button">Start timer</button>
+    </div>
+    <p class="timer-note" id="timer-note">Timer time is added when you pause or stop.</p>
+    <form class="manual-form" id="add-time">
+      <div class="field">
+        <label for="minutes">Add minutes</label>
+        <input id="minutes" type="number" min="1" max="1440" step="1" inputmode="numeric" placeholder="e.g. 25" required>
+      </div>
+      <button class="button" type="submit">Add study time</button>
+    </form>
+    <p class="notice" id="notice" role="status" aria-live="polite"></p>
+  </section>
+  <footer>Weekdays and weekends have different starter challenges. Add challenges that fit your own schedule.</footer>
+</main>
+<script>
+(() => {
+  "use strict";
+  const STORAGE_KEY = "daily-study-tracker-v1";
+  const WEEKDAY_CHALLENGES = [
+    { id: "plan", text: "Choose one clear study goal" },
+    { id: "focus", text: "Complete a focused study session" },
+    { id: "practice", text: "Practice or apply something you learned" },
+    { id: "review", text: "Review key points and note your next step" }
+  ];
+  const WEEKEND_CHALLENGES = [
+    { id: "weekly-focus", text: "Pick a focus for your study time" },
+    { id: "deep-session", text: "Make time for one longer study session" },
+    { id: "project", text: "Practice, explore, or work on a personal project" },
+    { id: "weekly-review", text: "Reflect on the week and plan what comes next" }
+  ];
+  const elements = {
+    date: document.getElementById("selected-date"),
+    dayType: document.getElementById("day-type"),
+    challenges: document.getElementById("challenges"),
+    challengeCount: document.getElementById("challenge-count"),
+    challengeHint: document.getElementById("challenge-hint"),
+    studyTime: document.getElementById("study-time"),
+    progress: document.getElementById("progress"),
+    progressFill: document.getElementById("progress-fill"),
+    progressLabel: document.getElementById("progress-label"),
+    timerDisplay: document.getElementById("timer-display"),
+    timerToggle: document.getElementById("timer-toggle"),
+    timerNote: document.getElementById("timer-note"),
+    notice: document.getElementById("notice")
+  };
+  const today = toDateKey(new Date());
+  let selectedDate = today;
+  let noticeTimeout;
+  let data = loadData();
+
+  function toDateKey(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  function isValidDateKey(value) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const date = new Date(`${value}T12:00:00`);
+    return !Number.isNaN(date.getTime()) && toDateKey(date) === value;
+  }
+
+  function loadData() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (!saved) return { days: {}, timer: null };
+      const parsed = JSON.parse(saved);
+      if (!parsed || typeof parsed !== "object" || !parsed.days || typeof parsed.days !== "object") {
+        throw new Error("Saved tracker data has an unexpected format.");
+      }
+      return {
+        days: parsed.days,
+        timer: parsed.timer && Number.isFinite(parsed.timer.startedAt) && isValidDateKey(parsed.timer.date)
+          ? parsed.timer
+          : null
+      };
+    } catch (error) {
+      console.error("Could not load study tracker data.", error);
+      showNotice("Could not load saved tracker data. Changes may not be retained.", true);
+      return { days: {}, timer: null };
+    }
+  }
+
+  function saveData() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      return true;
+    } catch (error) {
+      console.error("Could not save study tracker data.", error);
+      showNotice("Could not save your changes. Check browser storage settings.", true);
+      return false;
+    }
+  }
+
+  function dayFor(dateKey) {
+    if (!data.days[dateKey] || typeof data.days[dateKey] !== "object") {
+      data.days[dateKey] = { completed: [], custom: [], studySeconds: 0 };
+    }
+    const day = data.days[dateKey];
+    if (!Array.isArray(day.completed)) day.completed = [];
+    if (!Array.isArray(day.custom)) day.custom = [];
+    if (!Number.isFinite(day.studySeconds) || day.studySeconds < 0) day.studySeconds = 0;
+    return day;
+  }
+
+  function baseChallenges(dateKey) {
+    const weekday = new Date(`${dateKey}T12:00:00`).getDay();
+    return weekday === 0 || weekday === 6 ? WEEKEND_CHALLENGES : WEEKDAY_CHALLENGES;
+  }
+
+  function formatDuration(seconds) {
+    const totalMinutes = Math.floor(seconds / 60);
+    if (totalMinutes === 0 && seconds > 0) return `${Math.floor(seconds)}s`;
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return hours ? `${hours}h ${minutes}m` : `${totalMinutes}m`;
+  }
+
+  function formatClock(seconds) {
+    const total = Math.max(0, Math.floor(seconds));
+    const hours = String(Math.floor(total / 3600)).padStart(2, "0");
+    const minutes = String(Math.floor((total % 3600) / 60)).padStart(2, "0");
+    const remainder = String(total % 60).padStart(2, "0");
+    return `${hours}:${minutes}:${remainder}`;
+  }
+
+  function activeTimerSeconds() {
+    if (!data.timer) return 0;
+    return Math.max(0, Math.floor((Date.now() - data.timer.startedAt) / 1000));
+  }
+
+  function challengeIcon(id) {
+    if (id.includes("plan")) return "🧭";
+    if (id.includes("focus")) return "🎯";
+    if (id.includes("practice") || id.includes("project")) return "🛠️";
+    if (id.includes("review")) return "🌙";
+    if (id.includes("deep")) return "🚀";
+    return "✦";
+  }
+
+  function render() {
+    const date = new Date(`${selectedDate}T12:00:00`);
+    const weekend = date.getDay() === 0 || date.getDay() === 6;
+    const day = dayFor(selectedDate);
+    const defaults = baseChallenges(selectedDate);
+    const challenges = defaults.concat(day.custom);
+    const completed = new Set(day.completed);
+    const completedCount = challenges.filter(challenge => completed.has(challenge.id)).length;
+    const percentage = challenges.length ? Math.round(completedCount / challenges.length * 100) : 0;
+
+    elements.date.value = selectedDate;
+    elements.dayType.textContent = `${date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })} · ${weekend ? "Weekend" : "Weekday"}`;
+    elements.challengeHint.textContent = weekend
+      ? "Weekend starter challenges; add your own for this day."
+      : "Weekday starter challenges; add your own for this day.";
+    elements.challengeCount.textContent = `${completedCount} / ${challenges.length}`;
+    elements.studyTime.textContent = formatDuration(day.studySeconds);
+    elements.progressFill.style.width = `${percentage}%`;
+    elements.progress.setAttribute("aria-valuenow", String(percentage));
+    document.getElementById("day-card").classList.toggle("is-complete", challenges.length > 0 && completedCount === challenges.length);
+    if (!challenges.length) {
+      elements.progressLabel.textContent = "🌱 Add a quest to get started.";
+    } else if (completedCount === challenges.length) {
+      elements.progressLabel.textContent = `🎉 All ${challenges.length} quests complete. You showed up for yourself!`;
+    } else if (completedCount > 0) {
+      elements.progressLabel.textContent = `✨ Nice momentum — ${completedCount} of ${challenges.length} quests done.`;
+    } else {
+      elements.progressLabel.textContent = "🌱 Pick one small quest to get rolling.";
+    }
+    elements.challenges.replaceChildren();
+
+    challenges.forEach(challenge => {
+      const item = document.createElement("li");
+      item.className = "challenge" + (completed.has(challenge.id) ? " done" : "");
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = completed.has(challenge.id);
+      checkbox.id = `challenge-${challenge.id}`;
+      checkbox.setAttribute("aria-label", `Complete: ${challenge.text}`);
+      checkbox.addEventListener("change", () => {
+        const currentDay = dayFor(selectedDate);
+        const done = new Set(currentDay.completed);
+        if (checkbox.checked) done.add(challenge.id);
+        else done.delete(challenge.id);
+        currentDay.completed = [...done];
+        saveData();
+        render();
+      });
+      const label = document.createElement("label");
+      label.htmlFor = checkbox.id;
+      const icon = document.createElement("span");
+      icon.className = "challenge-icon";
+      icon.setAttribute("aria-hidden", "true");
+      icon.textContent = challengeIcon(challenge.id);
+      const text = document.createElement("span");
+      text.className = "challenge-text";
+      text.textContent = challenge.text;
+      label.append(icon, text);
+      item.append(checkbox, label);
+      elements.challenges.appendChild(item);
+    });
+
+    if (!challenges.length) {
+      const empty = document.createElement("li");
+      empty.className = "empty";
+      empty.textContent = "No challenges for this day yet.";
+      elements.challenges.appendChild(empty);
+    }
+    renderTimer();
+  }
+
+  function renderTimer() {
+    const activeSeconds = data.timer && data.timer.date === selectedDate ? activeTimerSeconds() : 0;
+    elements.timerDisplay.textContent = formatClock(activeSeconds);
+    elements.timerToggle.textContent = data.timer ? "Pause timer" : "Start timer";
+    elements.timerNote.textContent = data.timer
+      ? `Timer is recording for ${new Date(`${data.timer.date}T12:00:00`).toLocaleDateString()}. Pause to add it to that day's study time.`
+      : "Timer time is added when you pause or stop.";
+  }
+
+  function showNotice(message, isError) {
+    elements.notice.textContent = message;
+    elements.notice.classList.toggle("error", Boolean(isError));
+    clearTimeout(noticeTimeout);
+    if (message) {
+      noticeTimeout = setTimeout(() => {
+        elements.notice.textContent = "";
+        elements.notice.classList.remove("error");
+      }, 5000);
+    }
+  }
+
+  function changeDate(offset) {
+    const date = new Date(`${selectedDate}T12:00:00`);
+    date.setDate(date.getDate() + offset);
+    selectedDate = toDateKey(date);
+    render();
+  }
+
+  document.getElementById("previous-day").addEventListener("click", () => changeDate(-1));
+  document.getElementById("next-day").addEventListener("click", () => changeDate(1));
+  document.getElementById("today").addEventListener("click", () => {
+    selectedDate = toDateKey(new Date());
+    render();
+  });
+  elements.date.addEventListener("change", () => {
+    if (isValidDateKey(elements.date.value)) {
+      selectedDate = elements.date.value;
+      render();
+    }
+  });
+
+  document.getElementById("add-challenge").addEventListener("submit", event => {
+    event.preventDefault();
+    const input = document.getElementById("new-challenge");
+    const text = input.value.trim();
+    if (!text) {
+      showNotice("Enter a challenge before adding it.", true);
+      return;
+    }
+    const day = dayFor(selectedDate);
+    day.custom.push({ id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, text });
+    if (saveData()) {
+      input.value = "";
+      render();
+      showNotice("Challenge added for this day.");
+    }
+  });
+
+  elements.timerToggle.addEventListener("click", () => {
+    if (data.timer) {
+      const timer = data.timer;
+      const elapsed = activeTimerSeconds();
+      dayFor(timer.date).studySeconds += elapsed;
+      data.timer = null;
+      saveData();
+      render();
+      showNotice(elapsed ? `${formatDuration(elapsed)} added to your study time.` : "Timer stopped.");
+    } else {
+      data.timer = { date: selectedDate, startedAt: Date.now() };
+      if (saveData()) {
+        renderTimer();
+        showNotice("Study timer started.");
+      } else {
+        data.timer = null;
+      }
+    }
+  });
+
+  document.getElementById("add-time").addEventListener("submit", event => {
+    event.preventDefault();
+    const input = document.getElementById("minutes");
+    const minutes = Number(input.value);
+    if (!Number.isInteger(minutes) || minutes < 1 || minutes > 1440) {
+      showNotice("Enter a number of minutes from 1 to 1440.", true);
+      return;
+    }
+    dayFor(selectedDate).studySeconds += minutes * 60;
+    if (saveData()) {
+      input.value = "";
+      render();
+      showNotice(`${formatDuration(minutes * 60)} added to your study time.`);
+    }
+  });
+
+  document.getElementById("theme").addEventListener("click", () => {
+    const root = document.documentElement;
+    const dark = root.getAttribute("data-theme") === "dark" ||
+      (!root.getAttribute("data-theme") && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    const next = dark ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    try {
+      localStorage.setItem("ai-resources-theme", next);
+    } catch (error) {
+      console.error("Could not save the selected theme.", error);
+    }
+  });
+  try {
+    const savedTheme = localStorage.getItem("ai-resources-theme");
+    if (savedTheme === "light" || savedTheme === "dark") document.documentElement.setAttribute("data-theme", savedTheme);
+  } catch (error) {
+    console.error("Could not read the selected theme.", error);
+  }
+
+  window.setInterval(renderTimer, 1000);
+  render();
+})();
+</script>
+</body>
+</html>

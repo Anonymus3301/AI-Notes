@@ -7,6 +7,10 @@ The site can be installed from a browser that supports Progressive Web Apps when
 
 After the service worker finishes its first install, the site's HTML pages and shared assets are available offline. External links and web fonts still require an internet connection. When adding pages or changing offline-cached assets, update the precache list and cache version in [`service-worker.js`](./service-worker.js).
 
+## Daily study tracker
+
+Open the [Daily Study Tracker](./study-tracker.html) to check off generic weekday or weekend challenges and record study time with its timer or a manual entry. Daily history is stored in this browser on this device; it is not synced between browsers or devices.
+
 ## AI project checklist
 
 The [AI Projects to Build](./notes/ai-projects.html) extra guide summarizes three four-week portfolio plans from the user-provided 2026 *AI Engineer Playbook* by Hemant (`@hemant_careerbytes`). It is linked from the main page's Extra guide section, and checklist progress is saved in the current browser.
